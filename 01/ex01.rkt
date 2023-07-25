@@ -512,9 +512,27 @@
 	)
 )
 
-
 (define (expItr b n) (try 1 b n)) ; Hide a as a helper variable.
 
 (expItr 6 5) ; Expect 7776
 (expItr 7 1) ; Expect 7
 (expItr 15 3) ; Expect 3375
+
+
+; Ex 1.17
+
+#| 
+	Using (* 2 x) for double x and (/ x 2) for half x.
+
+	
+ |#
+(define (dhMult a b)
+	(cond
+		((= b 1) a) ; Base case, return a.
+		((even? b) (* 2 (dhMult a (/ b 2)))) ; Double whatever I get from halving multiplication
+		(else (+ b (dhMult a (- b 1)))) ; Add b to whatever I get from reducing multiplication by one.
+	)
+)
+
+(dhMult 1 4)
+(dhMult 5 5)
