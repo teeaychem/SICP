@@ -407,7 +407,6 @@
 (pascal 3 5)
 (pascal 3 1)
 
-
 ; Ex 1.13
 
 #| 
@@ -491,4 +490,31 @@
 
 	Space, as the recursive call returns, need to keep track of the original call.
 	This is some constant(ish) space for each maximum call depth, which is roughly n.
+
+	Right, this is a linear recursive process.
  |#
+
+
+; Ex. 1.16
+
+#| Helper function to test for even (I was hoping remainder would be a task) |#
+(define (even? n)	(= (remainder n 2) 0))
+
+#| Main fuction, following the hint |#
+(define (try a b n) ; a is current value, n is number of exponents remaining
+	(cond
+		((= n 0) a)
+		((even? n) (try (* a a) b (/ n 2))) ; So long as n is even, reduce remaing by half by squaring current.
+																				; This is b^n = (b^2)^(n/2)
+																				; As input, do a^n
+																				; As output, a = a^2, still need a^(n/2)
+		(else (try (* a b) b (- n 1)))
+	)
+)
+
+
+(define (expItr b n) (try 1 b n)) ; Hide a as a helper variable.
+
+(expItr 6 5) ; Expect 7776
+(expItr 7 1) ; Expect 7
+(expItr 15 3) ; Expect 3375
