@@ -116,3 +116,30 @@ size
 )
 
 ; (count-change 100)
+
+#| 
+	Naive approach to tree branching fib is 2n.
+	We've got a recursive algorithm.
+	Two base cases.
+	These are a constant amount of work.
+	Then, for each fib number, we reduce to two cases and continue to do so until hit base case.
+	And, each time we get one and two closer to the base case.
+	So, the worst here is getting one closer.
+	This means, for each step, we introduce two additional calls and have to consider n - 1.
+	
+	So, for each step, constant 
+	
+	
+	
+	
+	So, twice the work of the previous step.
+	Building up from the base cases, then, we have 
+	1 = some constant.
+	2 = some constant.
+	3 = 1 + 2
+	4 = (1 + 2) + 2
+	5 = ((1 + 2) + 2) + (1 + 2)
+	I.e. 5 is the work of 3 previous calls.
+	6 = (((1 + 2) + 2) + (1 + 2)) + ((1 + 2) + 2)
+	I.e. 6 is the work of 5 previous calls.
+ |#
