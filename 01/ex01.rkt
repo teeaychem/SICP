@@ -585,3 +585,46 @@ Always go to n = 1, so add m to store variable.
 (dhMultIter 3 0)
 (dhMultIter 0 5)
 (dhMultIter 3 14)
+
+
+; Ex 1.19
+
+
+#|
+Two applications of T_pq reduce to a single application of
+a <- b(2pq + q^2) + (2pq + q^2) + a(p^2 + q^2)
+b <- b(p^2) + a(2pq + q^2)
+
+So, applied twice we have something of the same form, where:
+new_q = (2pq + q^2)
+new_p = (p^2)
+
+With this in mind, finishing the function is simple, to double the values of
+p and q, apply this transformation to itself.
+|#
+
+
+(define (fibI n)
+  (fib-iter 1 0 0 1 n))
+
+(define (fib-iter a b p q count)
+  (cond ((= count 0) b)
+        ((even? count)
+         (fib-iter a
+                   b
+                   (+ (* p p) (* q q))
+                   (+ (* p q) (* q q) (* q p))
+                   (/ count 2)))
+        (else (fib-iter (+ (* b q) (* a q) (* a p))
+                        (+ (* b p) (* a q))
+                        p
+                        q
+                        (- count 1)))))
+
+; Testing
+(fibI 0)
+(fibI 1)
+(fibI 2)
+(fibI 3)
+(fibI 4)
+
