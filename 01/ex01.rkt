@@ -655,3 +655,37 @@ For, otherwise, and additional call to gcd is always possible.
 
 With all this in mind, given the flow is determined by a conditional, normal and evaluative order should be the same here.
 |#
+
+
+; Ex 1.21
+
+
+#|
+A little before.
+If d is a divisor of n, then so is n/d.
+Proof for this seems easy by contradicition.
+To show d divides n, just need an int such that d * a = n.
+Consider n/d.
+As d is a divisor of n, so n/d is an int, and clearly d * n/d = n.
+|#
+
+(define (divides? a b)
+  (= (remainder b a) 0))
+
+(define (smallest-divisor n)
+  (find-divisor n 2))
+
+(define (find-divisor n test-divisor)
+  (cond ((> (square test-divisor) n) n)
+        ((divides? test-divisor n) test-divisor)
+        (else (find-divisor n (+ test-divisor 1)))))
+
+10101
+(smallest-divisor 199)
+(smallest-divisor 1999)
+(smallest-divisor 19999)
+
+; ? ? ? What is the purpose of this?
+
+
+; Ex 1.22
