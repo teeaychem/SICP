@@ -22,17 +22,16 @@
 (if (and (> b a) (< b (* a b))) b a) ; b, as 4 > 3, 4 < 12
 
 (cond ((= a 4) 6)
-			((= b 4) (+ 6 7 a)) ; b = 4, so 16
-			(else 25)
-)
+      ((= b 4) (+ 6 7 a)) ; b = 4, so 16
+      (else 25)
+      )
 
 (+ 2 (if (> b a) b a)) ; 6
 
 (* (cond ((> a b) a)
-				 ((< a b) b) ; #t
-				 (else -1))
-	 (+ a 1)
-) ; 16, as 4 * (3 + 1)
+         ((< a b) b) ; #t
+         (else -1))
+   (+ a 1)) ; 16, as 4 * (3 + 1)
 
 
 ;; Exercise 1.2
@@ -49,12 +48,12 @@
 (define (square x) (* x x))
 (define (sumSquare a b) (+ (square a) (square b)))
 
-(define (twoBig a b c) 
-(if
-	(>= a b) 
-		(if (>= b c) (sumSquare a b) (sumSquare a c)) ; Keeping a
-		(if (>= a c) (sumSquare b a) (sumSquare b c)) ; Keeping b
-))
+(define (twoBig a b c)
+  (if
+   (>= a b)
+   (if (>= b c) (sumSquare a b) (sumSquare a c)) ; Keeping a
+   (if (>= a c) (sumSquare b a) (sumSquare b c)) ; Keeping b
+   ))
 
 ; Test possible combinations
 (twoBig 1 2 3)
@@ -65,8 +64,8 @@
 ;; Ex 1.4
 
 (define (a-plus-abs-b a b) ; define procedure with two arguments
-	((if (> b 0) + -) a b) ; Operator position is a procedure, so begin by evaluating this.
-)												 ; Returns + procedure if b > 0, else the - procedure.
+  ((if (> b 0) + -) a b) ; Operator position is a procedure, so begin by evaluating this.
+  )												 ; Returns + procedure if b > 0, else the - procedure.
 
 (a-plus-abs-b 4 4) ; b > 0, so 4 + 4
 (a-plus-abs-b -4 4); b > 0, so -4 + 4
@@ -79,9 +78,9 @@
 (define (p) (p))
 
 (define (test x y)
-	(if (= x 0)
-	0
-	y))
+  (if (= x 0)
+      0
+      y))
 
 ; With applicative-order, start by evaluating test.
 ; test is an if statement, so the predicate is evaluated.
@@ -99,10 +98,10 @@
 
 ; So, here, first checking whether x or y are 0 would lead to a different result, e.g.
 (define (test2 x y)
-	(if (or (x = 0) (y = 0)) 0
-	(if (= x 0)
-	0
-	y)))
+  (if (or (x = 0) (y = 0)) 0
+      (if (= x 0)
+          0
+          y)))
 ; Nothing really changes on good values. If 0 is 0, 0 is returned, else, if 0 is not 0 y is returned,
 ; but y is already known to be 0.
 ; Still, in contrast to test we've not got to evaluate y on the first test.
@@ -111,12 +110,12 @@
 ;; 1.6
 
 (define (new-if predicate then-clause else-clause)
-	(cond (predicate then-clause)
-				(else else-clause))
-)
+  (cond (predicate then-clause)
+        (else else-clause))
+  )
 
 ; Is the else-clause evaluated?
-; For, AOE could be read as saying arguments are only evaluated when applied, and with new-if 
+; For, AOE could be read as saying arguments are only evaluated when applied, and with new-if
 ; it's not clear else-clause is ever *applied*, it's only returned.
 ; And, this should be the case, right.
 ; For, in some cases you can return a procedure, and this wouldn't be possible if you need to
@@ -153,182 +152,180 @@
 
 ;; Ex 1.7
 
-#| 
-	good-enough? checks to see whether abs(guess^2 - target) < 0.001
+#|
+good-enough? checks to see whether abs(guess^2 - target) < 0.001
 
-	In the case of small numbers, this not very effective and for large number inadequate.
-	As good-enough? compares two squared numbers, for small values there won't be much of a difference, while for large number there will be a significant difference.
+In the case of small numbers, this not very effective and for large number inadequate.
+As good-enough? compares two squared numbers, for small values there won't be much of a difference, while for large number there will be a significant difference.
 
-	Observe, squares increaes fast with magnitude.
+Observe, squares increaes fast with magnitude.
 
-	(- (square 0.5) (square 0.25))
-	(- (square 5) (square 2.5))
-	(- (square 50) (square 25))
+(- (square 0.5) (square 0.25))
+(- (square 5) (square 2.5))
+(- (square 50) (square 25))
 
-	So, with very small numbers, it's harder to get a difference less than 0.001, while for very large numbers it's fairly easy.
-	This means, more precision is needed to get below the threshold in the
-	small case, where the resulting difference isn't going to be noticable.
-	And, less precision is needed in the large case.
- |#
+So, with very small numbers, it's harder to get a difference less than 0.001, while for very large numbers it's fairly easy.
+This means, more precision is needed to get below the threshold in the
+small case, where the resulting difference isn't going to be noticable.
+And, less precision is needed in the large case.
+|#
 
 (define (sqrt2 x) (sqrtItr2 1.0 0.0 x))
 
 (define (sqrtItr2 guess previousGuess x)
-	(if (goodEnough2? guess previousGuess) 
-	guess
-	(sqrtItr2 (improve guess x) guess x)
-	)
-)
+  (if (goodEnough2? guess previousGuess)
+      guess
+      (sqrtItr2 (improve guess x) guess x)
+      )
+  )
 
 ; Mostly the same but for goodEnough2.
 (define (goodEnough2? guess previousGuess)
-	(< (abs (- guess previousGuess)) 0.001))
-	#| 
-		This, then, works as a limit on the number of significant digits we care about.
-		Alternatively, can apply to (square guess) (square previousGuess), etc.
-		Then, it's significant digits of the squared number, rather than root.
-	 |#
+  (< (abs (- guess previousGuess)) 0.001))
+#|
+This, then, works as a limit on the number of significant digits we care about.
+Alternatively, can apply to (square guess) (square previousGuess), etc.
+Then, it's significant digits of the squared number, rather than root.
+|#
 
 (define (improve guess x) (average guess (/ x guess)))
 (define (average x y) (/ (+ x y) 2))
 
-#| 
-	Things are now reversed.
-	For small numbers, things are less accurate, as the sqrt of a small number is going to be small, 
-	and we'll make smaller and smaller changes by taking the average.
- |#
+#|
+Things are now reversed.
+For small numbers, things are less accurate, as the sqrt of a small number is going to be small,
+and we'll make smaller and smaller changes by taking the average.
+|#
 
 
 ;; Ex 1.8
 
-#| 
-	Only thing that changes here is the improve function, where formula for better approximation is given.
-	goodCubeGuess? could also be adjusted, as with previous exercise.
- |#
+#|
+Only thing that changes here is the improve function, where formula for better approximation is given.
+goodCubeGuess? could also be adjusted, as with previous exercise.
+|#
 
 (define (cube x) (* x x x))
 
-(define (cubeRt x) 
-	(define (cubeInt guess) ; Using block structure and lexical scoping
-		(define (goodCubeGuess? guess) (< (abs (- (cube guess) x)) 0.001)) ; Note x from cubeRt.
-		(define (cubeImprove guess) (/ (+ (/ x (* guess guess)) (* 2 guess)) 3)) ; And again
-	
-	(if (goodCubeGuess? guess)
-		guess
-		(cubeInt (cubeImprove guess))) ; 
-	)
-	(cubeInt 1.0)
-)
+(define (cubeRt x)
+  (define (cubeInt guess) ; Using block structure and lexical scoping
+    (define (goodCubeGuess? guess) (< (abs (- (cube guess) x)) 0.001)) ; Note x from cubeRt.
+    (define (cubeImprove guess) (/ (+ (/ x (* guess guess)) (* 2 guess)) 3)) ; And again
+    (if (goodCubeGuess? guess)
+        guess
+        (cubeInt (cubeImprove guess)))
+    )
+  (cubeInt 1.0)
+  )
 
 
 (cube 3)
 (cubeRt 27)
-
 (cube 2)
 (cubeRt 8)
 
 
 ;; Ex 1.9
 
-#| 
-	(define (+ a b)
-		(if (= a 0)
-		b
-		(inc (+ (dec a) b)))
-	)
+#|
+(define (+ a b)
+(if (= a 0)
+b
+(inc (+ (dec a) b)))
+)
 
-	(+ 4 5)
-	(inc (+ (dec a) b))
-	(inc (+ 3 5))
-	(inc (inc (+ 2 5)))
-	(inc (inc (inc (+ 1 5))))
-	(inc (inc (inc (inc + 0 5))))
-	(inc (inc (inc (inc 5))))
-	(inc (inc (inc 6)))
-	(inc (inc 7))
-	(inc 8)
-	9
+(+ 4 5)
+(inc (+ (dec a) b))
+(inc (+ 3 5))
+(inc (inc (+ 2 5)))
+(inc (inc (inc (+ 1 5))))
+(inc (inc (inc (inc + 0 5))))
+(inc (inc (inc (inc 5))))
+(inc (inc (inc 6)))
+(inc (inc 7))
+(inc 8)
+9
 
-	So, recursive prodecure and recursive process.
+So, recursive prodecure and recursive process.
 
-	(define (+ a b)
-		(if (= a 0)
-		b
-		(+ (dec a) (inc b)))
-	)
+(define (+ a b)
+(if (= a 0)
+b
+(+ (dec a) (inc b)))
+)
 
-	(+ 4 5)
-	(+ (dec 4) (inc 5))
-	(+ 3 6)
-	(+ 2 7)
-	(+ 1 8)
-	(+ 0 9)
-	9
+(+ 4 5)
+(+ (dec 4) (inc 5))
+(+ 3 6)
+(+ 2 7)
+(+ 1 8)
+(+ 0 9)
+9
 
-	So, recursve procedure but iterative process
- |#
-
-
- ;; Ex 1.10
+So, recursve procedure but iterative process
+|#
 
 
-#| 
-	(A 1 10)
-	(A 0 (A 1 9))
-	(A 0 (A 0 (A 1 8)))
-	(A 0 (A 0 (A 0 (A 1 7))))
-	(A 0 (A 0 (A 0 (A 0 (A 1 6)))))
-	(A 0 (A 0 (A 0 (A 0 (A 0 (A 1 5))))))
-	(A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 1 4)))))))
-	(A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 1 3))))))))
-	(A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 1 2)))))))))
-	(A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 1 1))))))))))
-	(A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 2)))))))))
-	(A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 4))))))))
-	(A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 8)))))))
-	(A 0 (A 0 (A 0 (A 0 (A 0 (A 0 16))))))
-	(A 0 (A 0 (A 0 (A 0 (A 0 32)))))
-	(A 0 (A 0 (A 0 (A 0 64))))
-	(A 0 (A 0 (A 0 128)))
-	(A 0 (A 0 256))
-	(A 0 512)
-	1024
- |#
+;; Ex 1.10
 
 
- #| 
-	(A 2 4) 
-	(A 1 (A 2 3))
-	(A 1 (A 1 (A 2 2)))
-	(A 1 (A 1 (A 1 (A 2 1))))
-	(A 1 (A 1 (A 1 (A 1 (A 1 1)))))
-	(A 1 (A 1 (A 1 (A 1 2))))
-	(A 1 (A 1 (A 1 (A 0 (A 1 1)))))
-	(A 1 (A 1 (A 1 (A 0 2))))
-	(A 1 (A 1 (A 1 4)))
-	(A 1 (A 1 (A 0 (A 1 3))))
-	(A 1 (A 1 (A 0 (A 0 (A 1 2)))))
-	(A 1 (A 1 (A 0 (A 0 (A 0 (A 1 1))))))
-	(A 1 (A 1 (A 0 (A 0 (A 0 2)))))
-	(A 1 (A 1 (A 0 (A 0 4))))
-	(A 1 (A 1 (A 0 8)))
-	(A 1 (A 1 16))
-	(A 1 (A 0 (A 1 15)))
-	|#
+#|
+(A 1 10)
+(A 0 (A 1 9))
+(A 0 (A 0 (A 1 8)))
+(A 0 (A 0 (A 0 (A 1 7))))
+(A 0 (A 0 (A 0 (A 0 (A 1 6)))))
+(A 0 (A 0 (A 0 (A 0 (A 0 (A 1 5))))))
+(A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 1 4)))))))
+(A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 1 3))))))))
+(A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 1 2)))))))))
+(A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 1 1))))))))))
+(A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 2)))))))))
+(A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 4))))))))
+(A 0 (A 0 (A 0 (A 0 (A 0 (A 0 (A 0 8)))))))
+(A 0 (A 0 (A 0 (A 0 (A 0 (A 0 16))))))
+(A 0 (A 0 (A 0 (A 0 (A 0 32)))))
+(A 0 (A 0 (A 0 (A 0 64))))
+(A 0 (A 0 (A 0 128)))
+(A 0 (A 0 256))
+(A 0 512)
+1024
+|#
 
-#| 
-	Okay, this grows in a cool way.
- |#
+
+#|
+(A 2 4) 
+(A 1 (A 2 3))
+(A 1 (A 1 (A 2 2)))
+(A 1 (A 1 (A 1 (A 2 1))))
+(A 1 (A 1 (A 1 (A 1 (A 1 1)))))
+(A 1 (A 1 (A 1 (A 1 2))))
+(A 1 (A 1 (A 1 (A 0 (A 1 1)))))
+(A 1 (A 1 (A 1 (A 0 2))))
+(A 1 (A 1 (A 1 4)))
+(A 1 (A 1 (A 0 (A 1 3))))
+(A 1 (A 1 (A 0 (A 0 (A 1 2)))))
+(A 1 (A 1 (A 0 (A 0 (A 0 (A 1 1))))))
+(A 1 (A 1 (A 0 (A 0 (A 0 2)))))
+(A 1 (A 1 (A 0 (A 0 4))))
+(A 1 (A 1 (A 0 8)))
+(A 1 (A 1 16))
+(A 1 (A 0 (A 1 15)))
+|#
+
+#|
+Okay, this grows in a cool way.
+|#
 
 
 (define (A x y)
-	(cond
-	((= y 0) 0)
-	((= x 0) (* 2 y))
-	((= y 1) 2)
-	(else (A (- x 1) (A x (- y 1))))
-	)
-)
+  (cond
+    ((= y 0) 0)
+    ((= x 0) (* 2 y))
+    ((= y 1) 2)
+    (else (A (- x 1) (A x (- y 1))))
+    )
+  )
 
 
 (A 1 10)
@@ -336,40 +333,40 @@
 (A 3 3)
 (A 2 3)
 
-#| 
-	(A 0 n) is 2n
-	(A 1 n) is 2^ns
-	(A 2 n) is 2^^(n - 1) i.e. if n = 3, 2^2^2, if n = 4 2^2^2^2
- |#
+#|
+(A 0 n) is 2n
+(A 1 n) is 2^ns
+(A 2 n) is 2^^(n - 1) i.e. if n = 3, 2^2^2, if n = 4 2^2^2^2
+|#
 
 
 ;; Ex 1.11
 
 (define (fR n)
-	(if 
-	(< n 3)
-	n
-	(+ (fR (- n 1)) (* 2 (fR (- n 2))) (* 3 (fR (- n 3))))
-	)
-)
+  (if
+   (< n 3)
+   n
+   (+ (fR (- n 1)) (* 2 (fR (- n 2))) (* 3 (fR (- n 3))))
+   )
+  )
 
 (define (fI n)
-	(if 
-	(< n 3)
-	n
-	(fIHelp n 2 1 0)
-	)
-)
+  (if
+   (< n 3)
+   n
+   (fIHelp n 2 1 0)
+   )
+  )
 
 (define (fIHelp current backOne backTwo backThree)
-	(if (= 3 current)
-	(+ backOne (* 2 backTwo) (* 3 backThree))
-	(fIHelp (- current 1) (+ backOne (* 2 backTwo) (* 3 backThree)) backOne backTwo)
-	))
+  (if (= 3 current)
+      (+ backOne (* 2 backTwo) (* 3 backThree))
+      (fIHelp (- current 1) (+ backOne (* 2 backTwo) (* 3 backThree)) backOne backTwo)
+      ))
 
-(define (testfRI n) 
-	(= (fR n) (fI n))
-)
+(define (testfRI n)
+  (= (fR n) (fI n))
+  )
 
 (testfRI 1)
 (testfRI 3)
@@ -380,25 +377,25 @@
 ; Ex 1.12
 
 
-#| 
-	Top left is (1,1) then count down and right.
-	So, first instance of 2 should be (2 3) and 6 should be (3 5)
+#|
+Top left is (1,1) then count down and right.
+So, first instance of 2 should be (2 3) and 6 should be (3 5)
 
-	Basically, define anything negative as 0.
-	With this anything positive is filled with, (x, y) = ((x - 1, y - 1) + (x, y - 1)).
-	I.e. look up left and up above – imagine triangle aligned left.
-	And, the triangle is generated by fixing (1, 1) as 1.
-	
-	Very ineffective.
- |#
+Basically, define anything negative as 0.
+With this anything positive is filled with, (x, y) = ((x - 1, y - 1) + (x, y - 1)).
+I.e. look up left and up above – imagine triangle aligned left.
+And, the triangle is generated by fixing (1, 1) as 1.
+
+Very ineffective.
+|#
 
 (define (pascal x y)
-	(cond
-		((or (< x 1) (< y 1)) 0)
-		((and (= x 1) (= y 1)) 1)
-		(else (+ (pascal (- x 1) (- y 1)) (pascal x (- y 1))))
-	)
-)
+  (cond
+    ((or (< x 1) (< y 1)) 0)
+    ((and (= x 1) (= y 1)) 1)
+    (else (+ (pascal (- x 1) (- y 1)) (pascal x (- y 1))))
+    )
+  )
 
 (pascal 1 1)
 (pascal 2 2)
@@ -409,130 +406,182 @@
 
 ; Ex 1.13
 
-#| 
-	It's clear the goal is to show 
-	(phi^n - psi^n)/sqrt(5) = (phi^(n-1) - psi^(n-1))/sqrt(5) + (phi^(n-2) - psi^(n-2))/sqrt(5)
-	And, it's easy to go the case of 0 and 1 by hand for regular induction.
-	But, the induction case... no good idea.
+#|
+It's clear the goal is to show
+(phi^n - psi^n)/sqrt(5) = (phi^(n-1) - psi^(n-1))/sqrt(5) + (phi^(n-2) - psi^(n-2))/sqrt(5)
+And, it's easy to go the case of 0 and 1 by hand for regular induction.
+But, the induction case... no good idea.
 
-	Looking things up, I was going to be lost for a while...
-	Still, I should remember golden ratio is only positive solution to x + 1 = x^2.
-	And, phi as given is the golden ratio.
-	So, phi^(n-2) + phi^(n-1) = phi^(n-2)(phi + 1) = phi^(n-2)phi^2 = phi^n.
-	This hint might have been enough, as after noticing this with phi, it would be natural to to see
-	if a similar thing holds for psi.
-	If only I'd looked back to see that the equation was highlighted...
- |#
+Looking things up, I was going to be lost for a while...
+Still, I should remember golden ratio is only positive solution to x + 1 = x^2.
+And, phi as given is the golden ratio.
+So, phi^(n-2) + phi^(n-1) = phi^(n-2)(phi + 1) = phi^(n-2)phi^2 = phi^n.
+This hint might have been enough, as after noticing this with phi, it would be natural to to see
+if a similar thing holds for psi.
+If only I'd looked back to see that the equation was highlighted...
+|#
 
 
 ; Ex 1.14
 
 
-#| 
-	Steps: Theta(2^n)
-	Space: Theta(n)
+#|
+Steps: Theta(2^n)
+Space: Theta(n)
 
-	count-change works in a very similar way to tree-recursive fibonacci.
-	For each call of the alogorithm, at most two calls are made.
-	One call reduces the amount by at least one.
-	The other changes the coin of interest.
-	So, we're asked about a function of the amount, but we can view this as a function of
-	amount + coins, as coins is constant.
-	Each call reduces amounts + coins by at least one.
-	So, after one call we have at most n - 1 calls remaining.
-	Each of these takes a constant number of steps.
-	We're doing some tests and then performing summation on the results of the two calls.
+count-change works in a very similar way to tree-recursive fibonacci.
+For each call of the alogorithm, at most two calls are made.
+One call reduces the amount by at least one.
+The other changes the coin of interest.
+So, we're asked about a function of the amount, but we can view this as a function of
+amount + coins, as coins is constant.
+Each call reduces amounts + coins by at least one.
+So, after one call we have at most n - 1 calls remaining.
+Each of these takes a constant number of steps.
+We're doing some tests and then performing summation on the results of the two calls.
 
-	For space, I'm following the reasoning on p. 38--9.
-	We only need to keep track of where to return to.
-	The algorithm is set to brach n times.
-	So, the depth of the tree is n.
-	After each call, the number of leaves doubles.
-	That is, leaves is given by 2(n-1).
-	Hence, in total the leaves count to 4(n-1).
+For space, I'm following the reasoning on p. 38--9.
+We only need to keep track of where to return to.
+The algorithm is set to brach n times.
+So, the depth of the tree is n.
+After each call, the number of leaves doubles.
+That is, leaves is given by 2(n-1).
+Hence, in total the leaves count to 4(n-1).
 
-	To be honest, I think this question is asking the reader to recall p. 39.
-	The number of steps required by a tree-recursive process will be proportional to the number
-	of nodes in the tree, while the space required will be proportional to the maximum depth.
+To be honest, I think this question is asking the reader to recall p. 39.
+The number of steps required by a tree-recursive process will be proportional to the number
+of nodes in the tree, while the space required will be proportional to the maximum depth.
 
-	For space, important thing to keep in mind is this is max space at any given point in time.
-	We only need to store a reference to the originial call when starting a new call.
-	So, in general this will use as much space as calls.
-	But, at any given time only a certain number of nodes will be in play.
-	In particular, the height of the tree.
-	For, there's no need (nor way) to explore multiple nodes at the same time.
- |#
+For space, important thing to keep in mind is this is max space at any given point in time.
+We only need to store a reference to the originial call when starting a new call.
+So, in general this will use as much space as calls.
+But, at any given time only a certain number of nodes will be in play.
+In particular, the height of the tree.
+For, there's no need (nor way) to explore multiple nodes at the same time.
+|#
 
 
 ; Ex 1.15
 
-#| 
-	a.
-	
-	How many times is p applied?
-	sine is recursive, and evaluated on every call to sine, but need the result of the recursive call
-	to be applied.
-	So, we need to check how many times the recursive call is made before the base case is hit.
-	12.5/3^5 < 0.1.
-	So, after 5 additional calls the if condition is true.
-	p is not applied on the sixth call, but is applied on the 5 other calls.
- |#
+#|
+a.
+
+How many times is p applied?
+sine is recursive, and evaluated on every call to sine, but need the result of the recursive call
+to be applied.
+So, we need to check how many times the recursive call is made before the base case is hit.
+12.5/3^5 < 0.1.
+So, after 5 additional calls the if condition is true.
+p is not applied on the sixth call, but is applied on the 5 other calls.
+|#
 
 
-#| 
-	b.
+#|
+b.
 
-	Theta(n) for both steps and space.
-	
-	Steps, as we've got a test and then possible single recursive call.
-	There's no way to bound this call, and the other steps take constant(ish) time.
-	So, n.
+Theta(n) for both steps and space.
 
-	Space, as the recursive call returns, need to keep track of the original call.
-	This is some constant(ish) space for each maximum call depth, which is roughly n.
+Steps, as we've got a test and then possible single recursive call.
+There's no way to bound this call, and the other steps take constant(ish) time.
+So, n.
 
-	Right, this is a linear recursive process.
- |#
+Space, as the recursive call returns, need to keep track of the original call.
+This is some constant(ish) space for each maximum call depth, which is roughly n.
+
+Right, this is a linear recursive process.
+|#
 
 
 ; Ex. 1.16
 
-#| Helper function to test for even (I was hoping remainder would be a task) |#
+#| Helper function to test for even |#
 (define (even? n)	(= (remainder n 2) 0))
 
 #| Main fuction, following the hint |#
 (define (try a b n) ; a is current value, n is number of exponents remaining
-	(cond
-		((= n 0) a)
-		((even? n) (try (* a a) b (/ n 2))) ; So long as n is even, reduce remaing by half by squaring current.
-																				; This is b^n = (b^2)^(n/2)
-																				; As input, do a^n
-																				; As output, a = a^2, still need a^(n/2)
-		(else (try (* a b) b (- n 1)))
-	)
-)
+  (cond
+    ((= n 0) a)
+    ((even? n) (try (* a a) b (/ n 2))) ; So long as n is even, reduce remaing by half by squaring current.
+    ; This is b^n = (b^2)^(n/2)
+    ; As input, do a^n
+    ; As output, a = a^2, still need a^(n/2)
+    (else (try (* a b) b (- n 1)))
+    )
+  )
 
 (define (expItr b n) (try 1 b n)) ; Hide a as a helper variable.
 
 (expItr 6 5) ; Expect 7776
 (expItr 7 1) ; Expect 7
 (expItr 15 3) ; Expect 3375
+(expItr 15 0) ; Expect 1
 
 
 ; Ex 1.17
 
-#| 
-	Using (* 2 x) for double x and (/ x 2) for half x.
+#|
+Using (* 2 x) for double x and (/ x 2) for half x.
 
-	
- |#
+dhMultH, only works for positive integers.
+So, dhMult ensures positive numbers are passed through, and adjusts the result appropriately.
+|#
+(define (multPositiveTranslate func a b)
+  ((if (> 0 b) + -) 0 ((if (> 0 a) + -) 0 (func (abs a) (abs b))))
+  )
+
 (define (dhMult a b)
-	(cond
-		((= b 1) a) ; Base case, return a.
-		((even? b) (* 2 (dhMult a (/ b 2)))) ; Double whatever I get from halving multiplication
-		(else (+ b (dhMult a (- b 1)))) ; Add b to whatever I get from reducing multiplication by one.
-	)
-)
+  (multPositiveTranslate dhMultH a b)
+  )
 
-(dhMult 1 4)
-(dhMult 5 5)
+
+(define (dhMultH a b)
+  (cond
+    ((> 0 b) (- 0 (dhMultH a (- 0 b))))
+    ((= b 0) 0) ; 0 base case, return 0.
+    ((= b 1) a) ; positive base case, return a.
+    ((even? b) (* 2 (dhMultH a (/ b 2)))) ; Double whatever I get from halving multiplication to do.
+    (else (+ a (dhMultH a (- b 1)))) ; Add b to whatever I get from reducing multiplication by one.
+    )
+  )
+
+;(dhMult 1 4)
+;(dhMult 5 5)
+(dhMult 5 -8)
+(dhMult 5 8)
+(dhMult 5 -7)
+(dhMult 5 7)
+(dhMult 5 0)
+(dhMult -6 6)
+(dhMult -5 -5)
+
+; Ex 1.18
+
+#|
+Calculate m * n.
+Do this iteratively by doubling m and havling n.
+When n is odd, copy the value of m to a store variable, added at the end.
+Always go to n = 1, so add m to store variable.
+|#
+
+(define (dhMultIterHelp a m n)
+  (cond
+    ((= n 0) a)
+    ((even? n) (dhMultIterHelp a (* m 2) (/ n 2))) ;
+    (else (dhMultIterHelp (+ a m) m (- n 1)))
+    )
+  )
+
+(define (dhMultIterPos m n)
+  (dhMultIterHelp 0 m n)
+  )
+
+(define (dhMultIter m n)
+  (multPositiveTranslate dhMultIterPos m n)
+  )
+
+; Some tests
+(dhMultIter 2 6)
+(dhMultIter 3 5)
+(dhMultIter 3 0)
+(dhMultIter 0 5)
+(dhMultIter 3 14)
