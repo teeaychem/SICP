@@ -628,3 +628,30 @@ p and q, apply this transformation to itself.
 (fibI 3)
 (fibI 4)
 
+
+; Ex 1.20
+
+(define (gcd a b)
+  (if (= b 0)
+      a
+      (gcd b (remainder a b))))
+
+#|
+(206 40)
+(40 6)
+(6 4)
+(4 2)
+(2 0)
+
+The main operator of gcd is a conditional, and as described the condition of a conditional is
+evaluated before either result is evaluated.
+So, the remainder operations actually performed equal the number of times gcd is called, minus one.
+For, on the last call (= b 0), which goes to a.
+
+Or I'm missing something, but it seems the conditional must work in this way.
+Normal order reduces everything to a primitive form.
+But, with a recursive function like gcd a 'synthetic' primative form is needed.
+For, otherwise, and additional call to gcd is always possible.
+
+With all this in mind, given the flow is determined by a conditional, normal and evaluative order should be the same here.
+|#
