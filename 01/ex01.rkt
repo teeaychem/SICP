@@ -689,3 +689,47 @@ As d is a divisor of n, so n/d is an int, and clearly d * n/d = n.
 
 
 ; Ex 1.22
+
+(define (prime? n)
+(= n (smallest-divisor n))
+  )
+
+
+(define (timed-prime-test n)
+  ;; (newline)
+  ;; (display n)
+  (start-prime-test n (runtime)))
+
+
+(define (start-prime-test n start-time)
+  (if (prime? n)
+      (report-prime n (- (runtime) start-time))))
+
+
+(define (report-prime n elapsed-time)
+  (newline)
+  (display n)
+  (display " *** ")
+  (display elapsed-time))
+
+(define (prime-test-range-k-step n m k)
+  (cond ((> n m)
+      (display " finished "))
+        (else
+         (timed-prime-test n)
+         (prime-test-range-k-step (+ n k) m k)
+         )
+      )
+  )
+
+(define (search-for-primes n m)
+  (prime-test-range-k-step (if (even? n) (+ n 1) n) (if (even? m) (- m 1) m) 2)
+  )
+
+; (search-for-primes 1 100000)
+
+#|
+Well, it takes a little longer, but things happen too fast to really test sqrt(n).
+And, any significant deviation from average is probs. a scheduling thing.
+|#
+
