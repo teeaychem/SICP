@@ -944,3 +944,18 @@ Added some formatting, though ofc I should have a single call for n/prime displa
 #|
 Well, the results are closer to 1/4…
 |#
+
+
+;; Ex. 1.30
+
+
+(define (sum-iter term a next b)
+  (define (iter a result)
+    (if (> a b)
+        result
+        (iter (next a) (+ (term a) result)))
+    )
+  (iter a 0)
+  )
+
+(sum-iter cube 0 inc 10)
