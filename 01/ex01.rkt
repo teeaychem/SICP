@@ -833,7 +833,7 @@ The evaluated value is used twice, but the evaluation only happens once.
 ;; Ex. 1.27
 
 
-(define (carmichael-the-fool n)
+(define (carmichael-fool n)
   (hidden-fool (- n 1) n)
   )
 
@@ -847,11 +847,69 @@ The evaluated value is used twice, but the evaluation only happens once.
   )
 
 
-;; (carmichael-the-fool 561)
-;; (carmichael-the-fool 1105)
-;; (carmichael-the-fool 1729)
-;; (carmichael-the-fool 2465)
-;; (carmichael-the-fool 2821)
-;; (carmichael-the-fool 6601)
-;; (carmichael-the-fool 6600)
-;; (carmichael-the-fool 6602)
+;; (carmichael-fool 561)
+;; (carmichael-fool 1105)
+;; (carmichael-fool 1729)
+;; (carmichael-fool 2465)
+;; (carmichael-fool 2821)
+;; (carmichael-fool 6601)
+;; (carmichael-fool 6600)
+;; (carmichael-fool 6602)
+
+
+;; Ex. 1.28
+
+
+#|
+Modifying expmod to signal whether it discovers a non-trivial square root of 1.
+
+An important detail was a little buried.
+For, the test is only guaranteed for odd numbers.
+So, when working through half of the numbers, we need to already be sure the number is odd.
+
+Added some formatting, though ofc I should have a single call for n/prime display.
+|#
+
+(define (MR-expmod base exp m) ; base = a, exp = n
+  (cond ((= exp 0) 1)
+        ((even? exp)
+         (remainder (square (MR-check-sqaure (MR-expmod base (/ exp 2) m) m)) m))
+        (else (remainder (* base (MR-expmod base (- exp 1) m)) m))
+        ))
+
+
+(define (MR-check-sqaure a m)
+  (cond
+    ((or (= a 1) (= a (- m 1))) a) ; In this case, a is trivial, so continue
+    ((= (remainder (square a) m) 1) 0) ; We know a != 1 nor (m - 1), so check a % n = 1. Not prime if satisfied.
+    (else a) ; Otherwise, continue
+    )
+  )
+
+
+(define (MR-seq-test n a)
+  (cond
+    ((> a (/ n 2)) (display "Prime!\n"))
+    ((= (MR-expmod a (- n 1) n) 0) (display "Not prime…\n"))
+    (else (MR-seq-test n (+ a 1)))
+    ))
+
+
+(define (MR-prime? n)
+  (display "Checking: ")
+  (display n)
+  (display "\n")
+  (cond
+    ((= n 2) (display "Prime!\n"))
+    ((even? n) (display "Not prime…\n"))
+    (else (MR-seq-test n 1))
+  ))
+
+(MR-prime? 2)
+(MR-prime? 3)
+(MR-prime? 4)
+(MR-prime? 7)
+(MR-prime? 9)
+(MR-prime? 10)
+(MR-prime? 11)
+(MR-prime? 12)
