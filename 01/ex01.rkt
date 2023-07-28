@@ -499,13 +499,14 @@ Right, this is a linear recursive process.
 ;; Ex. 1.16
 
 #| Helper function to test for even |#
-(define (even? n)	(= (remainder n 2) 0))
+(define (even? n)
+  (= (remainder n 2) 0))
 
 #| Main fuction, following the hint |#
 (define (try a b n) ; a is current value, n is number of exponents remaining
   (cond
     ((= n 0) a)
-    ((even? n) (try (* a a) b (/ n 2))) ; So long as n is even, reduce remaing by half by squaring current.
+    ((even? n)  (try a (* b b) (/ n 2))) ; So long as n is even, reduce remaing by half by squaring current.
     ; This is b^n = (b^2)^(n/2)
     ; As input, do a^n
     ; As output, a = a^2, still need a^(n/2)
@@ -513,8 +514,10 @@ Right, this is a linear recursive process.
     )
   )
 
-(define (expItr b n) (try 1 b n)) ; Hide a as a helper variable.
+(define (expItr b n)
+  (try 1 b n)) ; Hide a as a helper variable.
 
+(expItr 2 4)
 (expItr 6 5) ; Expect 7776
 (expItr 7 1) ; Expect 7
 (expItr 15 3) ; Expect 3375
@@ -828,3 +831,27 @@ The evaluated value is used twice, but the evaluation only happens once.
 
 
 ;; Ex. 1.27
+
+
+(define (carmichael-the-fool n)
+  (hidden-fool (- n 1) n)
+  )
+
+
+
+(define (hidden-fool b n)
+  (cond ((= b 0) (display " fooled "))
+        ((= (remainder (expItr b n) n) (remainder b n)) (hidden-fool (- b 1) n))
+        (else (display " found "))
+        )
+  )
+
+
+;; (carmichael-the-fool 561)
+;; (carmichael-the-fool 1105)
+;; (carmichael-the-fool 1729)
+;; (carmichael-the-fool 2465)
+;; (carmichael-the-fool 2821)
+;; (carmichael-the-fool 6601)
+;; (carmichael-the-fool 6600)
+;; (carmichael-the-fool 6602)
