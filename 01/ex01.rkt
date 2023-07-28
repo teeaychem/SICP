@@ -1,6 +1,6 @@
 #lang sicp
 
-;; Ex 1.1
+;; Ex. 1.1
 10 ; 10
 
 (+ 5 3 4) ; 12
@@ -34,15 +34,19 @@
    (+ a 1)) ; 16, as 4 * (3 + 1)
 
 
-;; Exercise 1.2
+;; Ex. 1.2
 (/ (+ 5 4 (- 2 (- 3 (+ 6 (/ 4 5))))) (* 3 (- 6 2) (- 2 7)))
 
-; Ex 1.3
-; Sum of squares function.
-; First, compare a and b.
-; If a >= b fix a, else b.
-; If a, then compare b and c.
-; If b, then compare a and c.
+;; Ex. 1.3
+
+#|
+Sum of squares function.
+First, compare a and b.
+If a >= b fix a, else b.
+If a, then compare b and c.
+If b, then compare a and c.
+|#
+
 
 ; Two basic functions
 (define (square x) (* x x))
@@ -61,7 +65,7 @@
 (twoBig 3 1 3)
 
 
-;; Ex 1.4
+;; Ex. 1.4
 
 (define (a-plus-abs-b a b) ; define procedure with two arguments
   ((if (> b 0) + -) a b) ; Operator position is a procedure, so begin by evaluating this.
@@ -73,7 +77,7 @@
 (a-plus-abs-b -4 -4); b < 0, so (-4 - -4) = (-4 + 4) = 0
 
 
-;; Ex 1.5
+;; Ex. 1.5
 
 (define (p) (p))
 
@@ -150,7 +154,7 @@
 ; If this is right, it seems a little subtle for the sixth question...
 
 
-;; Ex 1.7
+;; Ex. 1.7
 
 #|
 good-enough? checks to see whether abs(guess^2 - target) < 0.001
@@ -198,7 +202,7 @@ and we'll make smaller and smaller changes by taking the average.
 |#
 
 
-;; Ex 1.8
+;; Ex. 1.8
 
 #|
 Only thing that changes here is the improve function, where formula for better approximation is given.
@@ -225,7 +229,7 @@ goodCubeGuess? could also be adjusted, as with previous exercise.
 (cubeRt 8)
 
 
-;; Ex 1.9
+;; Ex. 1.9
 
 #|
 (define (+ a b)
@@ -266,7 +270,7 @@ So, recursve procedure but iterative process
 |#
 
 
-;; Ex 1.10
+;; Ex. 1.10
 
 
 #|
@@ -340,7 +344,7 @@ Okay, this grows in a cool way.
 |#
 
 
-;; Ex 1.11
+;; Ex. 1.11
 
 (define (fR n)
   (if
@@ -374,7 +378,7 @@ Okay, this grows in a cool way.
 (testfRI 24)
 
 
-; Ex 1.12
+;; Ex. 1.12
 
 
 #|
@@ -404,7 +408,7 @@ Very ineffective.
 (pascal 3 5)
 (pascal 3 1)
 
-; Ex 1.13
+;; Ex. 1.13
 
 #|
 It's clear the goal is to show
@@ -422,7 +426,7 @@ If only I'd looked back to see that the equation was highlighted...
 |#
 
 
-; Ex 1.14
+;; Ex. 1.14
 
 
 #|
@@ -461,7 +465,7 @@ For, there's no need (nor way) to explore multiple nodes at the same time.
 |#
 
 
-; Ex 1.15
+;; Ex. 1.15
 
 #|
 a.
@@ -492,7 +496,7 @@ Right, this is a linear recursive process.
 |#
 
 
-; Ex. 1.16
+;; Ex. 1.16
 
 #| Helper function to test for even |#
 (define (even? n)	(= (remainder n 2) 0))
@@ -517,7 +521,7 @@ Right, this is a linear recursive process.
 (expItr 15 0) ; Expect 1
 
 
-; Ex 1.17
+;; Ex. 1.17
 
 #|
 Using (* 2 x) for double x and (/ x 2) for half x.
@@ -554,7 +558,7 @@ So, dhMult ensures positive numbers are passed through, and adjusts the result a
 (dhMult -6 6)
 (dhMult -5 -5)
 
-; Ex 1.18
+;; Ex. 1.18
 
 #|
 Calculate m * n.
@@ -587,7 +591,7 @@ Always go to n = 1, so add m to store variable.
 (dhMultIter 3 14)
 
 
-; Ex 1.19
+;; Ex. 1.19
 
 
 #|
@@ -629,7 +633,7 @@ p and q, apply this transformation to itself.
 (fibI 4)
 
 
-; Ex 1.20
+;; Ex. 1.20
 
 (define (gcd a b)
   (if (= b 0)
@@ -657,7 +661,7 @@ With all this in mind, given the flow is determined by a conditional, normal and
 |#
 
 
-; Ex 1.21
+;; Ex. 1.21
 
 
 #|
@@ -688,10 +692,11 @@ As d is a divisor of n, so n/d is an int, and clearly d * n/d = n.
 ; ? ? ? What is the purpose of this?
 
 
-; Ex 1.22
+;; Ex. 1.22
 
 (define (prime? n)
-(= n (smallest-divisor n))
+  (= n (smallest-divisor n))
+  ;; (= n (smallest-divisor-next n))
   )
 
 
@@ -733,3 +738,93 @@ Well, it takes a little longer, but things happen too fast to really test sqrt(n
 And, any significant deviation from average is probs. a scheduling thing.
 |#
 
+
+;; Ex. 1.23
+
+
+(define (next n)
+  (if (= n 2) 3 (+ n 2)))
+
+(define (find-divisor-next n test-divisor)
+  (cond ((> (square test-divisor) n) n)
+        ((divides? test-divisor n) test-divisor)
+        (else (find-divisor-next n (next test-divisor)))))
+
+(define (smallest-divisor-next n)
+  (find-divisor-next n 2))
+
+
+; (smallest-divisor-next 2)
+
+;; (search-for-primes 1 100000)
+
+#|
+The speed-up going to 100000 is significant.
+Around 2~3 times as fast at the end tail.
+|#
+
+
+;; Ex. 1.24
+
+
+(define (expmod base exp m)
+  (cond ((= exp 0) 1)
+        ((even? exp)
+         (remainder (square (expmod base (/ exp 2) m)) m))
+        (else
+         (remainder (* base (expmod base (- exp 1) m)) m))
+        ))
+
+(define (fermat-test n)
+  (define (try-it a)
+    (= (expmod a n n ) a))
+  (try-it (+ 1 (random (- n 1)))))
+
+
+(define (fast-prime? n times)
+(cond ((= times 0) true)
+      ((fermat-test n) (fast-prime? n (- times 1)))
+      (else false)))
+
+#|
+Again, timing isn't particularly easy here.
+I'd expect 1,000,000 to not take too much more time than 1000, as we have Theta(long n) growth.
+|#
+
+
+;; Ex. 1.25
+
+
+#|
+With expmod we have a way of figuring out the exponential of a number modulo another number (with Theta(log n) growth).
+So, roughly remainder(base^exp / m).
+The way this works is to figure out base^exp and then task the remainder at each call.
+Difference is where remainder is called.
+As given, we take remainder before squaring resut, in the even case.
+So, this should make a differnece, at least in principle.
+As, both remainder and square take time, and depending on the way things go, could lead to m long n growth.
+But, presumably as the argument is kept small, this growth is 'hidden' behind the growth of the exponent.
+
+As footnote 46 points out, the position of remainder ensures the numbers dealt with are not much larger than m.
+
+By contrast, for the proposed expmod, we for sure need to consider the growth of remainder.
+If it's n, then we have n + long n = n.
+
+Though, I can't find much about the cost of remainder in the text.
+|#
+
+
+
+;; Ex. 1.26
+
+
+#|
+With explicit multiplication, there are now two calls to expmod on each recursive call.
+So, we've effectively doubled the amount of work. (log n)^2 = n.
+
+With square, by contrast, the result of expmod is evaluated and then passed to the fuction.
+The evaluated value is used twice, but the evaluation only happens once.
+|#
+
+
+;; Ex. 1.27
