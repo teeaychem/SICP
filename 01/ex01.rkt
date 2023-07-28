@@ -913,3 +913,34 @@ Added some formatting, though ofc I should have a single call for n/prime displa
 (MR-prime? 10)
 (MR-prime? 11)
 (MR-prime? 12)
+
+
+;; Ex. 1.29
+
+
+(define (sum term a next b)
+  (if (> a b)
+      0
+      (+ (term a)
+         (sum term (next a) next b))))
+
+(define (inc n) (+ n 1))
+
+(define (simpson f a b n)
+  (define (sM k x)
+  (cond
+    ((or (= k 0) (= k n)) x)
+    ((even? k) (* 2 x))
+    (else (* 4 x))
+    ))
+  (define (h) (/ (- b a) n))
+  (define (fakh k) (sM k (f (+ a (* k (h))))))
+  (* (/ (h) 3) (sum fakh 0 inc n)))
+
+
+(simpson cube 0 1 1000.0)
+(simpson cube 0 1 10000.0)
+
+#|
+Well, the results are closer to 1/4…
+|#
