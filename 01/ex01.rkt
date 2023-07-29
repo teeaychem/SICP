@@ -958,4 +958,53 @@ Well, the results are closer to 1/4…
   (iter a 0)
   )
 
-(sum-iter cube 0 inc 10)
+; (sum-iter cube 0 inc 10)
+
+
+;; Ex. 1.31
+
+
+;; a.
+
+(define (product term a next b)
+  (if (> a b)
+      1
+      (* (term a)
+         (product term (next a) next b))
+      ))
+
+#|
+This is just substituting * for +…
+And factorial works with identiy and inc.
+|#
+
+(define (factorial n) (product identity 1 inc n))
+
+
+(define (piHelpB d)
+  (/ (* (- d 1) (+ d 1)) (square d)))
+
+(define (incTwo n) (+ n 2))
+
+(define (piClose n)
+  (* 4.0 (product piHelpB 3 incTwo (+ n 3))))
+
+;(piClose 500)
+
+#|
+Use the numerator as the index, and work through pairs of denominators.
+
+Either I've done something wrong, on this takes a lot to get close to pi.
+|#
+
+;; b.
+
+
+(define (product-iter term a next b)
+  (define (iter a result)
+    (if (> a b)
+        result
+        (iter (next a) (* (term a) result)))
+    )
+  (iter a 1)
+  )
