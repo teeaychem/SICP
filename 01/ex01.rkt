@@ -1047,3 +1047,43 @@ E.g.…
 
 ;; (sum-iter cube 0 inc 10)
 ;; (sum-accumulate cube 0 inc 10)
+
+
+
+;; Ex. 1.33
+
+
+(define (filtered-accumulate filter combiner null-value term a next b)
+  (if (> a b)
+      null-value
+      (combiner (if (filter a) (term a) null-value)
+                (filtered-accumulate filter combiner null-value term (next a) next b))
+      ))
+
+#|
+If the filter is satisfied, then combine (term a), otherwise combine via the null-value.
+|#
+
+
+; a.
+
+(define (sum-square-prime a b)
+  (filtered-accumulate prime? + 0 square a inc b))
+
+; (sum-square-prime 1 10)
+
+; b.
+
+
+(define (sum-relatively-prime n)
+  (define (predicate? a)
+    (= (gcd a n) 1))
+  (filtered-accumulate predicate? * 0 identity 0 inc b))
+
+; (sum-relatively-prime 11)
+
+#|
+No test values for this, but at least here I have a nice example of blocking the predicate.
+|#
+
+
