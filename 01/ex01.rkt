@@ -1008,3 +1008,42 @@ Either I've done something wrong, on this takes a lot to get close to pi.
     )
   (iter a 1)
   )
+
+
+;; Ex. 1.32
+
+
+#|
+Made both versions, then read part b…
+|#
+
+(define (accumulate combiner null-value term a next b)
+  (if (> a b)
+      null-value
+      (combiner (term a)
+         (accumulate combiner null-value term (next a) next b))
+      ))
+
+
+(define (accumulate-iter combiner null-value term a next b)
+  (define (iter a result)
+    (if (> a b)
+        result
+        (iter (next a) (combiner (term a) result)))
+    )
+  (iter a null-value)
+  )
+
+#|
+E.g.…
+|#
+
+(define (sum-accumulate term a next b)
+  (accumulate + 0 term a next b)
+  )
+
+; To test, adapt previous use of sum/product.
+; Replace accumalate with accumalate-iter to vary recu/iter.
+
+;; (sum-iter cube 0 inc 10)
+;; (sum-accumulate cube 0 inc 10)
