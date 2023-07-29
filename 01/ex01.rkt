@@ -1087,3 +1087,16 @@ No test values for this, but at least here I have a nice example of blocking the
 |#
 
 
+;; Ex. 1.34
+
+(define (f g) (g 2))
+
+;; (f square)
+;; (f (lambda (z) (* z (+ z 1))))
+
+#|
+We apply 2 to 2.
+With f labelled
+(f1 f2) - > (f2 2) -> (2 2)
+But, 2 isn't a procedure.
+|#
