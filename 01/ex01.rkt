@@ -1134,3 +1134,24 @@ x = (1 + 1/x) \ Algebra
 
 (display "φ is roughly: ")
 (fixed-point (lambda (x) (+ 1 (/ 1 x))) 1.0 .0000001)
+
+
+;; Ex. 1.36
+
+
+(define (fixed-point-display f first-guess tolerance)
+  (define (close-enough? v1 v2)
+    (< (abs (- v1 v2)) tolerance))
+  (define (try guess guess-number)
+    (let ((next (f guess)))
+      (display "Guess: ")
+      (display guess-number)
+      (display " is: ")
+      (display guess)
+      (newline)
+      (if (close-enough? guess next)
+          (display "Over!") ;next ; Already have the final guess printed.
+          (try next (+ guess-number 1)))))
+  (try first-guess 1))
+
+(fixed-point-display (lambda (x) (/ (log 1000) (log x))) 20 0.0001)
