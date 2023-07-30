@@ -1205,3 +1205,25 @@ Do N_k/D_k and then work backwards.
 (cont-frac-iter (lambda (i) 1.0)
                 (lambda (i) 1.0)
                 11)
+
+
+
+;; Ex. 1.38
+
+#|
+There's nothing here other than figuring out a way to generate the desired sequence for Dk.
+So, here's something excessive.
+|#
+
+(define (dk i)
+  (let ((x (- i (/ i 3)))
+        )
+    (if (= (- x (floor x)) (/ 1 3)) (ceiling x) 1)
+    )
+  )
+
+#|
+e = 2.7182818284590452353602874713526624977572470936999595749669676277…
+|#
+
+(+ 2 (cont-frac (lambda (x) 1.0) dk 200))
