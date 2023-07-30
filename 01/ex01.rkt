@@ -1227,3 +1227,35 @@ e = 2.7182818284590452353602874713526624977572470936999595749669676277…
 |#
 
 (+ 2 (cont-frac (lambda (x) 1.0) dk 200))
+
+
+;; Ex. 1.39
+
+
+#|
+Modify cont-frac.
+n is constant x^2.
+d is number variable, given as argument.
+And, offset things a little.
+
+At start, calculate x^2 to save some resources.
+Then, work through offset cont-frac k times.
+|#
+
+(define (tan-cf x k)
+
+  (define (cont-frac-i x2 d k step)
+    (if (= step k)
+        (/ x2 d)
+        (/ x2 (- d (cont-frac-i x2 (+ d 2) k (+ step 1))))
+        )
+    )
+  (let (
+        (x2 (square x))
+        )
+    (/ x (- 1 (cont-frac-i x2 3 k 1)))
+    )
+  )
+
+
+(tan-cf 1.0 10.0)
