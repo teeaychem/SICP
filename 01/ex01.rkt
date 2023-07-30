@@ -1150,8 +1150,58 @@ x = (1 + 1/x) \ Algebra
       (display guess)
       (newline)
       (if (close-enough? guess next)
-          (display "Over!") ;next ; Already have the final guess printed.
+          next
           (try next (+ guess-number 1)))))
   (try first-guess 1))
 
 (fixed-point-display (lambda (x) (/ (log 1000) (log x))) 20 0.0001)
+
+
+
+;; Ex. 1.37
+
+
+; a.
+
+(define (cont-frac n d k)
+  (define (cont-frac-i n d k step)
+    (if (= step k)
+        (/ (n step) (d step))
+        (/ (n step) (+ (d step) (cont-frac-i n d k (+ step 1))))
+        )
+  )
+  (cont-frac-i n d k 1)
+  )
+
+(cont-frac (lambda (i) 1.0)
+             (lambda (i) 1.0)
+             11)
+
+#|
+Looks as though k = 11 works for 4 decimal places.
+1/φ = 0.6180339887498948482045868343656381177203091798057628621354486227…
+|#
+
+
+; b.
+
+#|
+cont-frac is recursive, so for an iterative version…
+Start the other way.
+Do N_k/D_k and then work backwards.
+|#
+
+
+(define (cont-frac-iter n d k)
+  (define (cont-frac-i n d k so-far)
+    (if (= k 0)
+        so-far
+        (cont-frac-i n d (- k 1) (/ (n k) (+ (d k) so-far)))
+        )
+  )
+  (cont-frac-i n d k 0)
+  )
+
+(cont-frac-iter (lambda (i) 1.0)
+                (lambda (i) 1.0)
+                11)
