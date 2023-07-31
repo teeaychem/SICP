@@ -1326,22 +1326,20 @@ Second, directly define a particular instance (as commented).
 
 
 (define (repeated f times)
-  (define (repeated-so-far f times done)
-    (if (= done times)
+    (if (= times 1)
         f
-        (compose f (repeated-so-far f times (+ done 1)))
+        (compose f (repeated f (- times 1)))
         )
-    )
-  (lambda (x) ((repeated-so-far f times 1) x))
   )
 
 ((repeated square 2) 5)
 
+
 #|
-This is a little odd.
+This is a little surprising.
 For, the most natural base case is f x.
 With this, completing recursive calls gets f^n x.
-And, as a last step take λ x f^n x.
+And, as a last step take λ x f^n x, or just leave the procedure as it is.
 
 But, this isn't okay, as x dones't evaluate to anything.
 
@@ -1357,4 +1355,105 @@ Hm.
 |#
 
 
+;; Ex. 1.44
 
+
+(define (smoothed f dx)
+  (lambda (x)
+    (/ (+ (f x) (f (+ x dx)) (f (- x dx))) 3)
+    )
+  )
+
+
+(define (smooth-fold f dx n)
+  ((repeated (lambda (x) (smoothed x dx)) n) f)
+  )
+
+
+
+#|
+Nothing too exciting here.
+We repeat the smoothing, and then apply this to the function.
+(Repeating smoothing applied to the function would involve repeating the function.)
+lambda lets us do this easily, though I guess it would also be easy if dx was fixed as a constant somewhere.
+|#
+
+
+;; Ex. 1.45
+
+#|
+Average-damp(f(x)) = (x + f(x))/2
+
+e.g. Average-damp(10^2) = 55 = (10 + 100)/2
+
+In general, fixed point fails without dampening as y -> x/y -> x/(x/y) -> y
+Then, y -> (x + x/y)/2.
+
+In any case, this exercise seems rough.
+We're asked to experiment to find out how many average damps are required to compute nth roots as a fixed-point search.
+The problem is failure to converge, though.
+Of course, things are a little better.
+For, the general form of the problem is re-obtaining the initial value, or at least a prior value.
+So, it's in principle possible to store every value computed and then check to see if any of these are repeated.
+Still, it's not very interesting.
+
+The final function isn't too interesting either.
+Once the required number of times to average damp is figured out, the next task is to repeatedly average damp the function, and then apply the fixed point solver to this.
+|#
+
+
+;; Ex. 1.46
+
+
+#|
+In outline, a conditional:
+
+if (good? guess) guess (improve guess)
+
+So, here, the only issue is obtaining the guess.
+But, this is two lambda terms.
+lambda f lambda x (f x)
+|#
+
+(define (iterative-improve good? improve)
+  (lambda (guess) (if (good? guess)
+      guess
+      ((iterative-improve good? improve) (improve guess))))
+  )
+
+
+#|
+To help make things clear, a couple of let statements to define the relevant procedures.
+Then, call iterative-improve.
+Here, 1 could be anything – it's just a first guess.
+|#
+
+
+(define (iiSqrt x)
+  (let (
+        (good? (lambda (guess) (< (abs (- (square guess) x)) 0.001)))
+        (improve (lambda (guess) (average guess (/ x guess))))
+        )
+    ((iterative-improve good? improve) 1)
+    )
+  )
+
+; Some tests
+;; (iiSqrt 4.0)
+;; (iiSqrt 16.0)
+;; (iiSqrt 125.0)
+
+
+(define (iiFixed-Point f)
+  (let (
+        (good? (lambda (guess) (< (abs (- (f guess) guess)) 0.00001)))
+        (improve (lambda (guess) (f guess)))
+        )
+    ((iterative-improve good? improve) 1)
+    )
+  )
+
+
+; A couple of funcs from 1.3.3 (p. 69) for testing
+;; (iiFixed-Point cos)
+;; (iiFixed-Point (lambda (y) (+ (sin y) (cos y))))
