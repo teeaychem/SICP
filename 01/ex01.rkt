@@ -1457,3 +1457,80 @@ Here, 1 could be anything – it's just a first guess.
 ; A couple of funcs from 1.3.3 (p. 69) for testing
 ;; (iiFixed-Point cos)
 ;; (iiFixed-Point (lambda (y) (+ (sin y) (cos y))))
+
+
+
+;; Ex 2.1
+
+#|
+
+|#
+
+(define (numer x) (car x))
+(define (demon x) (cdr x))
+
+
+#|
+Not particularly elegant.
+Though, cheeky λ to avoid calculating (* n d) twice.
+Note, doing (define (mult) (* n d)) wouldn't be any help, as this would just call the multiplcation.
+|#
+
+(define (make-rat-basic n d)
+  (let ((sign  ((lambda (x) (/ x (abs x))) (* n d))))
+    (cons (* sign (abs n)) (abs d))
+    )
+  )
+
+#|
+It's not possible to always reference a let constant from another let constant.
+This kind of makes sense to me.
+At some point, need to make the reference happen.
+This way, reference isn't assumed to be sequential, nor does one need to track dependencies.
+|#
+
+#|
+(define (make-rat-basic-x n d)
+  (let ((mult (* n d))
+        (sign (/ mult (abs mult)))
+        )
+    (cons (* sign (abs n)) (abs d))
+    )
+  )
+|#
+
+
+#|
+make-rat as defined in the book already does this.
+But, it's due to a bug in gcd.
+For, gcd(2, -3) = 1.
+Yet, (gcd 2 -3) = -1.
+And, in general, given (gcd a b), if a is positive and b is negative, then the result is negative.
+Otherwise, the result has the sign of a.
+|#
+
+(define (make-rat n d)
+  (let ((g (gcd n d)))
+    (cons (/ n g) (/ d g))
+    )
+  )
+
+#|
+In the book, newline is first, but newline last fits with previous displays.
+|#
+
+(define (print-rat x)
+  (display (numer x))
+  (display "/")
+  (display (demon x))
+  (newline)
+  )
+
+(print-rat (make-rat-basic -2 -3))
+(print-rat (make-rat-basic -2 3))
+(print-rat (make-rat-basic 2 3))
+(print-rat (make-rat-basic -2 3))
+(print-rat (make-rat -2 -3))
+(print-rat (make-rat 2 -3))
+(print-rat (make-rat 2 3))
+(print-rat (make-rat -2 3))
