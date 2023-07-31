@@ -1300,3 +1300,61 @@ There's two options.
 First (as taken), define the general function, and then obtain a particular instance.
 Second, directly define a particular instance (as commented).
 |#
+
+
+;; Ex. 1.41
+
+
+(define (double f)
+  (lambda (x) (f (f x)))
+  )
+
+((double inc) 2)
+(((double (double double)) inc) 5)
+
+
+;; Ex. 1.42
+
+(define (compose f g)
+  (lambda (x) (f (g x)))
+  )
+
+((compose square inc) 6)
+
+
+;; Ex. 1.43
+
+
+(define (repeated f times)
+  (define (repeated-so-far f times done)
+    (if (= done times)
+        f
+        (compose f (repeated-so-far f times (+ done 1)))
+        )
+    )
+  (lambda (x) ((repeated-so-far f times 1) x))
+  )
+
+((repeated square 2) 5)
+
+#|
+This is a little odd.
+For, the most natural base case is f x.
+With this, completing recursive calls gets f^n x.
+And, as a last step take λ x f^n x.
+
+But, this isn't okay, as x dones't evaluate to anything.
+
+So, instead, the base case is f.
+The argument is not made explicit, so there's no issue of evaluting it.
+We just return the procedure.
+
+So, mabye it's not *that* strange.
+With f x we are working with some arbitrary value, and as this is arbitrary, what we're doing is transformed into a procedure.
+And, with f we are working with a procedure directly.
+
+Hm.
+|#
+
+
+
