@@ -1133,7 +1133,7 @@ x = (1 + 1/x) \ Algebra
   (try first-guess))
 
 (display "φ is roughly: ")
-(fixed-point (lambda (x) (+ 1 (/ 1 x))) 1.0 .0000001)
+(fixed-point (lambda (x) (+ 1 (/ 1 x))) 1.0 0.0000001)
 
 
 ;; Ex. 1.36
@@ -1259,3 +1259,44 @@ Then, work through offset cont-frac k times.
 
 
 (tan-cf 1.0 10.0)
+
+
+;; Ex. 1.40
+
+(define (deriv g)
+  (let ((dx 0.00001))
+    (lambda (x)
+           (/ (- (g (+ x dx)) (g x))
+              dx)))
+  )
+
+
+(define (newton-transform g)
+  (lambda (x)
+         (- x (/ (g x) ((deriv g) x))))
+  )
+
+
+(define (newtons-method g guess)
+  (fixed-point (newton-transform g) guess 0.0000001)
+  )
+
+
+(define (cubic-all x a b c)
+  (+ (cube x) (* a (square x)) (* b x) c)
+  )
+
+
+(define (cubic a b c)
+  (lambda (x) (cubic-all x a b c)))
+  ;; (lambda (x)
+  ;;   (+ (cube x) (* a (square x)) (* b x) c)
+  ;;   ))
+
+
+#|
+Here, just constructing a function.
+There's two options.
+First (as taken), define the general function, and then obtain a particular instance.
+Second, directly define a particular instance (as commented).
+|#
