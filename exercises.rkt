@@ -1741,3 +1741,174 @@ So, (n f) is of the form λx f^m x.
 Hence, (f (n f) ((m f) x)) reduces to f^n (f^m x).
 And, this is what we want. f applied n + m times.
 |#
+
+
+
+;; 2.1.4 Extended exercise
+
+
+#|
+Why not do intervals by a precise quantity tolerance pair?
+At least in the case of resistors, where things are specified this way?
+
+Though, I can see in general specifying lower and upper bounds is easier.
+Unless, upper + lower / 2.
+This gets 'precise quantity'.
+Then, upper - mid.
+This gets half width.
+So, either way seems fine.
+|#
+
+
+;; 2.7
+
+(define (make-interval a b) (cons a b))
+#|
+So, this is as specified, but why rely on the user to fix the correct upper and lower bounds?
+|#
+(define (lower-bound i) (car i))
+(define (upper-bound i) (cdr i))
+
+;; 2.8
+
+#|
+So, add-interval reduces to addition on the upper and lower bounds.
+In this way, sub-interval will do the same.
+Though, add a check to ensure upper is upper and lower is lower.
+|#
+
+(define (add-interval x y)
+  (make-interval (+ (lower-bound x) (lower-bound y))
+                 (+ (upper-bound x) (upper-bound y))
+                 ))
+
+(define (sub-interval x y)
+  (let (
+        (lIS (- (lower-bound x) (lower-bound y)))
+        (hIS (- (upper-bound x) (upper-bound y)))
+        )
+    (if (> hIS lIS)
+        (make-interval hIS lIS)
+        (make-interval lIS hIS)
+        )
+    ))
+
+(add-interval (make-interval 0 1) (make-interval 9 10))
+(sub-interval (make-interval 0 2) (make-interval 9 10))
+
+#|
+In the same way adding increases margin, subtancting decreases margin.
+I feel this isn't quite right.
+Instead, go with proposal above and take an procedure for combining two tolerances.
+|#
+
+
+;; 2.9
+
+
+(define (interval-width i)
+  (/ (- ((upper-bound i) (lower-bound i))) 2))
+
+#|
+In the case of addition.
+x.w + y.w = (x.u - x.l)/2 + (y.u - y.l)/2
+          = ((x.u - x.l) + (y.u - y.l))/2
+          = ((x.u + y.u) + (x.l - y.l))/2
+          = (x + y).w
+
+The reasoning is the same for subtraction.
+|#
+
+
+#|
+For multiplication, consider some intervals using 0 and 1.
+(1 0) * (1 0) = (0 0)
+And, we have (1 0).w = 0.5, while (0 0).w = 0.
+In contrast:
+(1 1) * (1 1) = (1 1)
+And, we have (1 1).w = 0.5
+
+Division is… defined in terms of multiplication as the main operator.
+This isn't a proof, but suggests similar problems.
+|#
+
+
+;; Ex. 2.10
+
+
+#|
+'spans 0' means 'has width 0'?
+I mean, and interval crossing over 0 should be no problem.
+Anyway, mul-interval written so variant of div-interval doesn't prevent anything else running.
+|#
+
+(define (mul-interval x y)
+  (let (
+        (p1 (* (lower-bound x) (lower-bound y)))
+        (p2 (* (lower-bound x) (upper-bound y)))
+        (p3 (* (upper-bound x) (lower-bound y)))
+        (p4 (* (upper-bound x) (upper-bound y)))
+        )
+    (make-interval (min p1 p2 p3 p4)
+                   (max p1 p2 p3 p4)))
+  )
+
+(define (div-interval x y)
+  (if (= 0 (interval-width y))
+      (error)
+      (mul-interval x
+                    (make-interval (/ 1.0 (upper-bound y))
+                                   (/ 1.0 (lower-bound y))
+                                   )
+                    )
+      )
+  )
+
+
+;; Ex. 2.11
+
+#|
+I'm not quite seeing the point of this exercise.
+In any case, we can write out a table of all the possible positive/negative combinations.
+Then, we can work out whether there's a guaranteed value for the upper and lower bounds.
+With perhaps some errors, I have this:
+
+ u_x | u_y | l_x | l_y | ub | lb
+  +  |  +  |  +  |  +  | P4 | P1
+  +  |  +  |  +  |  -  | P4 | P3
+  +  |  +  |  -  |  +  | P4 | P2
+  +  |  +  |  -  |  -  |
+  +  |  -  |  +  |  +  | P3 | P4
+  +  |  -  |  +  |  -  | P2 | P3
+  +  |  -  |  -  |  +  |
+  +  |  -  |  -  |  -  | P1 | P3
+  -  |  +  |  +  |  +  | P2 | P3
+  -  |  +  |  +  |  -  |
+  -  |  +  |  -  |  +  | P1 | P4
+  -  |  +  |  -  |  -  | P1 | P2
+  -  |  -  |  +  |  +  |
+  -  |  -  |  +  |  -  | P3 | P1
+  -  |  -  |  -  |  +  | P4 | P1
+  -  |  -  |  -  |  -  | P1 | P4
+
+Where:
+
+P1 l_x l_y
+P2 l_x u_y
+P3 u_x l_y
+P4 u_x u_y
+
+Here, then, there's the 'else' case, which covers the four instances where we need to calculate more than two combinations.
+In all the other cases, we need to calculate the listed two cases.
+
+But, I guess I've got this a little wrong.
+For, we can break this down into sets of calculations.
+I.e. { P1, P4 } covers both the last and the first case.
+Then, for the upper and lower bound we only need to figure out which is larger than the other.
+This is still only two instances of multiplications.
+
+But, on my count there are six distinct sets.
+So, this means we only need to consider seven cases.
+
+I guess I'm missing something here…
+|#
