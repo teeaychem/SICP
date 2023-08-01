@@ -9,3 +9,8 @@ Though, I can see this in terms of a linked list.
 Where, car and cdr are value and point (or vice-versa).
 Still, as far as the textbook goes, starting with the abstraction of lists and then seeing the implementation is what I expected.
 |#
+
+
+(define zero (lambda (f) (lambda (x) x)))
+(zero 0)
+((zero 0) 0)

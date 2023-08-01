@@ -1708,3 +1708,36 @@ I'd guess there's some trick with log here, but I don't see it quickly.
 #|
 Note, only asked to do with for non-negative integers.
 |#
+
+
+;; Ex. 26
+
+#|
+So…
+
+0 = λf λx x
+1 = λf λx f x
+2 = λf λx ff x
+|#
+
+#|
+(define one (lambda (f) (lambda (x) (f (x)))))
+(define two (lambda (f) (lambda (x) (f (f (x))))))
+|#
+
+#|
+Okay, not allowed to apply repeat to add-1.
+
+Still, this is just a variation on add-1.
+
+(define (add n m)
+(lambda (f) (lambda (x) (f (n f) ((m f) x)))))
+
+Instead of x, we have ((m f) x).
+m is of the form λf λx f^m x.
+So, ((m f) x) is of the form f^m x.
+n is of the form λf λx f^n x
+So, (n f) is of the form λx f^m x.
+Hence, (f (n f) ((m f) x)) reduces to f^n (f^m x).
+And, this is what we want. f applied n + m times.
+|#
