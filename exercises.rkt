@@ -1526,11 +1526,185 @@ In the book, newline is first, but newline last fits with previous displays.
   (newline)
   )
 
-(print-rat (make-rat-basic -2 -3))
-(print-rat (make-rat-basic -2 3))
-(print-rat (make-rat-basic 2 3))
-(print-rat (make-rat-basic -2 3))
-(print-rat (make-rat -2 -3))
-(print-rat (make-rat 2 -3))
-(print-rat (make-rat 2 3))
-(print-rat (make-rat -2 3))
+;; (print-rat (make-rat-basic -2 -3))
+;; (print-rat (make-rat-basic -2 3))
+;; (print-rat (make-rat-basic 2 3))
+;; (print-rat (make-rat-basic -2 3))
+;; (print-rat (make-rat -2 -3))
+;; (print-rat (make-rat 2 -3))
+;; (print-rat (make-rat 2 3))
+;; (print-rat (make-rat -2 3))
+
+
+;; Ex. 2.2
+
+
+(define (make-point x y)
+  (cons x y))
+
+(define (x-point point)
+  (car point))
+
+(define (y-point point)
+  (cdr point))
+
+;; (x-point (make-point 1 2))
+;; (y-point (make-point 1 2))
+
+
+(define (make-segment start-point end-point)
+  (cons start-point end-point))
+
+(define (start-segment segment)
+  (car segment))
+
+(define (end-segment segment)
+  (cdr segment))
+
+(define (midpoint-segment segment)
+  (make-segment
+   (/ (+ (x-point (start-segment segment)) (x-point (end-segment segment))) 2)
+   (/ (+ (y-point (start-segment segment)) (y-point (end-segment segment))) 2)
+   )
+  )
+
+;; (midpoint-segment (make-segment (make-point 2 2) (make-point 4 4)))
+;; (midpoint-segment (make-segment (make-point -4 -8) (make-point 4 4)))
+
+#|
+Though, I think this should be a little more general.
+With a coordinate space, there's no limit on the dimension.
+So, rather than having distinct x and y selectors, there should be a general selection which takes the dimension as an argument.
+Then, it's easy to expand everything, given some way to test wether the dimension is stored.
+Though, at this point in the book the problem is lists.
+We only have pairs.
+|#
+
+;; Ex. 2.3
+
+#|
+For a rectangle, there's a few ways to do this.
+Though, point for origin and rationals for legnth and width seems most straightforward.
+
+A rectange is stored as ((origin-x origin-y) (width height))
+|#
+
+
+(define (make-rectangle origin width height)
+  (cons origin (cons width height)))
+
+(define (rectangle-origin rectangle)
+  (car rectangle))
+
+(define (rectangle-width rectangle)
+  (car (cdr rectangle)))
+
+(define (rectangle-height rectangle)
+  (cdr (cdr rectangle)))
+
+#|
+Not sure what is meant by perimeter here.
+Length of the perimeter is… not very interesting.
+Points to construct the perimeter is a little better.
+So, that's what the following procedure does.
+Points are enumerated clockwise starting with 1 as top-left going to 3 as bottom-left.
+|#
+
+(define (rectangle-perimeter rectangle point)
+  (if (= point 0)
+      (rectangle-origin rectangle)
+      (let ((xPoint (x-point (rectangle-origin rectangle)))
+            (yPoint (y-point (rectangle-origin rectangle))))
+        (cond
+          ((= point 1) (make-point (+ xPoint (rectangle-width rectangle)) yPoint))
+          ((= point 2) (make-point (+ xPoint (rectangle-width rectangle)) (+ yPoint (rectangle-height rectangle))))
+          ((= point 3) (make-point xPoint (+ yPoint (rectangle-height rectangle))))
+          )
+        )
+      )
+  )
+
+(define (rectangle-area rectangle)
+  (* (rectangle-width rectangle) (rectangle-height rectangle)))
+
+
+(define test-rect (make-rectangle (make-point 5 10) 15 10))
+(rectangle-origin test-rect)
+(rectangle-width test-rect)
+(rectangle-height test-rect)
+(rectangle-perimeter test-rect 2)
+
+#|
+The representation of the rectangle doesn't matter, so long as there's selectors for origin, width, and height.
+
+And, I can't think of an interesting alterantive representation.
+Could take the center point.
+The only thing here is origin is given by center.x - width/2, etc.
+
+Could also take two points.
+Say, top left and bottom right.
+Then, origin is top left, and width is obtained from top right.x - bottom left.x in the positive case.
+|#
+
+
+;; Ex. 2.4
+
+#|
+(car (cons x y)) = λm (m x y) (λ (p q) p)
+                 = (λ (p q) p) x y
+                 = x
+
+for cdr
+
+(define (cdr z)
+(z (lambda (p q) q)))
+
+So:
+
+(cdr (cons x y)) = λm (m x y) (λ (p q) p)
+                 = (λ (p q) q) x y
+                 = y
+|#
+
+
+
+;; Ex. 2.5
+
+#|
+To pair the numbers use any exponentiation procedure which takes base and exponent arguments.
+
+To break apart the number, keep dividing by either 2 or 3 until no further integer division is possible.
+
+I'd guess there's some trick with log here, but I don't see it quickly.
+|#
+
+(define (break-down pair n)
+  (define (break-down-i pair n m)
+    (if (not (= 0 (remainder pair n)))
+        m
+        (break-down-i (/ pair n) n (+ m 1))
+        )
+    )
+  (break-down-i pair n 0)
+  )
+
+(define (pair-numbers a b)
+  (* (expItr 2 a) (expItr 3 b)))
+
+(define (pair-number-a pair)
+  (break-down pair 2))
+
+(define (pair-number-b pair)
+  (break-down pair 3))
+
+; Basic test
+(pair-number-a (pair-numbers 32 94))
+(pair-number-b (pair-numbers 32 94))
+
+; Some edge cases.
+(pair-number-a (pair-numbers 1 1))
+(pair-number-b (pair-numbers 1 0))
+
+#|
+Note, only asked to do with for non-negative integers.
+|#

@@ -9,6 +9,8 @@ Choice to use Racket was made after reading the [SICP-guile](https://github.com/
 
 ### A few notes…
 
-Exercises are unchecked unless noted.
+Exercises aren't checked against any other source unless noted (no notes so far).
+
+Sometimes tests are left uncommented, sometimes commented, and a lot of the time tests are deleted.
 
 If you search through the commits you'll find at least once instance where a later problem has revealed an earlier problem was wonky. 
