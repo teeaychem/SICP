@@ -1912,3 +1912,126 @@ So, this means we only need to consider seven cases.
 
 I guess I'm missing something here…
 |#
+
+
+
+#|
+Ah, I guess I'm this potential user, huh.
+|#
+
+
+;; Ex. 2.12
+
+(define (make-center-width c w)
+  (make-interval (- c w) (+ c w))
+  )
+
+(define (make-center-percent c p)
+  (let ((nudge (* (abs c) p)))
+    (make-interval (- c nudge) (+ c nudge))
+    )
+  )
+
+(define (i-center i)
+  (/ (+ (lower-bound i) (upper-bound i)) 2)
+  )
+
+#|
+This isn't super precise with small percentages.
+But, there's no way around this without changing the bound constructor.
+As, imprecision has already entered by multiplying the center by the percentage to get the bounds.
+|#
+(define (i-percent i)
+  (- (/ (upper-bound i) (i-center i)) 1)
+  )
+
+
+(i-center (make-center-percent 10 0.001))
+(i-percent (make-center-percent 10 1.01))
+
+
+;; Ex 2.13
+
+
+#|
+Assuming small percentage tolerances and all numbers are positive.
+
+Formula for the approximate percentage tolerance of the product of two intervals
+in terms of the tolerances of the factors.
+|#
+
+
+#|
+So, for the product we take min/max of different upper/lower x/y combinations.
+In general, then, product is of the form:
+
+(x ± t_x) * (y ± t_y) = (xy ± yt_x ± xt_y ± t_xt_y)
+|#
+
+
+#|
+Hm, well, to find the tolerance pertentage, divide upper by center then subtract 1.
+Ignoring the part where we substract one, we have:
+u / ((u + l) / 2) = 2u/(u * l)
+
+If assuming everything is positive, then upper and lower bounds are direct.
+
+So, we have
+
+2(ux + tx)(uy + ty) / ((ux + tx)(uy + ty) + (lx + tx)(ly + ty))
+
+Where tx is really uxtx, etc.
+That is, ux + tx = ux(1 + tx).
+
+
+Different way of looking at things.
+If we start by keeping tolerance in play, then the upper bound for x, with tolerance is u_x(1 * tx).
+So, then, the upper bound for product, with tolerance is
+u_x * u_y * (1 * tx) * (1 * ty)
+So, then, (1 * tx) * (1 * ty) = 1 + tx + ty + txty.
+In this case, then, why not take the tolerance as tx + ty + txty?
+This seems sufficiently simple, but gives the exactl tolerance…
+Of course, tx + ty should get quite close when tx and ty are very small, as txty is going to be very very small.
+|#
+
+
+(define (quick-mul-tolerance i1 i2)
+  (+ (i-percent i1) (i-percent i2))
+  )
+
+#|
+This looks good to me…
+|#
+
+(quick-mul-tolerance (make-center-percent 10 0.001) (make-center-percent 10 0.006))
+(i-percent (mul-interval (make-center-percent 10 0.001) (make-center-percent 10 0.006)))
+
+
+;; Ex. 2.17
+
+#|
+One way to do this:
+Recursive, keep cdr until empty list.
+Then, on return, check to see if evluated was the empty list.
+If so, then return current list, as this is last before empty.
+Otherwise, pass through whatever is given.
+|#
+
+
+
+#|
+So, for reversing, helper function.
+car to get current first element from in list.
+Then, if the outlist is empty, (elem nil) else cons (elem outlist).
+|#
+
+
+#|
+With lists like this, there's a tradeoff between easy read and easy write.
+And, as set up, it's easy read.
+For, it's easy to go from the right element to the last.
+It's not easy write, though, as you need to traverse through every element until you get to the end.
+
+Though, you'd expect this to be the case in general.
+We need to keep track of things, and the easy-write probably changes more than the easy to read thing.
+|#
