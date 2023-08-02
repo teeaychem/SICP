@@ -2092,14 +2092,19 @@ It's a mistake to think operations on fixed values apply equally to intervals or
 
 ;; Ex. 2.17
 
-#|
-One way to do this:
-Recursive, keep cdr until empty list.
-Then, on return, check to see if evluated was the empty list.
-If so, then return current list, as this is last before empty.
-Otherwise, pass through whatever is given.
-|#
+(define (last-pair l)
+  (define (last-pear l e)
+    (if (null? l)
+        e
+        (last-pear (cdr l) (car l))
+        )
+    )
+      (last-pear l nil)
+  )
 
+(last-pair (list 23 72 149 34))
+(last-pair (list 23 72 149))
+(last-pair (list ))
 
 
 #|
