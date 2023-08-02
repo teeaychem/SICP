@@ -1807,7 +1807,7 @@ Instead, go with proposal above and take an procedure for combining two toleranc
 
 
 (define (interval-width i)
-  (/ (- ((upper-bound i) (lower-bound i))) 2))
+  (/ (- (upper-bound i) (lower-bound i)) 2))
 
 #|
 In the case of addition.
@@ -2005,6 +2005,34 @@ This looks good to me…
 
 (quick-mul-tolerance (make-center-percent 10 0.001) (make-center-percent 10 0.006))
 (i-percent (mul-interval (make-center-percent 10 0.001) (make-center-percent 10 0.006)))
+
+
+;; Ex. 2.14
+
+
+(define (par1 r1 r2)
+  (div-interval (mul-interval r1 r2)
+                (add-interval r1 r2)))
+
+(define (par2 r1 r2)
+  (let ((one (make-interval 1 1)))
+    (div-interval one
+                  (add-interval (div-interval one r1)
+                                (div-interval one r2)))))
+
+(define ti1 (make-center-width 2 0.01))
+(define ti2 (make-center-width 4 0.001))
+
+#|
+Two intervals are equal just in case they have the same upper and lower bounds.
+|#
+(define (i-equal i1 i2)
+  (and (= (upper-bound i1) (upper-bound i2)) (= (lower-bound i1) (lower-bound i2)))
+  )
+
+(par1 ti1 ti2)
+(par2 ti1 ti2)
+(i-equal (par1 ti1 ti2) (par2 ti1 ti2))
 
 
 ;; Ex. 2.17
