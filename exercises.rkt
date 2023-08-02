@@ -2021,7 +2021,8 @@ This looks good to me…
                                 (div-interval one r2)))))
 
 (define ti1 (make-center-width 2 0.01))
-(define ti2 (make-center-width 4 0.001))
+(define ti2 (make-center-width 2 0.001))
+(define ti3 (make-center-width 4 0.001))
 
 #|
 Two intervals are equal just in case they have the same upper and lower bounds.
@@ -2033,6 +2034,60 @@ Two intervals are equal just in case they have the same upper and lower bounds.
 (par1 ti1 ti2)
 (par2 ti1 ti2)
 (i-equal (par1 ti1 ti2) (par2 ti1 ti2))
+
+(i-percent (par1 ti1 ti2))
+(i-percent (par2 ti1 ti2))
+
+
+;; Ex. 2.15
+
+
+#|
+So, as intervals are just upper and lower bounds, the tolerance percentage is implicit.
+
+When adding, everything should be preserved.
+For, we sum the lower and upper bounds.
+So, the center point of the new point is just the sum of the center points of the initial points.
+
+Similar for subtraction.
+
+In this sense, Eva Lu Ator isn't quite right.
+The operations performed are important, not just the way the interval is written.
+|#
+
+
+#|
+Things are different in the case of product and division, though.
+Here we multiply bounds, and hence multiply tolerance.
+As seen earlier, we get (1 * tx) * (1 * ty) = 1 + tx + ty + txty.
+
+par2 has one less instance of multiplication than par1.
+And, as x * y > x + y, at least when everything is positive, at least some of the additional tolerance from product is going to be preserved.
+
+Going to need to define "better", tho.
+It's not clear tolerance as given really reflects anything under these transformations.
+|#
+
+
+;; Ex. 2.16
+
+
+#|
+Well, par1 and par2 are the same when i1 and i2 are rational numbers, at least.
+So, when addition, multiplication, etc. satisfy certain properties.
+It's not clear these same properties are satisfied when working with intervals.
+
+The answer here really depends on what is allowed with the package.
+If mul and div are fixed, there's no way out.
+Equivalent expressions using rationals won't translate to intervals.
+Assuming, that is, something is different.
+
+But really, the issue is this.
+Resistor values are only know up to some tolerance.
+These formulas are defined with respect to resistor values without accounting for tolerance.
+It's a mistake to think operations on fixed values apply equally to intervals or whatever.
+|#
+
 
 
 ;; Ex. 2.17
