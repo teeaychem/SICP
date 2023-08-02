@@ -2106,12 +2106,25 @@ It's a mistake to think operations on fixed values apply equally to intervals or
 (last-pair (list 23 72 149))
 (last-pair (list ))
 
+;; Ex. 2.18
+
 
 #|
-So, for reversing, helper function.
-car to get current first element from in list.
-Then, if the outlist is empty, (elem nil) else cons (elem outlist).
+See reverse as a special case of appending in reverse.
+Then, reverse is just this with an empty list.
 |#
+
+(define (reverse l)
+  (define (mirror-onto l1 l2)
+    (if (null? l1)
+        l2
+        (mirror-onto (cdr l1) (cons (car l1) l2))
+        )
+    )
+  (mirror-onto l nil)
+  )
+
+(reverse (list 23 72 149 34))
 
 
 #|
@@ -2122,4 +2135,39 @@ It's not easy write, though, as you need to traverse through every element until
 
 Though, you'd expect this to be the case in general.
 We need to keep track of things, and the easy-write probably changes more than the easy to read thing.
+|#
+
+
+;; Ex. 2.19
+
+
+(define us-coins (list 50 25 10 5 1))
+(define uk-coins (list 100 50 20 10 5 2 1 0.5))
+
+(define (cc-list amount coin-values)
+  (cond ((= amount 0) 1)
+        ((or (< amount 0) (no-more? coin-values)) 0)
+        (else
+         (+ (cc-list amount
+                     (except-first-denomination coin-values))
+            (cc-list (- amount
+                        (first-denomination coin-values)) coin-values)
+            )
+         )
+        )
+  )
+
+
+(define (first-denomination coin-list) (car coin-list))
+(define (except-first-denomination coin-list) (cdr coin-list))
+(define (no-more? coin-list) (null? coin-list))
+
+(cc-list 100 us-coins)
+(cc-list 100 (reverse us-coins))
+
+#|
+The order of the coin list doesn't matter.
+For, we always try to make the value using with and without the current 'first' coin.
+So, if, say, 50 is up first, the first call will split into using 50 and ignoring 50.
+While, if 50 is up somewhere in the middle, this split will happen multiple times, according to the splits that have already happened.
 |#
