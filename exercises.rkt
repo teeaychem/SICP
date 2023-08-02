@@ -2171,3 +2171,26 @@ For, we always try to make the value using with and without the current 'first' 
 So, if, say, 50 is up first, the first call will split into using 50 and ignoring 50.
 While, if 50 is up somewhere in the middle, this split will happen multiple times, according to the splits that have already happened.
 |#
+
+
+;; Ex. 2.20
+
+
+(define (same-parity e . l)
+  (define (parity-list ie il)
+    (if (null? il)
+        nil
+        (let ((eParity (remainder ie 2))
+              (newElem (car il)))
+          (if (= (remainder newElem 2) eParity)
+            (cons newElem (parity-list ie (cdr il)))
+            (parity-list ie (cdr il))
+            )
+          )
+        )
+    )
+  (cons e (parity-list e l))
+  )
+
+(same-parity 1 2 3 4 5 6 7)
+(same-parity 2 3 4 5 6 7)
