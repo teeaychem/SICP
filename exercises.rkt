@@ -2263,3 +2263,18 @@ In the second case we're not building a list.
 
 
 ;; Ex. 2.23
+
+
+(define (for-each proc l)
+  (cond ((null? (cdr l)) (proc (car l)))
+        (else
+         (proc (car l)) (for-each proc (cdr l)))
+      )
+  )
+
+#|
+Ideally I'd use a pass procedure on the null? test here.
+Then, we could check if the argument is nil, rather than looking a step ahead.
+|#
+
+(for-each (lambda (x) (newline) (display x))(list 57 321 88))
