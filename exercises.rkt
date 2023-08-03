@@ -2239,3 +2239,27 @@ Ok.
 #|
 Yes, could have used (square x) in both, and yes in full this makes a difference as (car items) is only done once.
 |#
+
+
+;; Ex. 2.22
+
+
+#|
+So, we've got an inner iterative function.
+Takes as argument a in-list and out-list
+Idea is to transfer in-list to out-list.
+But, lists  work in a specific order.
+We have (element rest of list)
+So, we read from a list top to bottom.
+But, built a list bottom to top.
+In this respect, Louis' 'top' element from in-list is added as the 'bottom' element of out-list.
+|#
+
+
+#|
+In the second case we're not building a list.
+|#
+
+
+
+;; Ex. 2.23
