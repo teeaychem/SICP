@@ -2748,3 +2748,28 @@ fringe does this.
 Then, somehow accumulate the elements of the list to get the number of leaves.
 Well, here then just set every leaf value to 1.
 |#
+
+
+;; Ex. 2.36
+
+
+#|
+Here, a way to make a list of the first elements of the lists.
+Then, the rest of the lists.
+|#
+
+
+(list (list 1 2 3) (list 4 5 6) (list 7 8 9 ) (list 10 1 1 12))
+
+(define (accumulate-n op init seqs)
+  (if (null? (car seqs))
+      nil
+      (cons (accumulate op init (my-map car seqs))
+                        (accumulate-n op init (my-map cdr seqs)))))
+
+
+(accumulate-n + 0 (list (list 1 2 3) (list 4 5 6) (list 7 8 9 ) (list 10 11 12)))
+
+#|
+Alright, this exercise was really cool!
+|#
