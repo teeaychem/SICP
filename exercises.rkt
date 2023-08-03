@@ -2686,3 +2686,41 @@ I like abstraction, but here I'm not sure what the point is, given we need the d
 (length (list 1 2 3))
 (length (list ))
 
+
+;; Ex. 2.34
+
+
+(define (horner-eval x coefficient-sequence)
+  (accumulate (lambda (this-coeff higher-terms) (+ this-coeff (* higher-terms x)))
+              0
+              coefficient-sequence)
+  )
+
+
+(horner-eval 2 (list 1 3 0 5 0 1))
+
+
+#|
+Right, I figured out the goal was to modify addition.
+But, the choice of a and b was guess work.
+I originially had (+ (* a x) b).
+Thinking that a would be a_n at first.
+But, it's not really higher-terms, it's higher-terms already done, right?
+
+It's, what's already been done with the higher-terms, or something like this.
+
+Right, this is clear when looking at the definition of accumulate.
+We have op applied to the current first thing in the sequence and the rest.
+So, by higher-terms this is the op-defined as applied to all the higher-terms from the current term.
+|#
+
+
+
+(define (horner-test x coefficient-sequence)
+  (accumulate (lambda (this-coeff higher-terms) (display higher-terms) this-coeff higher-terms)
+              0
+              coefficient-sequence)
+  )
+
+
+(horner-test 2 (list 1 3 0 5 0 1))
