@@ -2277,4 +2277,100 @@ Ideally I'd use a pass procedure on the null? test here.
 Then, we could check if the argument is nil, rather than looking a step ahead.
 |#
 
-(for-each (lambda (x) (newline) (display x))(list 57 321 88))
+(for-each (lambda (x) (display x) (newline))(list 57 321 88))
+; Switched (newline) to second, to keep display style.
+
+
+#|
+As an aside, search seems difficult with lists.
+Efficient search, that is.
+For, it's easy to work through a list and check for equality.
+But, it's hard to do a standard recurse onto sub-lists, as there's no quick way to make a sub-list.
+That is, with this abstraction.
+Though, moving to pointers things are very easy, especially if the length of the list is stored.
+|#
+
+;; Ex. 2.24
+
+
+(list 1 (list 2 (list 3 4)))
+
+
+#|
+This is basically a tree which immediately terminates when branching to the left.
+|#
+
+
+
+;; Ex. 2.25
+
+
+(car (cdr (car (cdr (cdr (list 1 3 (list 5 7) 9))))))
+(car (car (list (list 7))))
+(car (cdr (car (cdr (car (cdr (car (cdr (car (cdr (car (cdr (list 1 (list 2 (list 3 (list 4 (list 5 (list 6 7))))))))))))))))))
+
+#|
+This last one is interesting.
+(1 (2 …))
+If do cdr then get (2 …).
+Now, this is not simply a list with 2 as the first element.
+For, then the initial argument would be (1 2 …)
+So, we have a list with (2 …) as the first element.
+|#
+
+
+;; Ex. 2.26
+
+
+(define (append l1 l2)
+  (if (null? l1)
+      l2
+      (cons (car l1) (append (cdr l1) l2))
+      )
+  )
+
+
+(define lx (list 1 2 3))
+(define ly (list 4 5 6))
+
+(append lx ly) ; A list of 1 2 3 4 5 6
+(cons lx ly) ; A list of (list of 1 2 3) 4 5 6
+(list lx ly) ; A list of (list of 1 2 3) (list of 4 5 6)
+
+
+;; Ex. 2.27
+
+
+;; (define (reverse l)
+;;   (define (mirror-onto l1 l2)
+;;     (if (null? l1)
+;;         l2
+;;         (mirror-onto (cdr l1) (cons (car l1) l2))
+;;         )
+;;     )
+;;   (mirror-onto l nil)
+;;   )
+
+;; (reverse (list 23 72 149 34))
+
+
+(define (deep-reverse l)
+  (define (mirror-onto l1 l2)
+    (if (null? l1)
+        l2
+        (mirror-onto (cdr l1) (cons (deep-reverse (car l1)) l2))
+        )
+    )
+  (if (pair? l)
+      (mirror-onto l nil)
+      l
+   ))
+
+(define lx2 (list (list 1 2) (list 3 4)))
+(define lx22 (list 2 (list (list 1 2) (list 3 4)) (list (list 1 2) (list 3 4 5))))
+lx2
+
+(deep-reverse 3)
+(deep-reverse (list 1 2))
+(deep-reverse lx2)
+(deep-reverse lx22)
