@@ -2211,11 +2211,11 @@ Ok.
 
 ;; Ex. 2.21
 
-(define (map proc items)
+(define (my-map proc items)
   (if (null? items)
       nil
       (cons (proc (car items))
-            (map proc (cdr items)))
+            (my-map proc (cdr items)))
       )
   )
 
@@ -2228,13 +2228,13 @@ Ok.
   )
 
 
-(define (square-list-map items)
-  (map (lambda (x) (* x x)) items)
+(define (square-list-my-map items)
+  (my-map (lambda (x) (* x x)) items)
   )
 
 (define testSqList (list 1 2 3 4))
 (square-list-full testSqList)
-(square-list-map testSqList)
+(square-list-my-map testSqList)
 
 #|
 Yes, could have used (square x) in both, and yes in full this makes a difference as (car items) is only done once.
@@ -2389,6 +2389,15 @@ lx2
         )
   )
 
+;; (define (fringe tree)
+;;   (cond ((null? tree) nil)
+;;         ((not (pair? tree)) (list tree))
+;;         (else
+;;          (append (fringe (car tree)) (fringe (cdr tree)))
+;;          )
+;;         )
+;;   )
+
 (define tx (list (list 1 2) (list 3 4)))
 (define tx2 (list (list (list 1 2) (list 4)) (list (list 1 2) (list 3 4))))
 (define tx3 (list (list 3 (list 1 2) (list 4)) (list (list 1 2) (list 3 4))))
@@ -2406,6 +2415,14 @@ Second, as the first condition failed, it's either an branch or nil.
 If not branch, then for sure nil.
 
 Building up, we append lists.
+|#
+
+#|
+As an aside, append here is key to ensure we flatter everything, rather than repeating the strcture of the tree.
+Setting aside scaling, this is the only difference between scale-tree and fringe, along with making sure the base case returns a list so append always works.
+
+Commented version is a rewrite with hindsignt.
+Base case conditions are in line with scale-tree
 |#
 
 
@@ -2515,3 +2532,50 @@ But, if cons is used, then we're just working with two values.
 Hence, we'd car and be done.
 |#
 
+
+;; Ex. 2.30
+
+
+(define (scale-tree tree factor)
+  (cond ((null? tree) nil)
+        ((not (pair? tree)) (* tree factor))
+        (else (cons (scale-tree (car tree) factor)
+                    (scale-tree (cdr tree) factor)))
+        )
+  )
+
+(scale-tree (list 1 (list 2 (list 3 4 5))) 4)
+
+#|
+Cons works fine here, as we're breaking a list down into it's basic elements, then building back up.
+Things would be different if flattening the list, etc.
+|#
+
+(define (square-tree-basic tree)
+  (cond ((null? tree) nil)
+        ((not (pair? tree)) (* tree tree))
+        (else (cons (square-tree-basic (car tree))
+                    (square-tree-basic (cdr tree))))
+        )
+  )
+
+(square-tree-basic (list 1 (list 2 (list 3 4) 5) (list 6 7)))
+
+
+(define (square-tree-map tree)
+  (my-map (lambda (sub-tree)
+            (if (pair? sub-tree)
+                (square-tree-map sub-tree)
+                (* sub-tree sub-tree))
+       )
+  tree
+  ))
+
+(square-tree-map (list 1 (list 2 (list 3 4) 5) (list 6 7)))
+
+#|
+Right, map here just goes through each element in the list and applies the procedure.
+So, what this does is abstracts from the way the list works, as emphasised in the book.
+It's important to keep in mind this is the limit of what's happening.
+The code should look mostly the same, given that little is being done to reconstruct the tree via lists.
+|#
