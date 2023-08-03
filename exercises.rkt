@@ -2374,3 +2374,38 @@ lx2
 (deep-reverse (list 1 2))
 (deep-reverse lx2)
 (deep-reverse lx22)
+
+
+
+;; Ex 2.28
+
+
+(define (fringe tree)
+  (cond ((and (not (pair? tree)) (not (null? tree))) (list tree))
+        ((not (pair? tree)) nil)
+        (else
+         (append (fringe (car tree)) (fringe (cdr tree)))
+         )
+        )
+  )
+
+(define tx (list (list 1 2) (list 3 4)))
+(define tx2 (list (list (list 1 2) (list 4)) (list (list 1 2) (list 3 4))))
+(define tx3 (list (list 3 (list 1 2) (list 4)) (list (list 1 2) (list 3 4))))
+(fringe tx3)
+(fringe (list tx tx))
+
+#|
+It's simply to test to see if we have a leaf.
+Though, there's an issue of nil, which always ends a list, so is always an implicit leaf, so to speak.
+So, we traverse left and then right.
+There are two base cases.
+First, not pair and a non-nil.
+In this case, a leaf.
+Second, as the first condition failed, it's either an branch or nil.
+If not branch, then for sure nil.
+
+Building up, we append lists.
+|#
+
+
