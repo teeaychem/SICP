@@ -2596,4 +2596,4 @@ The code should look mostly the same, given that little is being done to reconst
 (define (square-tree-again tree) (tree-map square tree))
 
 
-(square-tree-map (list 1 (list 2 (list 3 4) 5) (list 6 7)))
+(square-tree-again (list 1 (list 2 (list 3 4) 5) (list 6 7)))
