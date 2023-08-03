@@ -2597,3 +2597,33 @@ The code should look mostly the same, given that little is being done to reconst
 
 
 (square-tree-again (list 1 (list 2 (list 3 4) 5) (list 6 7)))
+
+
+;; Ex. 2.32
+
+
+(define (subsets s)
+  (if (null? s)
+      (list nil)
+      (let ((rest (subsets (cdr s))))
+        (append rest (my-map (lambda (x) (cons (car s) x)) rest))))
+  )
+
+(subsets (list 1 2 3))
+
+#|
+So, we're splitting on the first element of the list.
+Then, applying subsets to all other elements of the list.
+We then keep a copy of every subset from the other elements of the list.
+So, the only thing to do is ensure we also have a copy of the those subsets with the element we excluded.
+This is what the lambda expresion does.
+
+So, for example, (a b)
+rest is just b.
+subsets applied to b goes once more, to the value b and nil.
+Now, on the way back, we have nil turned into an empty list, and b joined with the empty list.
+So, we have (() (b)).
+Now, we store a copy of this, and also consider a included.
+So, this is ((a) (a b)).
+Combined, we have (() (b) (a) (a b)).
+|#
