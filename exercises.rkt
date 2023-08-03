@@ -1017,15 +1017,15 @@ Either I've done something wrong, on this takes a lot to get close to pi.
 Made both versions, then read part b…
 |#
 
-(define (accumulate combiner null-value term a next b)
+(define (accumulate-first combiner null-value term a next b)
   (if (> a b)
       null-value
       (combiner (term a)
-         (accumulate combiner null-value term (next a) next b))
+         (accumulate-first combiner null-value term (next a) next b))
       ))
 
 
-(define (accumulate-iter combiner null-value term a next b)
+(define (accumulate-first-iter combiner null-value term a next b)
   (define (iter a result)
     (if (> a b)
         result
@@ -1038,26 +1038,26 @@ Made both versions, then read part b…
 E.g.…
 |#
 
-(define (sum-accumulate term a next b)
-  (accumulate + 0 term a next b)
+(define (sum-accumulate-first term a next b)
+  (accumulate-first + 0 term a next b)
   )
 
 ; To test, adapt previous use of sum/product.
 ; Replace accumalate with accumalate-iter to vary recu/iter.
 
 ;; (sum-iter cube 0 inc 10)
-;; (sum-accumulate cube 0 inc 10)
+;; (sum-accumulate-first cube 0 inc 10)
 
 
 
 ;; Ex. 1.33
 
 
-(define (filtered-accumulate filter combiner null-value term a next b)
+(define (filtered-accumulate-first filter combiner null-value term a next b)
   (if (> a b)
       null-value
       (combiner (if (filter a) (term a) null-value)
-                (filtered-accumulate filter combiner null-value term (next a) next b))
+                (filtered-accumulate-first filter combiner null-value term (next a) next b))
       ))
 
 #|
@@ -1068,7 +1068,7 @@ If the filter is satisfied, then combine (term a), otherwise combine via the nul
 ; a.
 
 (define (sum-square-prime a b)
-  (filtered-accumulate prime? + 0 square a inc b))
+  (filtered-accumulate-first prime? + 0 square a inc b))
 
 ; (sum-square-prime 1 10)
 
@@ -1078,7 +1078,7 @@ If the filter is satisfied, then combine (term a), otherwise combine via the nul
 (define (sum-relatively-prime n)
   (define (predicate? a)
     (= (gcd a n) 1))
-  (filtered-accumulate predicate? * 0 identity 0 inc b))
+  (filtered-accumulate-first predicate? * 0 identity 0 inc b))
 
 ; (sum-relatively-prime 11)
 
@@ -2627,3 +2627,62 @@ Now, we store a copy of this, and also consider a included.
 So, this is ((a) (a b)).
 Combined, we have (() (b) (a) (a b)).
 |#
+
+
+
+;; Ex. 2.33
+
+
+(define (accumulate op initial sequence)
+  (if (null? sequence)
+      initial
+      (op (car sequence)
+          (accumulate op initial (cdr sequence)))
+      )
+  )
+
+
+(define (map-again p sequence)
+  (accumulate (lambda (x y) (cons (p x) y))  nil sequence))
+
+(map-again square (list 1 2 3 4 5))
+
+#|
+Okay.
+The point here is op is a two place argument.
+The first argument to op is the current element of the sequence, and accumulate works through these one-by-one.
+Then second argument to op is the result of accumulating.
+So, for example, rather than cons, we could have summed.
+|#
+
+#|
+E.g., map-sum maps the procedure and then sums the list.
+|#
+
+
+(define (map-sum p sequence)
+  (accumulate (lambda (x y) (+ (p x) y)) 0 sequence))
+
+(map-sum square (list 1 2 3 4 5))
+
+
+
+(define (append-again seq1 seq2)
+  (accumulate cons seq2 seq1)
+  )
+
+(append-again (list 1 2) (list 3 4))
+
+#|
+We're going through every element in list1 and cons to list2.
+Here, though, you need some idea of the way lists and accumulate work.
+For, if we worked through the list on call rather than close, this would reverse list1.
+I like abstraction, but here I'm not sure what the point is, given we need the details to understand why the abstraction works.
+|#
+
+(define (length sequence)
+  (accumulate (lambda (x y) (+ (if (null? x) 0 1) y)) 0 sequence))
+
+(length (list 1 2 3))
+(length (list ))
+
