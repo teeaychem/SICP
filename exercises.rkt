@@ -2409,3 +2409,109 @@ Building up, we append lists.
 |#
 
 
+;; Ex 2.29
+
+
+(define (make-mobile left right) (list left right))
+
+(define (make-branch length structure) (list length structure))
+
+(define (left-branch mobile) (car mobile))
+
+(define (right-branch mobile) (car (cdr mobile)))
+
+(define (branch-length branch) (car branch))
+
+(define (branch-structure branch) (car (cdr branch)))
+
+; I guess there's a better way of doing this.
+; As, sum-up here is just +, but applied to a list.
+; (cons + list) doesn't work, though.
+(define (sum-up list)
+  (if (null? list)
+      0
+      (+ (car list) (sum-up (cdr list)))
+      ))
+
+
+#|
+To test whether we're going to a mobile from another mobile,
+we look at the right element.
+If this is a pair, then we've got another mobile.
+Else, it's an int representing some weight.
+|#
+(define (to-mobile? branch)
+  (pair? (branch-structure branch)))
+
+(define (get-weight branch)
+  (branch-structure branch))
+
+(define (total-weight mobile)
+  (let ((twL (if (to-mobile? (left-branch mobile)) (total-weight (branch-structure (left-branch mobile))) (get-weight (left-branch mobile))))
+        (twR (if (to-mobile? (right-branch mobile)) (total-weight (branch-structure (right-branch mobile))) (get-weight (right-branch mobile))))
+        )
+    (+ twL twR)
+    )
+  )
+
+
+(define lb1 (make-branch 1 10))
+(define rb1 (make-branch 1 10))
+(define m1 (make-mobile lb1 rb1))
+(define rb2 (make-branch 1 m1))
+(define m2 (make-mobile lb1 rb2))
+(define lb2 (make-branch 1 m1))
+(define m3 (make-mobile lb2 rb2))
+(total-weight m1)
+(total-weight m2)
+
+#|
+A 'relaxed' version of total-weight, which may be applied to mobiles or weights.
+|#
+(define (total-weight-relaxed weight-or-mobile)
+  (if (pair? weight-or-mobile)
+      (total-weight weight-or-mobile)
+      weight-or-mobile)
+  )
+
+(total-weight-relaxed 10)
+(total-weight-relaxed m2)
+
+(define (hang-weight branch)
+  (* (branch-length branch) (total-weight-relaxed (branch-structure branch)))
+  )
+
+
+(define (isBalanced? mobile)
+  (display mobile)
+  (newline)
+  (and
+  (= (hang-weight (left-branch mobile)) (hang-weight (right-branch mobile)))
+  (if (to-mobile? (left-branch mobile)) (isBalanced? (branch-structure (left-branch mobile))) #t)
+  (if (to-mobile? (right-branch mobile)) (isBalanced? (branch-structure (right-branch mobile))) #t)
+  )
+  )
+
+(isBalanced? m3)
+
+#|
+In short, we need a conjunction of balanced applied to main and all sub-mobiles.
+So, we check weight * length for each branch of the mobile.
+Then, we get to work on sub-mobiles.
+There's no guarantee of sub-mobules, so we only check when sure.
+And, otherwise return #t does the value of the conjunction is determined by all the other components.
+The only thing to note with the recusrive case is that we need to move to the structure of the branch, rather than the branch itself.
+|#
+
+
+#|
+I'd need to change right-branch and brach-structure procedures.
+For, these assume we're working with a list.
+With a list, the right element is always either a list or nil.
+So, some extra work is needed to get any value.
+In particular, we're always working with a pair.
+So, to get the right hand value, we need to cdr then car.
+But, if cons is used, then we're just working with two values.
+Hence, we'd car and be done.
+|#
+
