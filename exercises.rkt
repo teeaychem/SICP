@@ -2699,7 +2699,6 @@ I like abstraction, but here I'm not sure what the point is, given we need the d
 
 (horner-eval 2 (list 1 3 0 5 0 1))
 
-
 #|
 Right, I figured out the goal was to modify addition.
 But, the choice of a and b was guess work.
@@ -2716,11 +2715,36 @@ So, by higher-terms this is the op-defined as applied to all the higher-terms fr
 
 
 
-(define (horner-test x coefficient-sequence)
-  (accumulate (lambda (this-coeff higher-terms) (display higher-terms) this-coeff higher-terms)
-              0
-              coefficient-sequence)
+;; (define (horner-test x coefficient-sequence)
+;;   (accumulate (lambda (this-coeff higher-terms) (display higher-terms) this-coeff higher-terms)
+;;               0
+;;               coefficient-sequence)
+;;   )
+
+
+;; (horner-test 2 (list 1 3 0 5 0 1))
+
+#|
+At this point in the book we're not only learning about the way abstractions are useful.
+But, we're also learning about the way remembering what the abstractions really do is also useful.
+|#
+
+
+
+;; Ex. 2.35
+
+
+(define (count-leaves-acc tree)
+  (accumulate + 0 (map (lambda (x) 1 ) (fringe tree)))
   )
 
+(count-leaves-acc m2)
 
-(horner-test 2 (list 1 3 0 5 0 1))
+#|
+As I missing something here?
+With an accumulator we need a list.
+So, somehow we need to collapse the tree into a list.
+fringe does this.
+Then, somehow accumulate the elements of the list to get the number of leaves.
+Well, here then just set every leaf value to 1.
+|#
