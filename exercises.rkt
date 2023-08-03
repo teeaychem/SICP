@@ -2579,3 +2579,21 @@ So, what this does is abstracts from the way the list works, as emphasised in th
 It's important to keep in mind this is the limit of what's happening.
 The code should look mostly the same, given that little is being done to reconstruct the tree via lists.
 |#
+
+
+;; Ex. 2.31
+
+
+(define (tree-map proc tree)
+  (my-map (lambda (sub-tree)
+            (if (pair? sub-tree)
+                (tree-map proc sub-tree)
+                (proc sub-tree))
+       )
+  tree
+  ))
+
+(define (square-tree-again tree) (tree-map square tree))
+
+
+(square-tree-map (list 1 (list 2 (list 3 4) 5) (list 6 7)))
