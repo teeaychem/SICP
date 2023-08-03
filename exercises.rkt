@@ -2194,3 +2194,48 @@ While, if 50 is up somewhere in the middle, this split will happen multiple time
 
 (same-parity 1 2 3 4 5 6 7)
 (same-parity 2 3 4 5 6 7)
+(same-parity -2 3 4 5 -6 7)
+
+#|
+I understand this way of writing procedures is useful.
+Still, the application here seems strange.
+same-parity feels like a regular procedure, which  takes some int and a list as an argument and returns a list.
+Though, maybe I could think about this from a difference perspective.
+At issue is the list is not explicit, but the same is true of +.
+And in some sense the list is explicit, it's just that the first element is a procedure to apply.
+And, kind of everything is a list in this way.
+So, there's no need to make a list which contains a procedure and a list when we can just extend the list we'd be adding with the procedure.
+Ok.
+|#
+
+
+;; Ex. 2.21
+
+(define (map proc items)
+  (if (null? items)
+      nil
+      (cons (proc (car items))
+            (map proc (cdr items)))
+      )
+  )
+
+
+(define (square-list-full items)
+  (if (null? items)
+      nil
+      (cons (* (car items) (car items)) (square-list-full (cdr items)))
+      )
+  )
+
+
+(define (square-list-map items)
+  (map (lambda (x) (* x x)) items)
+  )
+
+(define testSqList (list 1 2 3 4))
+(square-list-full testSqList)
+(square-list-map testSqList)
+
+#|
+Yes, could have used (square x) in both, and yes in full this makes a difference as (car items) is only done once.
+|#
