@@ -2964,3 +2964,18 @@ But, this was just cutting apart the definition of prime-sum-pairs…
 
 Or was this the point? To make sure the reader understands what's going on…
 |#
+
+
+;; Ex. 2.40
+
+
+(define (unique-triples n)
+  (flatmap (lambda (i) (map (lambda (j) (cons i j)) (unique-pairs (- i 1)))) (enumerate-interval 1 n))
+  )
+
+
+(define (unique-triples-to-n-sum-to-s n sum)
+  (filter (lambda (x) (= sum (accumulate + 0 x))) (unique-triples n))
+  )
+
+(unique-triples-to-n-sum-to-s 10 10)
