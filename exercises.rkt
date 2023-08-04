@@ -2773,3 +2773,41 @@ Then, the rest of the lists.
 #|
 Alright, this exercise was really cool!
 |#
+
+
+
+;; Ex. 2.37
+
+(define test-matrix (list (list 1 2 3 4) (list 4 5 6 6) (list 6 7 8 9)))
+
+
+(define (dot-product v w)
+  (accumulate + 0 (map * v w))
+  )
+
+
+#|
+Hold on, we defined map to take a proc and a list.
+Yet, here, map takes a proc and two lists.
+So, here we're using the base map mentioned in Footnote 12.
+This takes a procedure of n arguments and n lists.
+Then, applies the procedure to the ith element in each of the lists.
+|#
+
+(define (matrix-*-vector m v)
+  (map (lambda (row) (dot-product row v)) m))
+
+
+(define (transpose m)
+  (accumulate-n cons nil m))
+
+(transpose (list (list 1 2) (list 3 4) (list 5 6)))
+
+
+(define (matrix-*-matrix m n)
+  (let ((cols (transpose n)))
+    (map (lambda (x) (matrix-*-vector cols x)) m)
+    )
+  )
+
+(matrix-*-matrix (list (list 2 3 4) (list 1 0 0)) (list (list 0 1000) (list 1 100) (list 0 10)))
