@@ -2322,10 +2322,10 @@ So, we have a list with (2 …) as the first element.
 ;; Ex. 2.26
 
 
-(define (append l1 l2)
-  (if (null? l1)
-      l2
-      (cons (car l1) (append (cdr l1) l2))
+(define (append list1 list2)
+  (if (null? list1)
+      list2
+      (cons (car list1) (append (cdr list1) list2))
       )
   )
 
@@ -2853,6 +2853,14 @@ Same for /, ^, etc.
 
 ;; Ex. 2.39
 
+(define (filter predicate sequence)
+  (cond ((null? sequence) nil)
+        ((predicate (car sequence))
+        (cons (car sequence)
+              (filter predicate (cdr sequence))))
+        (else (filter predicate (cdr sequence)))))
+
+
 #|
 TODO
 
@@ -2885,3 +2893,74 @@ I'm really drwawing blanks on a way to do this without refering to the procedure
 (reverse-fl (list 1 2 3))
 
 
+
+
+
+(define (flatmap proc seq)
+  (accumulate append nil (map proc seq)))
+
+(define (enumerate-interval low high)
+  (if (> low high)
+      nil
+      (cons low (enumerate-interval (+ low 1) high))))
+
+
+(define (prime-sum? pair)
+  (prime? (+ (car pair) (cadr pair))))
+
+(define (make-pair-sum pair)
+  (list (car pair) (cadr pair) (+ (car pair) (cadr pair))))
+
+(define (prime-sum-pairs n)
+  (map make-pair-sum
+       (filter prime-sum?
+               (flatmap
+                (lambda (i)
+                  (map (lambda (j) (list i j))
+                       (enumerate-interval 1 (- i 1))))
+                (enumerate-interval 1 n))))
+  )
+
+
+(prime-sum-pairs 10)
+(enumerate-interval 1 10)
+(flatmap
+ (lambda (i) (map (lambda (j) (list i j)) (enumerate-interval 1 (- i 1))))
+ (enumerate-interval 1 10))
+(flatmap (lambda (x) (list x x)) (enumerate-interval 1 10))
+
+#|
+flatmap
+
+We take a procedure and a list.
+The list can be of plain elements.
+However, the procedure must return pairs.
+So, in this case, after applying the procedure with map, we have a list of lists.
+Or, at least, each elemnt mapped over is replaced by a list.
+Flatmap then flattens this, so the original list is expanded with additional elements, but these aren't themselves inside a list.
+|#
+
+
+;; Ex. 2.40
+
+(define (unique-pairs n)
+  (flatmap (lambda (i) (map (lambda (j) (list i j)) (enumerate-interval 1 (- i 1)))) (enumerate-interval 1 n))
+  )
+
+(unique-pairs 10)
+
+
+(define (prime-sum-pairs-up n)
+  (map make-pair-sum
+       (filter prime-sum?
+               (unique-pairs n)))
+  )
+
+(prime-sum-pairs-up 10)
+
+
+#|
+But, this was just cutting apart the definition of prime-sum-pairs…
+
+Or was this the point? To make sure the reader understands what's going on…
+|#
