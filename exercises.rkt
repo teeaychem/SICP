@@ -2792,6 +2792,8 @@ Yet, here, map takes a proc and two lists.
 So, here we're using the base map mentioned in Footnote 12.
 This takes a procedure of n arguments and n lists.
 Then, applies the procedure to the ith element in each of the lists.
+
+Oh, right, *this* is in footnote 17.
 |#
 
 (define (matrix-*-vector m v)
@@ -2811,3 +2813,39 @@ Then, applies the procedure to the ith element in each of the lists.
   )
 
 (matrix-*-matrix (list (list 2 3 4) (list 1 0 0)) (list (list 0 1000) (list 1 100) (list 0 10)))
+
+
+;; Ex. 2.38
+
+
+(define (fold-left op initial sequence)
+  (define (iter result rest)
+    (if (null? rest)
+        result
+        (iter (op result (car rest))
+              (cdr rest))))
+  (iter initial sequence)
+  )
+
+(accumulate / 1 (list 1 2 3)) ;  1 / (2 / 3)
+(fold-left / 1 (list 1 2 3))  ; (1 / 2) / 3
+(accumulate list nil (list 1 2 3)) ; With cons, the same list.
+                                   ; With list, (list … (list nil))
+                                   ; So, (1 (2 (3 ())))
+(fold-left list nil (list 1 2 3)) ; With cons, (((nil 1) 2) 3)
+                                  ; With list, (list (list nil 1) 2)
+
+#|
+I mean, op should be such that (op x y) = (op y x)
+Right, commutative.
+
+Hence, +, *, etc should work fine
+|#
+
+(= (accumulate * 1 (list 1 2 3)) (fold-left * 1 (list 1 2 3)))
+(= (accumulate + 0 (list 2 3 5 9)) (fold-left + 0 (list 2 3 5 9)))
+
+#|
+Things like list fail as (list 2 3) = (2 3) != (3 2) = (list 3 2).
+Same for /, ^, etc.
+|#
