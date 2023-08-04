@@ -2849,3 +2849,39 @@ Hence, +, *, etc should work fine
 Things like list fail as (list 2 3) = (2 3) != (3 2) = (list 3 2).
 Same for /, ^, etc.
 |#
+
+
+;; Ex. 2.39
+
+#|
+TODO
+
+reverse-fr isn't it.
+But, I'm drawing blanks.
+
+The issue is, append-elem is a 'worse' version of append.
+In that, with appened-elem we make all the same recursive calls, and all but the last are kind of pointless.
+While, in the case of append these can be used for other elements.
+
+I'm really drwawing blanks on a way to do this without refering to the procedure by name.
+|#
+
+(define (append-elem e list)
+  (if (null? list)
+      (cons e nil)
+      (cons (car list) (append-elem e (cdr list)))
+      )
+  )
+
+
+(define (reverse-fr sequence)
+  (accumulate (lambda (x y) (append-elem x y)) nil sequence))
+
+(reverse-fr (list 1 2 3))
+
+(define (reverse-fl sequence)
+  (fold-left (lambda (x y) (cons y x)) nil sequence))
+
+(reverse-fl (list 1 2 3))
+
+
