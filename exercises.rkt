@@ -3136,3 +3136,23 @@ That's all these two functions do.
   )
 
 (queens 4)
+
+
+;; Ex. 2.43
+
+
+#|
+So, there's (queens-cols (- k 1)) and the number of times it's evaluated.
+All this does is generate everything for the k - 1 case.
+All here is a big all.
+In the original proc, this is only evaluated once.
+So, we make a lot of recursive calls, for sure, but these all stem from evaluating a single instance of queens-cols and going from there.
+
+When things are flipped around, the proc is evluated for every instance in new-row.
+
+Hence, if a single run takes T, then this is going to be even more than T * board-size.
+Does it get close to T! ?
+
+In any case, this is mostly about the way scheme evaluates.
+So, moving on…
+|#
