@@ -2966,7 +2966,7 @@ Or was this the point? To make sure the reader understands what's going on…
 |#
 
 
-;; Ex. 2.40
+;; Ex. 2.41
 
 
 (define (unique-triples n)
@@ -2979,3 +2979,160 @@ Or was this the point? To make sure the reader understands what's going on…
   )
 
 (unique-triples-to-n-sum-to-s 10 10)
+
+
+;; Ex. 2.42
+
+#|
+Function which takes an index and a list.
+Returns a ist where the first element is what was at the index, and the second elemnt is the list without the element at the index.
+
+That is, the list with the ith element now the 0th element.
+
+Originally this was thought of as the ith element removed and the rest of the list, but shifting to front is a more natural perspective.
+
+Index starts at 0.
+|#
+
+(define (shift-to-front i list)
+  (define (shift-list-i old new i n)
+    (if (= i n)
+        (cons (car old) (cons (cdr old) new))
+        (shift-list-i (cons (car new) old) (cdr new) i (+ n 1)))
+    )
+  (define (recombine old new)
+    (if (null? old)
+        new
+        (recombine (cdr old) (cons (car old) new)))
+    )
+  (let ((split (shift-list-i nil list i -1)))
+    (cons (car split) (recombine (car (cdr split)) (cdr (cdr split))))
+    )
+  )
+
+(cdr (shift-to-front 0 (list 1 2 3 4 5 6)))
+
+
+(define tempGrid
+  (list
+   (list 1 2 3 4)
+   (list 5 6 7 8)
+   (list 9 10 11 12)
+   ))
+
+
+#|
+A variant of map.
+Instead of applying each item to proc, we apply a number corresponding to the instance of map and the item.
+So, for example, (map-i proc (a b)) does (proc 0 a) and then (proc 1 b).
+|#
+
+(define (map-i-to-n proc items n)
+  (define (map-apply-index proc i items n)
+    (if (or (null? items) (= i n))
+        nil
+        (cons (proc i (car items))
+              (map-apply-index proc (+ i 1) (cdr items) n))
+        )
+    )
+  (map-apply-index proc 0 items n)
+  )
+
+#|
+So, now it's easy to apply shift-to-front diagonally
+
+E.g. (map-i shift-to-front grid) or to be explicit (map-i (lambda (i x) (shift-to-front i x)) grid)
+The latter form is kind of helpful, as it's easy to discard i and only apply x.
+|#
+
+
+#|
+Getting all the diagonals of a grid is a little difficult.
+We use map-i-to-n to dynamically shift and limit the mapping.
+
+The problem is whenever we do this, the grid is sure to become a rectangle.
+And, while it's easy to make a function which works with a grid or wide rectange, extending this to a tall rectange isn't easy.
+
+(Basically, (map-i-to-n shift-to-front tallGrid (length tallGrid)) only considers a grid.)
+
+So, we avoid this issue by tranpsoing the grid if needed, to ensure it's always a grid or a wide rectangle.
+It's easy to see diagonals are preserved under this.
+
+The only issue is that this procedure is that it includes the empty list.
+So, filter this out.
+|#
+
+(define (get-diags-lr grid)
+  (define (collect-diag-to diagList grid)
+    (if (null? grid)
+        diagList
+        (let ((tallGrid (cond ((null? grid) grid)
+                              ((< (length (car grid)) (length grid)) (transpose grid))
+                              (else grid))))
+          (let ((shifted-list (map-i-to-n shift-to-front tallGrid (length tallGrid))))
+            (collect-diag-to (append diagList (cons (map car shifted-list) nil)) (map cdr shifted-list))
+            )
+          )
+        )
+    )
+  (filter (lambda (x) (not (null? x))) (collect-diag-to nil grid))
+  )
+
+(get-diags-lr (list (list 1 2 3) (list 4 5 6) (list 7 8 9) (list 10 11 12)))
+
+#|
+get-diags-lr only gets diags going left to right.
+But, given the representation of a grid here, there's an easy fix.
+Apply reverse.
+This gives us a mirror.
+Hence, lr becomes rl.
+|#
+
+(define (get-diags-rl grid)
+  (get-diags-lr (reverse grid)))
+
+(map (lambda (x) (if (= 2 x) 0 x)) (enumerate-interval 1 10))
+
+
+#|
+We'll represent queens as 0s.
+To test whether a board is safe, we check to see there are no two queens in a row column or diagonial.
+get-diags gets us diagonials, grid is built with columsn, and transpose gets us rows.
+
+So, all that's needed is a  couple of functions to ensure each list in a list of lists has at most one instance of a nubmer.
+That's all these two functions do.
+|#
+(define (count-ns-in-list n l)
+  (length (filter (lambda (x) (= x n)) l))
+  )
+
+(define (unique-n? n listOfLists)
+  (if (null? listOfLists)
+      #t
+      (and (< (count-ns-in-list n (car listOfLists)) 2) (unique-n? n (cdr listOfLists))))
+  )
+
+
+(define (queens board-size)
+  (define empty-board nil)  ; empty-board is nil.
+                            ; adjoin-position will add a row.
+  (define (safe? k positions) (and (unique-n? 0 (transpose positions)) (unique-n? 0 (get-diags-lr positions)) (unique-n? 0 (get-diags-rl positions))))
+  (define (adjoin-position new-row k rest-of-queens)
+    (cons (map (lambda (x) (if (= new-row x) 0 x)) (enumerate-interval 1 board-size)) rest-of-queens)
+    ; Place the queen at the new-row position.
+    )
+  (define (queens-cols k)
+    (if (= k 0)
+        (list empty-board)
+        (filter
+         (lambda (positions) (safe? k positions))
+         (flatmap
+          (lambda (rest-of-queens)
+            (map (lambda (new-row)
+                   (adjoin-position new-row k rest-of-queens))
+                 (enumerate-interval 1 board-size)))
+          (queens-cols (- k 1))))))
+  (queens-cols board-size)
+  )
+
+(queens 4)
