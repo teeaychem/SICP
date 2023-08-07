@@ -3337,3 +3337,20 @@ So, then, leave 90 as the only complex operation.
 
 Or, create a general function that works with any degree.
 |#
+
+
+;; Ex. 2.51
+
+#|
+So, one option is to squish and shift origin.
+The other is to squish, rotate 270, and mirror along the y-axis.
+|#
+
+
+;; Ex. 2.52
+
+#|
+I'm good, for now.
+
+Maybe someday I'll come back to this and see if there's a way to get everything to display…
+|#
