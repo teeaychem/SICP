@@ -3419,3 +3419,92 @@ This is easay to test:
 Yeah, seems about right.
 |#
 
+(define (variable? e)
+  (symbol? e))
+
+(define (same-variable? v1 v2)
+  (and (variable? v1) (variable? v2) (equal? v1 v2))) ; Huh, so this includes checks for variables.
+
+(define (sum? e)
+  (and (pair? e) (eq? (car e) '+)))
+
+(define (augend e)
+  (caddr e))
+
+(define (addend e)
+  (cadr e))
+
+(define (make-sum a1 a2)
+  (if (and (number? a1) (number? a2)) ; Ah, (=number? a1 0) a2. Even more elegant.
+      (+ a1 a2)
+      (list '+ a1 a2))
+  )
+
+(define (product? e)
+  (and (pair? e) (eq? (car e) '*)))
+
+(define (multiplier e)
+  (if (and (pair? e) (pair? (cdr e))) ; okay, these checks are skipped.
+      (cadr e)                        ; in part I understand. As pair? is a predicate.
+      (error "not really a mult")))   ; And, pair? is still nice so long as we evaluate as needed and and is defined to use this.
+
+(define (multiplicand e)
+  (if (and (pair? e) (pair? (cdr e)))
+      (caddr e)
+      (error "not really a mult")))
+
+(define (make-product m1 m2)
+  (if (and (number? m1) (number? m2))
+      (* m1 m2)
+      (list '* m1 m2))
+  )
+
+
+(define (=number? exp num)
+  (and (number? exp) (= exp num)))
+
+(define (exponentiation? e)
+  (and (pair? e) (eq? (car e) '^)))
+
+
+(define (make-exponent b e)
+  (cond ((=number? e 0) 1)
+        ((=number? e 1) b)
+        (else (list '^ b e)))
+  )
+
+(define (exponent e)
+  (caddr e))
+
+(define (base e)
+  (cadr e))
+
+
+
+
+(define (my-deriv exp var)
+  (cond ((number? exp) 0)
+        ((variable? exp)
+         (if (same-variable? exp var) 1 0))
+        ((sum? exp)
+         (make-sum (my-deriv (addend exp) var)
+                   (my-deriv (augend exp) var)))
+        ((product? exp) (make-sum
+                         (make-product (multiplier exp)
+                                       (my-deriv (multiplicand exp) var))
+                         (make-product (my-deriv (multiplier exp) var)
+                                       (multiplicand exp))))
+        ((exponentiation? exp) (make-product
+                                (make-product
+                                 (exponent exp)
+                                 (make-exponent var (- (exponent exp) 1)))
+                                (my-deriv (base exp) var)
+                                ))
+        (else
+         (error "unknown expression type -- DERIV" exp))))
+
+
+(my-deriv '(+ x 3) 'x)
+(my-deriv '(* x y) 'x)
+(my-deriv '(^ x 2) 'x)
+(my-deriv '(^ x 3) 'x)
