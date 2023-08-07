@@ -3258,7 +3258,7 @@ lambda makes this easy.
 ;; Ex. 2.48
 
 
-(define (make-segment start end)
+(define (make-segment origin start end)
   (cons start end))
 
 (define (start-segment seg)
@@ -3276,3 +3276,32 @@ Unless the suggestion is to add start to origin, but I don't see good motivation
 
 On the other hand, I'm not sure why so many excercises are just cons car cdr…
 |#
+
+
+;; Ex. 2.49
+
+#|
+So, fix the relevant coordinates, and then pass a list of segments to segmemts->painter.
+
+I'm not interested enough to do the rest.
+
+wave seems… a lot of work for basically nothing.
+|#
+
+
+;; (define (paintFrame frame)
+;;   (let ((bottomLeft (frame-origin frame))
+;;         (bottomRight (add-vec (frame-origin frame) (frame-edge1 frame)))
+;;         (topRight (add-vec bottomRight (frame-edge2 frame)))
+;;         (topLeft (add-vec (frame-origin frame) (frame-edge2 frame)))
+;;         )
+;;     (segmemts->painter
+;;    (list
+;;     (make-segment bottomLeft bottomRight)
+;;     (make-segment bottomRight topRight)
+;;     (make-segment topRight topLeft)
+;;     (make-segment topLeft bottomLeft)
+;;     )
+;;    ) frame
+;;   )
+;;   )
