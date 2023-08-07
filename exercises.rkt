@@ -3435,9 +3435,10 @@ Yeah, seems about right.
   (cadr e))
 
 (define (make-sum a1 a2)
-  (if (and (number? a1) (number? a2)) ; Ah, (=number? a1 0) a2. Even more elegant.
-      (+ a1 a2)
-      (list '+ a1 a2))
+  (cond ((=number? a1 0) a2)
+        ((=number? a2 0) a1)
+        ((and (number? a1) (number? a2)) (+ a1 a2))
+        (else (list '+ a1 a2)))
   )
 
 (define (product? e)
@@ -3454,9 +3455,11 @@ Yeah, seems about right.
       (error "not really a mult")))
 
 (define (make-product m1 m2)
-  (if (and (number? m1) (number? m2))
-      (* m1 m2)
-      (list '* m1 m2))
+  (cond ((or (=number? m1 0) (=number? m2 0)) 0)
+        ((=number? m1 1) m2)
+        ((=number? m2 1) m1)
+        ((and (number? m1) (number? m2)) (* m1 m2))
+        (else (list '* m1 m2)))
   )
 
 
@@ -3478,8 +3481,6 @@ Yeah, seems about right.
 
 (define (base e)
   (cadr e))
-
-
 
 
 (define (my-deriv exp var)
