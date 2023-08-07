@@ -3258,14 +3258,14 @@ lambda makes this easy.
 ;; Ex. 2.48
 
 
-(define (make-segment origin start end)
-  (cons start end))
+;; (define (make-segment origin start end)
+;;   (cons start end))
 
-(define (start-segment seg)
-  (car seg))
+;; (define (start-segment seg)
+;;   (car seg))
 
-(define (end-segment seg)
-  (cdr seg))
+;; (define (end-segment seg)
+;;   (cdr seg))
 
 #|
 There's nothing else here, right?
@@ -3354,3 +3354,68 @@ I'm good, for now.
 
 Maybe someday I'll come back to this and see if there's a way to get everything to display…
 |#
+
+
+;; Ex. 2.53
+
+(define (memq item x)
+  (cond ((null? x) false)
+        ((eq? item (car x)) x)
+        (else (memq item (cdr x)))))
+
+(list 'a 'b 'c) ; (a b c)
+(list (list 'george)) ; ((george))
+(cdr '((x1 x2) (y1 y2))) ; ((y1 y2)) - we're getting the list, just without the first element.
+(cadr '((x1 x2) (y1 y2))) ; (y1 y2)
+(pair? (car '(a short list))) ; #f - just 'a. though… (pair? (cddr '(a short list))) is #t, as list.
+(memq 'red '((red shoes) (blue socks))) ; #f, as red isn't in the main list.
+(memq 'red '(red shoes blue socks)) ; the entire list, as red is the first thing.
+
+
+;; Ex. 2.54
+
+(define (my-equal? l1 l2)
+  (if (or (null? l1) (null? l2))
+      true
+      (and (eq? (car l1) (car l2)) (my-equal? (cdr l1) (cdr l2)))))
+
+(my-equal? '(a b) '(c d))
+(my-equal? '(a b) '(a b))
+
+#|
+I think this is what's being requested.
+This is similar to how I did valid? for 8-queens.
+For a similar or implementation DeMorgan.
+Base case is false, and build up with or.
+Though, something iterative would be better, as you can skip everything after finding a matching pair.
+|#
+
+;; Ex. 2.55
+
+(car ''abracadabra)
+(cddr ''abracadabra)
+
+;; (car 'abracadabra)
+;; (cdr 'abracadabra)
+
+#|
+I mean, I'm not sure we've been told enough here.
+If we do car we get quote, and if we do cdr we get 'abracadabra.
+But, ' doesn'6 make a list.
+(car 'abracadabra) fails.
+
+Well, idea is ' is just a procedure.
+So, 'abc is really (' a b c) or something of the sort.
+And, as the procedure is quoted and is just a list, then everything inside is quoted.
+
+(cddr ''abracadabra) is just the empty list.
+
+This is easay to test:
+|#
+
+(quote abc)
+
+#|
+Yeah, seems about right.
+|#
+

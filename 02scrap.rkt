@@ -14,3 +14,13 @@ Still, as far as the textbook goes, starting with the abstraction of lists and t
 (define zero (lambda (f) (lambda (x) x)))
 (zero 0)
 ((zero 0) 0)
+
+
+(+ (car '(a b c)) (car (list 'a 'b 'c)))
+'()
+
+#|
+Okay, so here we quote a list of things.
+
+'(a b c) = (list 'a 'b 'c)
+|#
