@@ -3156,3 +3156,100 @@ Does it get close to T! ?
 In any case, this is mostly about the way scheme evaluates.
 So, moving on…
 |#
+
+
+;; Ex. 2.44
+
+#|
+Going by the suggestion, this should paint two copies side-by-side below the arg.
+|#
+
+;; (define (up-split painter n)
+;;   (if (= n 0)
+;;       painter
+;;       (let ((smaller (up-split painter (- n 1))))
+;;         (below painter (beside smaller smaller)))))
+
+
+;; Ex. 2.45
+
+#|
+For reference, here's right-split
+|#
+
+;; (define (right-split painter n)
+;;   (if (= n 0)
+;;       painter
+;;       (let ((smaller (right-split painter (- n 1))))
+;;         (beside painter (below smaller small))
+;;         ))
+;;   )
+
+#|
+Goal is 'split' such that:
+
+(define right-split (split beside below))
+(define up-split (split below beside))
+
+So, proc which takes painter and n as argument.
+lambda makes this easy.
+|#
+
+;; (define (split firstProc secondProc)
+;;   (lambda (painter n)
+;;     (if (= n 0)
+;;         painter
+;;         (let ((smaller ((split firstProc secondProc) painter (- n 1))))
+;;           (firstProc painter (secondProc smaller small))
+;;         ))
+;;         )
+;;     )
+
+
+;; Ex. 2.46
+
+(define (make-vect x y)
+  (cons x y))
+
+(define (xcor-vect v)
+  (car v))
+
+(define (ycor-vect v)
+  (cdr v))
+
+(define (add-vect v1 v2)
+  (make-vect (+ (xcor-vect v1) (xcor-vect v2)) (+ (ycor-vect v1) (ycor-vect v2))))
+
+(define (sub-vect v1 v2)
+  (make-vect (- (xcor-vect v1) (xcor-vect v2)) (- (ycor-vect v1) (ycor-vect v2))))
+
+(define (scale-vect s v1)
+  (make-vect (* s (xcor-vect v1)) (* s (ycor-vect v1))))
+
+
+;; Ex. 2.47
+
+(define (make-frameL origin edge1 edge2)
+  (list origin edge1 edge2))
+
+(define (frameL-origin frame)
+  (car frame))
+
+(define (frameL-edge1 frame)
+  (cadr frame))
+
+(define (frameL-edge2 frame)
+  (caddr frame))
+
+
+(define (make-frameC origin edge1 edge2)
+  (cons origin (cons edge1 edge2)))
+
+(define (frameC-origin frame)
+  (car frame))
+
+(define (frameC-edge1 frame)
+  (cadr frame))
+
+(define (frameC-edge2 frame)
+  (cddr frame))
