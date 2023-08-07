@@ -3305,3 +3305,35 @@ wave seems… a lot of work for basically nothing.
 ;;    ) frame
 ;;   )
 ;;   )
+
+
+;; Ex. 2.50
+
+;; (define (flip-hori painter)
+;;   (transform-painter painter
+;;                      (make-vect 0.0 1.0)
+;;                      (make-vect 1.0 1.0)
+;;                      (make-vect 0.0 0.0))
+;;   )
+
+#|
+So, origin is now (0, 1).
+New x points to (1, 1)
+And, y points to (0, 0).
+Basically, everything is now upside down.
+|#
+
+;; (define (rotate180 painter)
+;;   (rotate90 (rotate90 painter))
+;;   )
+
+#|
+I mean, really.
+270 works the same way.
+
+The poing here is to minimize where things can go wrong.
+Applying a rotation twice is straightforward.
+So, then, leave 90 as the only complex operation.
+
+Or, create a general function that works with any degree.
+|#
