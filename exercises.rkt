@@ -3253,3 +3253,26 @@ lambda makes this easy.
 
 (define (frameC-edge2 frame)
   (cddr frame))
+
+
+;; Ex. 2.48
+
+
+(define (make-segment start end)
+  (cons start end))
+
+(define (start-segment seg)
+  (car seg))
+
+(define (end-segment seg)
+  (cdr seg))
+
+#|
+There's nothing else here, right?
+vec running from ogirin to the start-point is just start-point coordinates.
+Same for end.
+
+Unless the suggestion is to add start to origin, but I don't see good motivation for this.
+
+On the other hand, I'm not sure why so many excercises are just cons car cdr…
+|#
