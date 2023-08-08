@@ -65,3 +65,22 @@ But, it works.
 
 (display-set (adjoin-set 1 (adjoin-set 5 (adjoin-set 0 (adjoin-set 2 (adjoin-set 25 nil))))))
 (display-set (adjoin-set 25 (adjoin-set 2 (adjoin-set 0 (adjoin-set 5 (adjoin-set 1 nil))))))
+
+#|
+Oh, this is basically tree->list-1 from Ex. 2.63.
+But, I check the entry, rather than the tree.
+Ah, I never get nil as an entry.
+So, the way I did things the base case is redundant.
+|#
+
+
+(define (display-set-alt set)
+  (if (null? set)
+      nil
+      (let ((leftBranch (display-set-alt (left-branch set)))
+            (rightBranch (display-set-alt (right-branch set))))
+        (append leftBranch (cons (entry set) rightBranch))
+  )))
+
+(display-set-alt (adjoin-set 1 (adjoin-set 5 (adjoin-set 0 (adjoin-set 2 (adjoin-set 25 nil))))))
+(display-set-alt (adjoin-set 25 (adjoin-set 2 (adjoin-set 0 (adjoin-set 5 (adjoin-set 1 nil))))))
