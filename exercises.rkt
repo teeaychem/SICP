@@ -3775,6 +3775,35 @@ Visually, the process is something like this, from left to right (where the last
 |#
 
 #|
-Growth should be (log n).
+Growth should be n.
 For, each recursive call is tasked with half the work, intuitively.
+However, we still need to do the work on both halves.
+|#
+
+
+;; Ex. 2.65
+
+#|
+For union, the easiest thing to do is adjoin.
+The problem is, there's no guarantee this makes a balanced tree.
+but, adjoin should be (log n), hence this would be (n log n).
+
+I don't think anything quite so fancy is expected.
+
+First, we can flatten both sets.
+This can be done in Theta(n) using tree->list-2.
+Then, as the lists are ordered, it's easy to combine these.
+This is just union for the ordered list representation.
+Finally, we rebuild the set.
+This is then n.
+
+|#
+
+(define (union-set-b set1 set2)
+  (let ((unionOL (union-set-o (tree->list-2 set1) (tree->list-2 set2))))
+    (partial-tree unionOL (length unionOL))))
+
+
+#|
+Intersection is then analogous.
 |#
