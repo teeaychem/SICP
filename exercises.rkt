@@ -3744,3 +3744,37 @@ So, on the close of a recursion call the only task is to add whatever the curren
 Everything to the right is already reduced to a list.
 |#
 
+
+;; Ex. 2.64
+
+#|
+partial-tree takes two arguments:
+
+1. elts a list of elements
+2. n an integer such that m ≤ (length elts)
+
+The result is a balanced binary tree containing the first n elements of elts.
+For exposition, we assume n = (length elts).
+
+This is recursive.
+And, the very short version is partial-tree splits elts into half, save for the middle element.
+partial-tree is then applied to the left and right 'havles' and the result of partial-tree forms the left and right branches associated with the current element.
+This recusrive application stops when there are no more elements in elts.
+
+We can be sure this creates a balanced tree as by assumption elts is ordered.
+If n is odd, there there's a unique middle element for the root.
+And, if n is even then we can choose either (floor (/ n 2)) or (ceil (/ n 2)) as we can't do any better than a slightly lopsided tree.
+
+Visually, the process is something like this, from left to right (where the last step incorporates a couple of recursive calls.)
+
+                   3               3
+                 /   \            / \
+(1 2 3 4 5)   (1 2)  (4 5)       2   4
+                                /     \
+                               1       5
+|#
+
+#|
+Growth should be (log n).
+For, each recursive call is tasked with half the work, intuitively.
+|#
