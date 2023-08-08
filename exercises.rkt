@@ -3799,9 +3799,9 @@ This is then n.
 
 |#
 
-(define (union-set-b set1 set2)
-  (let ((unionOL (union-set-o (tree->list-2 set1) (tree->list-2 set2))))
-    (partial-tree unionOL (length unionOL))))
+;; (define (union-set-b set1 set2)
+;;   (let ((unionOL (union-set-o (tree->list-2 set1) (tree->list-2 set2))))
+;;     (partial-tree unionOL (length unionOL))))
 
 
 #|
@@ -3824,4 +3824,22 @@ This does take some work, and Theta may be hiding some real-world overhead of tr
 But, this is very nice.
 And, a great way to make an incremental improvement.
 Indeed, it's easy to convert all of the old ordered list sets into binary tree sets.
+|#
+
+
+;; Ex. 2.66
+
+(define (lookup-b e set)
+  (cond ((null? set) false)
+        ((= (entry set) e) true)
+        (else (or (lookup-b e (left-branch-tree set)) (lookup-b e (right-branch-tree set))))
+        ))
+
+(lookup-b 1 2.16a)
+(lookup-b 2 2.16b)
+(lookup-b 9 2.16c)
+
+#|
+Straightfoward.
+Can't do better than n as may need to check every node.
 |#
