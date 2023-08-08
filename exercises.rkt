@@ -3597,7 +3597,22 @@ For, there's no way to build a constructor that allows the user to write express
 
 Ah, though maybe there is.
 For example, we could write a proc which takes a single argumnet.
-Thenm depending on the value, does something or takes another argument.
+Then, depending on the value, does something or takes another argument.
 In this way, we could test for a list, and if not then take on the second argument.
 |#
 
+;; Ex 2.59
+
+(define (element-of-set? x set)
+  (cond ((null? set) false)
+        ((equal? x (car set)) true)
+        (else (element-of-set? x (cdr set)))))
+
+(define (union-set set1 set2)
+  (cond ((null? set1) set2)
+        ((element-of-set? (car set1) set2) (union-set (cdr set1) set2))
+        (else (union-set (cdr set1) (cons (car set1) set2)))
+      ))
+
+
+(union-set (list 1 2 3) (list 3 4 5))
