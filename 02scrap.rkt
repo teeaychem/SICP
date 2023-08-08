@@ -16,7 +16,7 @@ Still, as far as the textbook goes, starting with the abstraction of lists and t
 ((zero 0) 0)
 
 
-(+ (car '(a b c)) (car (list 'a 'b 'c)))
+(eq? (car '(a b c)) (car (list 'a 'b 'c)))
 '()
 
 #|

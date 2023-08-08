@@ -3419,6 +3419,10 @@ This is easay to test:
 Yeah, seems about right.
 |#
 
+
+
+;; Ex. 2.56
+
 (define (variable? e)
   (symbol? e))
 
@@ -3429,7 +3433,11 @@ Yeah, seems about right.
   (and (pair? e) (eq? (car e) '+)))
 
 (define (augend e)
-  (caddr e))
+  (if (null? (cdddr e))
+      (caddr e)
+      (cons '+ (cddr e))
+      )
+  )
 
 (define (addend e)
   (cadr e))
@@ -3449,10 +3457,15 @@ Yeah, seems about right.
       (cadr e)                        ; in part I understand. As pair? is a predicate.
       (error "not really a mult")))   ; And, pair? is still nice so long as we evaluate as needed and and is defined to use this.
 
+
 (define (multiplicand e)
-  (if (and (pair? e) (pair? (cdr e)))
+  (if (null? (cdddr e))
       (caddr e)
-      (error "not really a mult")))
+      (cons '* (cddr e))
+      )
+  )
+
+
 
 (define (make-product m1 m2)
   (cond ((or (=number? m1 0) (=number? m2 0)) 0)
@@ -3505,7 +3518,86 @@ Yeah, seems about right.
          (error "unknown expression type -- DERIV" exp))))
 
 
-(my-deriv '(+ x 3) 'x)
-(my-deriv '(* x y) 'x)
+(my-deriv (make-product 0 'x) 'x)
+(my-deriv '(+ x 3 4) 'x)
+(my-deriv '(* x y z 5) 'x)
 (my-deriv '(^ x 2) 'x)
 (my-deriv '(^ x 3) 'x)
+(my-deriv '(+ 5 (^ x 3)) 'x)
+(my-deriv '(* x y (+ x 3)) 'x)
+
+
+;; Ex. 2.57
+
+#|
+Modified above.
+
+Though, I don't like this.
+For, these expressions as written aren't using make-product, etc.
+And, when using make-porduct, there's no way to 'officially' construct something of this kind.
+
+Of course, we can extend.
+|#
+
+
+(define (make-sum-wild a)
+  (cond
+    ; First condition, check if everything in the list is a number, if so sum
+    ((accumulate (lambda (x y) (and (number? x) y)) true a) (accumulate + 0 a))
+    (else
+     ; Else, we have some symbols.
+     ; So, sum what we can, and collect all the variables.
+     (let ((sumNum (accumulate + 0 (filter number? a)))
+           (sumSym (filter (lambda (x) (not (number? x))) a)))
+       ; Then, make a list.
+       ; As we know sumSym is non-empty and the rest are literals, easiest to cons
+       ; But, check to see whether there's any sense making the list
+       (cond ((and (= sumNum 0) (= 1 (length sumSym))) (car sumSym))
+             ((= sumNum 0) (cons '+ sumSym))
+             (else (cons '+ (cons sumNum sumSym))))))))
+
+(define (make-product-wild m)
+  (cond ((memq 0 m) 0)
+        ((accumulate (lambda (x y) (and (number? x) y)) true m) (accumulate * 1 m))
+        (else
+         (let ((multNum (accumulate * 1 (filter number? m)))
+               (multSym (filter (lambda (x) (not (number? x))) m)))
+           (cond ((and (= multNum 1) (= 1 (length multSym))) multSym)
+                 ((= 1 multNum) (cons '* multSym))
+                 (else (cons '* (cons multNum multSym)))
+               )))))
+
+#|
+These work kind of nice, at least outside of deriv.
+The problem is, these reduce too effectively.
+And, deriv expects at least something binary.
+
+So, I could reverse a little.
+These setters could be written to match up with deriv and the way it works internally.
+But, ugh.
+At this point we have to modify deriv.
+As, there's no way to allow the user to give a list, and for deriv to provide two arguments.
+|#
+
+;; Ex. 2.58
+
+#|
+With infix and explicit parentheses, this amounts to reverting the representation of sum and product to work with two arguments and then updating where the symbol is stored.
+
+After the mess of the previous question, I have no interest in the second part of this.
+The simplest approach would be to create a process which rewrites the expression with correct parentheses.
+Then, only need to pass the argument through this proc.
+
+Else, as seen above, deriv no longer works.
+
+Oh, does this mean the question is done?
+
+The answer is no.
+For, there's no way to build a constructor that allows the user to write expressions of this form while preserving the internals of deriv.
+
+Ah, though maybe there is.
+For example, we could write a proc which takes a single argumnet.
+Thenm depending on the value, does something or takes another argument.
+In this way, we could test for a list, and if not then take on the second argument.
+|#
+
