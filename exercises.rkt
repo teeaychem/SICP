@@ -3807,3 +3807,21 @@ This is then n.
 #|
 Intersection is then analogous.
 |#
+
+#|
+Note, creating a tree by adjoining each element wound't be as effective.
+This would be n log n in the worst case, as the final adjoinment might need to go through the entire tree.
+But, this isn't what we're doing.
+When we have an ordered set, there's no need to search through a tree.
+|#
+
+#|
+From a slightly broader perspective, then, we have a new structure which allows for some operations to be faster.
+And, for some difficult operations with the new structure, we have a way to transform the new structure into an older structure where the operations are fairly simple.
+And, this is done in a fairly effective way.
+
+This does take some work, and Theta may be hiding some real-world overhead of transforming between structures.
+But, this is very nice.
+And, a great way to make an incremental improvement.
+Indeed, it's easy to convert all of the old ordered list sets into binary tree sets.
+|#
