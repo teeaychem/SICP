@@ -3616,3 +3616,25 @@ In this way, we could test for a list, and if not then take on the second argume
 
 
 (union-set (list 1 2 3) (list 3 4 5))
+
+
+;; Ex. 2.60
+
+#|
+Nothing needs to change with element-of-set? and intersection-set.
+element-of-set? works through a list and checks to see if x is equal to anything on the list.
+Nothing changes if duplicates are allowed.
+Likewise, intersection-set remains the same. Work through each element in set1 and check whether it's in set2.
+
+union-set can remain the same, or can be simplified.
+All we really need to do is (append set1 set2).
+Though, avoiding this helps with efficiency.
+
+Speaking of, if we're measuring runtimes by the size of the set, then any particular instance will be at least as slow.
+Though, there's no substantial change.
+In particular, intersection will keep the runtime down, and union too if the original is kept.
+
+I can't think of an interesting application.
+If writing is cheap and reading is expensive, and you're not transforming sets much, then repetitions works better.
+But, I'm not sure when this is the case.
+|#
