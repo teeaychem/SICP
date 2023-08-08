@@ -3638,3 +3638,35 @@ I can't think of an interesting application.
 If writing is cheap and reading is expensive, and you're not transforming sets much, then repetitions works better.
 But, I'm not sure when this is the case.
 |#
+
+
+;; Ex. 2.61
+
+(define (adjoin-set-o e set)
+  (cond ((null? set) (list e))
+        ((= e (car set)) set)
+        ((< e (car set)) (cons e set))
+        (else (cons (car set) (adjoin-set-o e (cdr set))))
+        ))
+
+(adjoin-set-o 4 (list 1 2 3 5 6 7))
+(adjoin-set-o 0 (list 1 2 3 5 6 7))
+(adjoin-set-o 8 (list 1 2 3 5 6 7))
+(adjoin-set-o 8 (list 1 9 3 5 6 7))
+
+
+;; Ex. 2.62
+
+
+(define (union-set-o set1 set2)
+  (cond ((null? set1) set2)
+        ((null? set2) set1)
+        ((= (car set1) (car set2)) (union-set-o (cdr set1) set2))
+        ((< (car set1) (car set2)) (cons (car set1) (union-set-o (cdr set1) set2)))
+        ((< (car set2) (car set1)) (cons (car set2) (union-set-o set1 (cdr set2))))
+        ))
+
+(union-set-o (list 1 2 3) (list 4 5 6))
+(union-set-o (list 1 2 3) (list 1 2 3))
+(union-set-o (list 4 5 6) (list 1 2 3))
+(union-set-o (list 1 4) (list 2 3))
