@@ -3670,3 +3670,77 @@ But, I'm not sure when this is the case.
 (union-set-o (list 1 2 3) (list 1 2 3))
 (union-set-o (list 4 5 6) (list 1 2 3))
 (union-set-o (list 1 4) (list 2 3))
+
+
+;; Ex. 2.63
+
+
+(define (entry tree) (car tree))
+(define (left-branch-tree tree) (cadr tree))
+(define (right-branch-tree tree) (caddr tree))
+(define (make-tree entry left right)
+  (list entry left right))
+
+(define (element-of-set?-tree x set)
+  (cond ((null? set) false)
+        ((= x (entry set)) true)
+        ((< x (entry set)) (element-of-set?-tree x (left-branch-tree set)))
+        (else (element-of-set?-tree x (right-branch-tree set)))
+        )
+  )
+
+(define (adjoin-set x set)
+  (cond
+    ((null? set) (make-tree x nil nil))
+    ((= x (entry set)) set)
+    ((< x (entry set)) (make-tree (entry set) (adjoin-set x (left-branch-tree set)) (right-branch-tree set)))
+    ((> x (entry set)) (make-tree (entry set) (left-branch-tree set) (adjoin-set x (right-branch-tree set))))
+    )
+  )
+
+(define (tree->list-1 tree)
+  (if (null? tree)
+      '()
+      (append (tree->list-1 (left-branch-tree tree))
+              (cons (entry tree)
+                    (tree->list-1 (right-branch-tree tree))))))
+
+(define (tree->list-2 tree)
+  (define (copy-to-list tree result-list)
+    (if (null? tree)
+        result-list
+        (copy-to-list (left-branch-tree tree)
+                      (cons (entry tree)
+                            (copy-to-list (right-branch-tree tree) result-list)))))
+  (copy-to-list tree '())
+  )
+
+(define 2.16a (make-tree 7 (make-tree 3 (make-tree 1 nil nil) (make-tree 5 nil nil)) (make-tree 9 nil (make-tree 11 nil nil))))
+(define 2.16b (make-tree 3 (make-tree 1 nil nil) (make-tree 7 (make-tree 5 nil nil) (make-tree 9 nil (make-tree 11 nil nil)))))
+(define 2.16c (make-tree 5 (make-tree 3 (make-tree 1 nil nil) nil) (make-tree 9 (make-tree 7 nil nil) (make-tree 11 nil nil))))
+
+(tree->list-1 2.16a)
+(tree->list-1 2.16b)
+(tree->list-1 2.16c)
+
+(tree->list-2 2.16a)
+(tree->list-2 2.16b)
+(tree->list-2 2.16c)
+
+
+#|
+I think it's clear these are equivalent by inspection.
+Though, trees of Diag. 2.16 written up.
+
+And, tree->list-2 is more efficient.
+The key difference is the way recursion is structured.
+
+tree->list-1 does recursion on both branches at the same time.
+This leads to needing to combine two lists.
+No problem with pointers, but here this means a lot of car and cdr.
+
+tree->list-2 does recursion on the right braches and then on the left.
+So, on the close of a recursion call the only task is to add whatever the current entry is.
+Everything to the right is already reduced to a list.
+|#
+
