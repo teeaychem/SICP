@@ -5,7 +5,7 @@
 
 ** Racket and org
 
-To get Racket working inside org-mode I'm using [emacs-ob-racket by hasu](https://github.com/hasu/emacs-ob-racket) and [racket-mode](https://racket-mode.com).
+To get Racket working inside org-mode I'm using [[https://github.com/hasu/emacs-ob-racket][emacs-ob-racket by hasu]] and [[https://racket-mode.com][racket-mode]].
 
 The relevant part of my emacs config looks like:
 
