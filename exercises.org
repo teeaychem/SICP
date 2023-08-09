@@ -16,6 +16,10 @@ The relevant part of my emacs config looks like:
 
 (I.e. nothing too fancy.)
 
+You don't need to do any of this to use the code though.
+Copy and paste, then search for anything undefined.
+If you don't find a procedure, it's probably not detailed in the book.
+
 ** code-block syntax
 
 Code blocks are as follows:
@@ -97,29 +101,11 @@ But, I think it's an okay trade-off.
      ) ;; (* 4 4) = 16
 #+END_SRC
 
-#+RESULTS:
-#+begin_example
-10
-12
-8
-3
-6
-19
-#f
-4
-16
-6
-16
-#+end_example
-
 ** 1.2
 
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output
 (/ (+ 5 4 (- 2 (- 3 (+ 6 (/ 4 5))))) (* 3 (- 6 2) (- 2 7)))
 #+END_SRC
-
-#+RESULTS:
-: -37/150
 
 ** 1.3
 
@@ -151,13 +137,6 @@ If b, then compare a and c.
   (twoBig 3 1 3)
 #+END_SRC
 
-#+RESULTS: def-square
-
-#+RESULTS:
-: 13
-: 13
-: 18
-
 ** 1.4
 
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output
@@ -171,12 +150,6 @@ If b, then compare a and c.
   (a-plus-abs-b 4 -4)  ;; b < 0, so (4 - -4) = (4 + 4)
   (a-plus-abs-b -4 -4) ;; b < 0, so (-4 - -4) = (-4 + 4) = 0
 #+END_SRC
-
-#+RESULTS:
-: 8
-: 0
-: 8
-: 0
 
 ** 1.5
 
@@ -279,11 +252,6 @@ Observe, squares increaes fast with magnitude.
   (- (square 50) (square 25))
 #+END_SRC
 
-#+RESULTS:
-: 0.1875
-: 18.75
-: 1875
-
 So, with very small numbers, it's harder to get a difference less than 0.001, while for very large numbers it's fairly easy.
 This means, more precision is needed to get below the threshold in the
 small case, where the resulting difference isn't going to be noticable.
@@ -320,8 +288,6 @@ Then, it's significant digits of the squared number, rather than root.
   (define (average x y) (/ (+ x y) 2))
 #+END_SRC
 
-#+RESULTS:
-
 Things are now reversed.
 For small numbers, things are less accurate, as the sqrt of a small number is going to be small, and we'll make smaller and smaller changes by taking the average.
 
@@ -357,12 +323,6 @@ goodCubeGuess? could also be adjusted, as with previous exercise.
   (cube 2)
   (cubeRt 8)
 #+END_SRC
-
-#+RESULTS:
-: 27
-: 3.0000005410641766
-: 8
-: 2.000004911675504
 
 ** 1.9
 
@@ -476,12 +436,6 @@ Okay, this grows in a cool way.
   (A 2 3)
 #+END_SRC
 
-#+RESULTS:
-: 1024
-: 65536
-: 65536
-: 16
-
 (A 0 n) is 2n
 (A 1 n) is 2^ns
 (A 2 n) is 2^^(n - 1) i.e. if n = 3, 2^2^2, if n = 4 2^2^2^2
@@ -514,12 +468,6 @@ Okay, this grows in a cool way.
   (testfRI 12)
   (testfRI 24)
 #+END_SRC
-
-#+RESULTS:
-: #t
-: #t
-: #t
-: #t
 
 ** 1.12
 
@@ -664,13 +612,6 @@ Main fuction, following the hint
   (expItr 15 0) ; Expect 1
 #+END_SRC
 
-#+RESULTS:
-: 16
-: 7776
-: 7
-: 3375
-: 1
-
 ** 1.17
 
 #|
@@ -716,15 +657,6 @@ So, dhMult ensures positive numbers are passed through, and adjusts the result a
   (dhMult -5 -5)
 #+END_SRC
 
-#+RESULTS:
-: -40
-: 40
-: -35
-: 35
-: 0
-: -36
-: 25
-
 ** 1.18
 
 
@@ -760,13 +692,6 @@ Some tests
   (dhMultIter 0 5)
   (dhMultIter 3 14)
 #+END_SRC
-
-#+RESULTS:
-: 12
-: 15
-: 0
-: 0
-: 42
 
 ** 1.19
 
@@ -811,13 +736,6 @@ Testing
   (fibI 3)
   (fibI 4)
 #+END_SRC
-
-#+RESULTS:
-: 0
-: 1
-: 1
-: 2
-: 3
 
 ** 1.20
 
@@ -877,19 +795,12 @@ As d is a divisor of n, so n/d is an int, and clearly d * n/d = n.
 	  (else (find-divisor n (+ test-divisor 1)))))
 #+END_SRC
 
-#+RESULTS: def-smallest-divisor
-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<def-smallest-divisor>>
   (smallest-divisor 199)
   (smallest-divisor 1999)
   (smallest-divisor 19999)
 #+END_SRC
-
-#+RESULTS:
-: 199
-: 1999
-: 7
 
 ? ? ? What is the purpose of this?
 
@@ -902,7 +813,6 @@ As d is a divisor of n, so n/d is an int, and clearly d * n/d = n.
     (= n (smallest-divisor n)))
 #+END_SRC
 
-#+RESULTS: def-prime?
 
 #+name: def-search-for-primes
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
@@ -1033,7 +943,6 @@ The evaluated value is used twice, but the evaluation only happens once.
 	    (else (display " found "))))
 #+END_SRC
 
-#+RESULTS:
 
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<def-carmichael-fool>>
@@ -1046,9 +955,6 @@ The evaluated value is used twice, but the evaluation only happens once.
   (carmichael-fool 6600)
   (carmichael-fool 6602)
 #+END_SRC
-
-#+RESULTS:
-:  fooled  fooled  fooled  fooled  fooled  fooled  found  found 
 
 ** 1.28
 
@@ -1101,26 +1007,6 @@ Added some formatting, though ofc I should have a single call for n/prime displa
   (MR-prime? 12)
 #+END_SRC
 
-#+RESULTS:
-#+begin_example
-Checking: 2
-Prime!
-Checking: 3
-Prime!
-Checking: 4
-Not prime…
-Checking: 7
-Prime!
-Checking: 9
-Not prime…
-Checking: 10
-Not prime…
-Checking: 11
-Prime!
-Checking: 12
-Not prime…
-#+end_example
-
 ** 1.29
 
 #+name: def-sum
@@ -1157,10 +1043,6 @@ Not prime…
   (simpson cube 0 1 10000.0)
 #+END_SRC
 
-#+RESULTS:
-: 0.2500000000000003
-: 0.2500000000000011
-
 Well, the results are closer to 1/4…
 
 ** 1.30
@@ -1180,9 +1062,6 @@ Well, the results are closer to 1/4…
   <<def-cube>>
   (sum-iter cube 0 inc 10)
 #+END_SRC
-
-#+RESULTS:
-: 3025
 
 ** 1.31
 
@@ -1208,7 +1087,6 @@ And factorial works with identiy and inc.
   (define (factorial n) (product identity 1 inc n))
 #+END_SRC
 
-#+RESULTS:
 
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<def-square>>
@@ -1223,9 +1101,6 @@ And factorial works with identiy and inc.
 
   (piClose 500)
 #+END_SRC
-
-#+RESULTS:
-: 3.144710857394762
 
 Use the numerator as the index, and work through pairs of denominators.
 
@@ -1311,9 +1186,6 @@ If the filter is satisfied, then combine (term a), otherwise combine via the nul
   (sum-square-prime 1 10)
 #+END_SRC
 
-#+RESULTS:
-: 88
-
 *** b.
 
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
@@ -1325,9 +1197,6 @@ If the filter is satisfied, then combine (term a), otherwise combine via the nul
 
   (sum-relatively-prime 20)
 #+END_SRC
-
-#+RESULTS:
-: 0
 
 No test values for this, but at least here I have a nice example of blocking the predicate.
 
@@ -1382,9 +1251,6 @@ x = (1 + 1/x) \ Algebra
   (fixed-point (lambda (x) (+ 1 (/ 1 x))) 1.0 0.0000001)
 #+END_SRC
 
-#+RESULTS:
-: φ is roughly: 1.6180339631667064
-
 ** 1.36
 
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
@@ -1427,9 +1293,6 @@ x = (1 + 1/x) \ Algebra
 	     11)
 #+END_SRC
 
-#+RESULTS:
-: 0.6180555555555556
-
 Looks as though k = 11 works for 4 decimal places.
 1/φ = 0.6180339887498948482045868343656381177203091798057628621354486227…
 
@@ -1452,9 +1315,6 @@ Do N_k/D_k and then work backwards.
                 11)
 #+END_SRC
 
-#+RESULTS:
-: 0.6180555555555556
-
 ** 1.38
 
 There's nothing here other than figuring out a way to generate the desired sequence for Dk.
@@ -1470,9 +1330,6 @@ So, here's something excessive.
 
   (+ 2 (cont-frac (lambda (x) 1.0) dk 200))
 #+END_SRC
-
-#+RESULTS:
-: 2.7182818284590455
 
 e = 2.7182818284590452353602874713526624977572470936999595749669676277…
 
@@ -1502,9 +1359,6 @@ Then, work through offset cont-frac k times.
     (tan-cf 1.0 10.0)
 #+END_SRC
 
-#+RESULTS:
-: 1.557407724654902
-
 ** 1.40
 
 #+name: def-deriv
@@ -1516,16 +1370,12 @@ Then, work through offset cont-frac k times.
               dx))))
 #+END_SRC
 
-#+RESULTS:
-
 #+name: def-newton-transform
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<def-deriv>>
   (define (newton-transform g)
     (lambda (x) (- x (/ (g x) ((deriv g) x)))))
 #+END_SRC
-
-#+RESULTS:
 
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<def-newton-transform>>
@@ -1534,9 +1384,6 @@ Then, work through offset cont-frac k times.
   (define (newtons-method g guess)
     (fixed-point (newton-transform g) guess 0.0000001))
 #+END_SRC
-
-#+RESULTS:
-
 
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<def-square>>
@@ -1549,8 +1396,6 @@ Then, work through offset cont-frac k times.
   ;;   (+ (cube x) (* a (square x)) (* b x) c)
   ;;   ))
 #+END_SRC
-
-#+RESULTS:
 
 Here, just constructing a function.
 There's two options.
@@ -1565,10 +1410,6 @@ Second, directly define a particular instance (as commented).
 ((double inc) 2)
 (((double (double double)) inc) 5)
 #+END_SRC
-
-#+RESULTS:
-: 4
-: 21
 
 ** 1.42
 
@@ -1662,8 +1503,6 @@ lambda f lambda x (f x)
       ((iterative-improve good? improve) (improve guess)))))
 #+END_SRC
 
-#+RESULTS: def-iterative-improve
-
 To help make things clear, a couple of let statements to define the relevant procedures.
 Then, call iterative-improve.
 Here, 1 could be anything – it's just a first guess.
@@ -1679,8 +1518,6 @@ Here, 1 could be anything – it's just a first guess.
 	((iterative-improve good? improve) 1)))
 #+END_SRC
 
-#+RESULTS:
-
 Some tests
 
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
@@ -1689,11 +1526,6 @@ Some tests
   (iiSqrt 16.0)
   (iiSqrt 125.0)
 #+END_SRC
-
-#+RESULTS:
-: 2.0000000929222947
-: 4.000000636692939
-: 11.18033988989035
 
 #+name: def-iiFixed-Point
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
@@ -1705,8 +1537,6 @@ Some tests
       ((iterative-improve good? improve) 1)))
 #+END_SRC
 
-#+RESULTS:
-
 A couple of funcs from 1.3.3 (p. 69) for testing
 
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
@@ -1714,10 +1544,6 @@ A couple of funcs from 1.3.3 (p. 69) for testing
   (iiFixed-Point cos)
   (iiFixed-Point (lambda (y) (+ (sin y) (cos y))))
 #+END_SRC
-
-#+RESULTS:
-: 0.7390893414033927
-: 1.2587228743052672
 
 
 * Chapter 2
@@ -1785,8 +1611,6 @@ In the book, newline is first, but newline last fits with previous displays.
     (newline))
 #+END_SRC
 
-#+RESULTS: def-print-rat
-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<def-print-rat>>
 
@@ -1805,16 +1629,6 @@ In the book, newline is first, but newline last fits with previous displays.
   (print-rat (make-rat -2 3))
 #+END_SRC
 
-#+RESULTS:
-: 2/3
-: -2/3
-: 2/3
-: -2/3
-: -2/-3
-: 2/-3
-: 2/3
-: -2/3
-
 ** 2.2
 
 #+name: sc-point
@@ -1831,10 +1645,6 @@ In the book, newline is first, but newline last fits with previous displays.
   (x-point (make-point 1 2))
   (y-point (make-point 1 2))
 #+END_SRC
-
-#+RESULTS:
-: 1
-: 2
 
 #+name: sc-segment
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
@@ -1856,10 +1666,6 @@ In the book, newline is first, but newline last fits with previous displays.
   (midpoint-segment (make-segment (make-point 2 2) (make-point 4 4)))
   (midpoint-segment (make-segment (make-point -4 -8) (make-point 4 4)))
 #+END_SRC
-
-#+RESULTS:
-: (3 . 3)
-: (0 . -2)
 
 Though, I think this should be a little more general.
 With a coordinate space, there's no limit on the dimension.
@@ -1890,7 +1696,6 @@ A rectange is stored as ((origin-x origin-y) (width height))
   (cdr (cdr rectangle)))
 #+END_SRC
 
-#+RESULTS: sc-rectangle
 
 Not sure what is meant by perimeter here.
 Length of the perimeter is… not very interesting.
@@ -1913,15 +1718,11 @@ Points are enumerated clockwise starting with 1 as top-left going to 3 as bottom
 	    ((= point 3) (make-point xPoint (+ yPoint (rectangle-height rectangle))))))))
 #+END_SRC
 
-#+RESULTS:
-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<sc-rectangle>>
   (define (rectangle-area rectangle)
     (* (rectangle-width rectangle) (rectangle-height rectangle)))
 #+END_SRC
-
-#+RESULTS:
 
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<def-rectangle-perimeter>>
@@ -1931,12 +1732,6 @@ Points are enumerated clockwise starting with 1 as top-left going to 3 as bottom
   (rectangle-height test-rect)
   (rectangle-perimeter test-rect 2)
 #+END_SRC
-
-#+RESULTS:
-: (5 . 10)
-: 15
-: 10
-: (20 . 20)
 
 The representation of the rectangle doesn't matter, so long as there's selectors for origin, width, and height.
 
@@ -1996,12 +1791,6 @@ I'd guess there's some trick with log here, but I don't see it quickly.
   (pair-number-a (pair-numbers 1 1))
   (pair-number-b (pair-numbers 1 0))
 #+END_SRC
-
-#+RESULTS:
-: 32
-: 94
-: 1
-: 0
 
 Note, only asked to do with for non-negative integers.
 
@@ -2080,18 +1869,12 @@ Though, add a check to ensure upper is upper and lower is lower.
 	  (make-interval lIS hIS))))
 #+END_SRC
 
-#+RESULTS: def-sub-interval
-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<def-add-interval>>
   <<def-sub-interval>>
   (add-interval (make-interval 0 1) (make-interval 9 10))
   (sub-interval (make-interval 0 2) (make-interval 9 10))
 #+END_SRC
-
-#+RESULTS:
-: (9 . 11)
-: (-8 . -9)
 
 In the same way adding increases margin, subtancting decreases margin.
 I feel this isn't quite right.
@@ -2350,11 +2133,6 @@ It's a mistake to think operations on fixed values apply equally to intervals or
 (last-pair (list ))
 #+END_SRC
 
-#+RESULTS:
-: 34
-: 149
-: ()
-
 ** 2.18
 
 See reverse as a special case of appending in reverse.
@@ -2375,9 +2153,6 @@ Then, reverse is just this with an empty list.
 (reverse (list 23 72 149 34))
 #+END_SRC
 
-#+RESULTS:
-: (34 149 72 23)
-
 With lists like this, there's a tradeoff between easy read and easy write.
 And, as set up, it's easy read.
 For, it's easy to go from the right element to the last.
@@ -2393,9 +2168,6 @@ We need to keep track of things, and the easy-write probably changes more than t
   (define us-coins (list 50 25 10 5 1))
   (define uk-coins (list 100 50 20 10 5 2 1 0.5))
 #+END_SRC
-
-#+RESULTS: coin-lists
-: (1 5 10 25 50)
 
 #+name: def-cc-list
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
@@ -2413,8 +2185,6 @@ We need to keep track of things, and the easy-write probably changes more than t
 			  (first-denomination coin-values)) coin-values)))))
 #+END_SRC
 
-#+RESULTS: def-cc-list
-
 
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<coin-lists>>
@@ -2422,10 +2192,6 @@ We need to keep track of things, and the easy-write probably changes more than t
   (cc-list 100 us-coins)
   (cc-list 100 (reverse us-coins))
 #+END_SRC
-
-#+RESULTS:
-: 292
-: 292
 
 The order of the coin list doesn't matter.
 For, we always try to make the value using with and without the current 'first' coin.
@@ -2455,11 +2221,6 @@ While, if 50 is up somewhere in the middle, this split will happen multiple time
   (same-parity -2 3 4 5 -6 7)
 #+END_SRC
 
-#+RESULTS:
-: (1 3 5 7)
-: (2 4 6)
-: (-2 4 -6)
-
 I understand this way of writing procedures is useful.
 Still, the application here seems strange.
 same-parity feels like a regular procedure, which  takes some int and a list as an argument and returns a list.
@@ -2481,8 +2242,6 @@ Ok.
 	      (my-map proc (cdr items)))))
 #+END_SRC
 
-#+RESULTS: def-my-map
-
 #+name: def-square-list-full
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   (define (square-list-full items)
@@ -2491,16 +2250,12 @@ Ok.
 	(cons (* (car items) (car items)) (square-list-full (cdr items)))))
 #+END_SRC
 
-#+RESULTS:
-
 #+name: def-square-list-my-map
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<def-my-map>>
   (define (square-list-my-map items)
     (my-map (lambda (x) (* x x)) items))
 #+END_SRC
-
-#+RESULTS:
 
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   (define testSqList (list 1 2 3 4))
@@ -2511,10 +2266,6 @@ Ok.
   (square-list-full testSqList)
   (square-list-my-map testSqList)
 #+END_SRC
-
-#+RESULTS:
-: (1 4 9 16)
-: (1 4 9 16)
 
 Yes, could have used (square x) in both, and yes in full this makes a difference as (car items) is only done once.
 
@@ -2548,11 +2299,6 @@ Then, we could check if the argument is nil, rather than looking a step ahead.
   <<def-for-each>>
   (for-each (lambda (x) (display x) (newline))(list 57 321 88))
 #+END_SRC
-
-#+RESULTS:
-: 57
-: 321
-: 88
 
 Switched (newline) to second, to keep display style.
 
@@ -2606,11 +2352,6 @@ So, we have a list with (2 …) as the first element.
   (list lx ly) ; A list of (list of 1 2 3) (list of 4 5 6)
 #+END_SRC
 
-#+RESULTS:
-: (1 2 3 4 5 6)
-: ((1 2 3) 4 5 6)
-: ((1 2 3) (4 5 6))
-
 ** 2.27
 
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
@@ -2623,9 +2364,6 @@ So, we have a list with (2 …) as the first element.
 
   (reverse (list 23 72 149 34))
 #+END_SRC
-
-#+RESULTS:
-: (34 149 72 23)
 
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
 (define (deep-reverse l)
@@ -2647,13 +2385,6 @@ lx2
 (deep-reverse lx22)
 #+END_SRC
 
-#+RESULTS:
-: ((1 2) (3 4))
-: 3
-: (2 1)
-: ((4 3) (2 1))
-: (((5 4 3) (2 1)) ((4 3) (2 1)) 2)
-
 ** 2.28
 
 #+name: def-fringe
@@ -2664,9 +2395,6 @@ lx2
 	  (else
 	   (append (fringe (car tree)) (fringe (cdr tree))))))
 #+END_SRC
-
-#+RESULTS: def-fringe
-
 
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   (define (fringe tree)
@@ -2684,10 +2412,6 @@ lx2
   (fringe tx3)
   (fringe (list tx tx))
 #+END_SRC
-
-#+RESULTS:
-: (3 1 2 4 1 2 3 4)
-: (1 2 3 4 1 2 3 4)
 
 It's simply to test to see if we have a leaf.
 Though, there's an issue of nil, which always ends a list, so is always an implicit leaf, so to speak.
@@ -2723,8 +2447,6 @@ Base case conditions are in line with scale-tree
   (define (branch-structure branch) (car (cdr branch)))
 #+END_SRC
 
-#+RESULTS: sc-mobile
-
 I guess there's a better way of doing this.
 As, sum-up here is just +, but applied to a list.
 (cons + list) doesn't work, though.
@@ -2736,8 +2458,6 @@ As, sum-up here is just +, but applied to a list.
 	0
 	(+ (car list) (sum-up (cdr list)))))
 #+END_SRC
-
-#+RESULTS: def-sum-up
 
 To test whether we're going to a mobile from another mobile,
 we look at the right element.
@@ -2759,8 +2479,6 @@ Else, it's an int representing some weight.
       (+ twL twR)))
 #+END_SRC
 
-#+RESULTS: sc-mobile-more
-
 #+name: consts-m1-m2
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<sc-mobile-more>>
@@ -2779,10 +2497,6 @@ Else, it's an int representing some weight.
   (total-weight m2)
 #+END_SRC
 
-#+RESULTS:
-: 20
-: 30
-
 A 'relaxed' version of total-weight, which may be applied to mobiles or weights.
 
 #+name: def-total-weight-relaxed
@@ -2794,20 +2508,12 @@ A 'relaxed' version of total-weight, which may be applied to mobiles or weights.
 	weight-or-mobile))
 #+END_SRC
 
-#+RESULTS: def-total-weight-relaxed
-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<def-total-weight-relaxed>>
   <<consts-m1-m2>>
   (total-weight-relaxed 10)
   (total-weight-relaxed m2)
 #+END_SRC
-
-#+RESULTS:
-: 20
-: 30
-: 10
-: 30
 
 #+name: def-hang-weight
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
@@ -2816,8 +2522,6 @@ A 'relaxed' version of total-weight, which may be applied to mobiles or weights.
     <<def-total-weight-relaxed>>
     (* (branch-length branch) (total-weight-relaxed (branch-structure branch))))
 #+END_SRC
-
- #+RESULTS:
 
 #+name: def-isBalanced?
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
@@ -2832,21 +2536,11 @@ A 'relaxed' version of total-weight, which may be applied to mobiles or weights.
      (if (to-mobile? (right-branch mobile)) (isBalanced? (branch-structure (right-branch mobile))) #t)))
 #+END_SRC
 
-#+RESULTS:
-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<def-isBalanced?>>
   <<consts-m1-m2>>
   (isBalanced? m3)
 #+END_SRC
-
-#+RESULTS:
-: 20
-: 30
-: ((1 ((1 10) (1 10))) (1 ((1 10) (1 10))))
-: ((1 10) (1 10))
-: ((1 10) (1 10))
-: #t
 
 In short, we need a conjunction of balanced applied to main and all sub-mobiles.
 So, we check weight * length for each branch of the mobile.
@@ -2876,9 +2570,6 @@ Hence, we'd car and be done.
 (scale-tree (list 1 (list 2 (list 3 4 5))) 4)
 #+END_SRC
 
-#+RESULTS:
-: (4 (8 (12 16 20)))
-
 Cons works fine here, as we're breaking a list down into it's basic elements, then building back up.
 Things would be different if flattening the list, etc.
 
@@ -2902,10 +2593,6 @@ Things would be different if flattening the list, etc.
   (square-tree-map (list 1 (list 2 (list 3 4) 5) (list 6 7)))
 #+END_SRC
 
-#+RESULTS:
-: (1 (4 (9 16) 25) (36 49))
-: (1 (4 (9 16) 25) (36 49))
-
 Right, map here just goes through each element in the list and applies the procedure.
 So, what this does is abstracts from the way the list works, as emphasised in the book.
 It's important to keep in mind this is the limit of what's happening.
@@ -2924,8 +2611,6 @@ The code should look mostly the same, given that little is being done to reconst
     tree))
 #+END_SRC
 
-#+RESULTS: def-tree-map
-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   (define (square-tree-again tree)
     <<def-tree-map>>
@@ -2935,8 +2620,6 @@ The code should look mostly the same, given that little is being done to reconst
   (square-tree-again (list 1 (list 2 (list 3 4) 5) (list 6 7)))
 #+END_SRC
 
-#+RESULTS:
-: (1 (4 (9 16) 25) (36 49))
 
 ** 2.32
 
@@ -2950,15 +2633,10 @@ The code should look mostly the same, given that little is being done to reconst
 	  (append rest (my-map (lambda (x) (cons (car s) x)) rest)))))
 #+END_SRC
 
-#+RESULTS: def-subsets
-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
 <<def-subsets>>
 (subsets (list 1 2 3))
 #+END_SRC
-
-#+RESULTS:
-: (() (3) (2) (2 3) (1) (1 3) (1 2) (1 2 3))
 
 So, we're splitting on the first element of the list.
 Then, applying subsets to all other elements of the list.
@@ -2986,8 +2664,6 @@ Combined, we have (() (b) (a) (a b)).
           (accumulate op initial (cdr sequence)))))
 #+END_SRC
 
-#+RESULTS: def-accumulate
-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   (define (map-again p sequence)
     <<def-accumulate>>
@@ -2996,9 +2672,6 @@ Combined, we have (() (b) (a) (a b)).
   <<def-square>>
   (map-again square (list 1 2 3 4 5))
 #+END_SRC
-
-#+RESULTS:
-: (1 4 9 16 25)
 
 Okay.
 The point here is op is a two place argument.
@@ -3018,9 +2691,6 @@ E.g., map-sum maps the procedure and then sums the list.
   (map-sum square (list 1 2 3 4 5))
 #+END_SRC
 
-#+RESULTS:
-: 55
-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   (define (append-again seq1 seq2)
     <<def-accumulate>>
@@ -3028,9 +2698,6 @@ E.g., map-sum maps the procedure and then sums the list.
 
   (append-again (list 1 2) (list 3 4))
 #+END_SRC
-
-#+RESULTS:
-: (1 2 3 4)
 
 We're going through every element in list1 and cons to list2.
 Here, though, you need some idea of the way lists and accumulate work.
@@ -3044,17 +2711,12 @@ I like abstraction, but here I'm not sure what the point is, given we need the d
     (accumulate (lambda (x y) (+ (if (null? x) 0 1) y)) 0 sequence))
 #+END_SRC
 
-#+RESULTS: def-length
-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<def-length>>
   (length (list 1 2 3))
   (length (list ))
 #+END_SRC
 
-#+RESULTS:
-: 3
-: 0
 
 ** 2.34
 
@@ -3067,15 +2729,10 @@ I like abstraction, but here I'm not sure what the point is, given we need the d
 		coefficient-sequence))
 #+END_SRC
 
-#+RESULTS: def-horner-eval
-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<def-horner-eval>>
   (horner-eval 2 (list 1 3 0 5 0 1))
 #+END_SRC
-
-#+RESULTS:
-: 79
 
 Right, I figured out the goal was to modify addition.
 But, the choice of a and b was guess work.
@@ -3099,15 +2756,6 @@ So, by higher-terms this is the op-defined as applied to all the higher-terms fr
   (horner-test 2 (list 1 3 0 5 0 1))
 #+END_SRC
 
-#+RESULTS:
-: 0
-: 0
-: 0
-: 0
-: 0
-: 0
-: 0
-
 This 'test' is kind of useless, as higher-terms is the result of evaluating higher terms, not the other terms to evaluate.
 
 At this point in the book we're not only learning about the way abstractions are useful.
@@ -3125,9 +2773,6 @@ But, we're also learning about the way remembering what the abstractions really 
   <<consts-m1-m2>>
   (count-leaves-acc m2)
 #+END_SRC
-
-#+RESULTS: def-
-: 7
 
 As I missing something here?
 With an accumulator we need a list.
@@ -3156,15 +2801,10 @@ Then, the rest of the lists.
 			  (accumulate-n op init (my-map cdr seqs)))))
 #+END_SRC
 
-#+RESULTS: def-accumulate-n
-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<def-accumulate-n>>
     (accumulate-n + 0 (list (list 1 2 3) (list 4 5 6) (list 7 8 9) (list 10 11 12)))
 #+END_SRC
-
-#+RESULTS:
-: (22 26 30)
 
 Alright, this exercise was really cool!
 
@@ -3182,8 +2822,6 @@ Alright, this exercise was really cool!
     (accumulate + 0 (map * v w)))
 #+END_SRC
 
-#+RESULTS: def-dot-product
-
 Hold on, we defined map to take a proc and a list.
 Yet, here, map takes a proc and two lists.
 So, here we're using the base map mentioned in Footnote 12.
@@ -3199,8 +2837,6 @@ Oh, right, *this* is in footnote 17.
     (map (lambda (row) (dot-product row v)) m))
 #+END_SRC
 
-#+RESULTS: def-matrix-*-vector
-
 #+name: def-transpose
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   (define (transpose m)
@@ -3208,15 +2844,10 @@ Oh, right, *this* is in footnote 17.
     (accumulate-n cons nil m))
 #+END_SRC
 
-#+RESULTS: def-transpose
-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<def-transpose>>
   (transpose (list (list 1 2) (list 3 4) (list 5 6)))
 #+END_SRC
-
-#+RESULTS:
-: ((1 3 5) (2 4 6))
 
 #+name: def-matrix-*-matrix
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
@@ -3227,8 +2858,6 @@ Oh, right, *this* is in footnote 17.
       (map (lambda (x) (matrix-*-vector cols x)) m)))
 #+END_SRC
 
-#+RESULTS: def-matrix-*-matrix
-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<def-matrix-*-matrix>>
   (matrix-*-matrix (list (list 2 3 4)
@@ -3237,9 +2866,6 @@ Oh, right, *this* is in footnote 17.
 			 (list 1 100)
 			 (list 0 10)))
 #+END_SRC
-
-#+RESULTS:
-: ((3 2340) (0 1000))
 
 ** 2.38
 
@@ -3254,8 +2880,6 @@ Oh, right, *this* is in footnote 17.
   (iter initial sequence))
 #+END_SRC
 
-#+RESULTS: def-fold-left
-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<def-accumulate>>
   <<def-fold-left>>
@@ -3269,12 +2893,6 @@ Oh, right, *this* is in footnote 17.
 				    ; With list, (list (list nil 1) 2)
 #+END_SRC
 
-#+RESULTS:
-: 3/2
-: 1/6
-: (1 (2 (3 ())))
-: (((() 1) 2) 3)
-
 I mean, op should be such that (op x y) = (op y x)
 Right, commutative.
 
@@ -3286,10 +2904,6 @@ Hence, +, *, etc should work fine
   (= (accumulate * 1 (list 1 2 3)) (fold-left * 1 (list 1 2 3)))
   (= (accumulate + 0 (list 2 3 5 9)) (fold-left + 0 (list 2 3 5 9)))
 #+END_SRC
-
-#+RESULTS:
-: #t
-: #t
 
 Things like list fail as (list 2 3) = (2 3) != (3 2) = (list 3 2).
 Same for /, ^, etc.
@@ -3305,8 +2919,6 @@ Same for /, ^, etc.
               (filter predicate (cdr sequence))))
         (else (filter predicate (cdr sequence)))))
 #+END_SRC
-
-#+RESULTS: def-filter
 
 TODO
 
@@ -3333,9 +2945,6 @@ I'm really drwawing blanks on a way to do this without refering to the procedure
   (reverse-fr (list 1 2 3))
 #+END_SRC
 
-#+RESULTS:
-: (3 2 1)
-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   (define (reverse-fl sequence)
     <<def-fold-left>>
@@ -3344,17 +2953,12 @@ I'm really drwawing blanks on a way to do this without refering to the procedure
   (reverse-fl (list 1 2 3))
 #+END_SRC
 
-#+RESULTS:
-: (3 2 1)
-
 #+name: def-flatmap
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   (define (flatmap proc seq)
     <<def-accumulate>>
     (accumulate append nil (map proc seq)))
 #+END_SRC
-
-#+RESULTS: def-flatmap
 
 #+name: def-enumerate-interval
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
@@ -3363,8 +2967,6 @@ I'm really drwawing blanks on a way to do this without refering to the procedure
       nil
       (cons low (enumerate-interval (+ low 1) high))))
 #+END_SRC
-
-#+RESULTS: def-enumerate-interval
 
 #+name: def-prime-sum?
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
@@ -3396,9 +2998,6 @@ I'm really drwawing blanks on a way to do this without refering to the procedure
 		  (enumerate-interval 1 n)))))
 #+END_SRC
 
-#+RESULTS: def-prime-sum-pairs
-
-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<def-enumerate-interval>>
   <<def-flatmap>>
@@ -3411,12 +3010,6 @@ I'm really drwawing blanks on a way to do this without refering to the procedure
    (enumerate-interval 1 10))
   (flatmap (lambda (x) (list x x)) (enumerate-interval 1 10))
 #+END_SRC
-
-#+RESULTS:
-: ((2 1 3) (3 2 5) (4 1 5) (4 3 7) (5 2 7) (6 1 7) (6 5 11) (7 4 11) (7 6 13) (8 3 11) (8 5 13) (9 2 11) (9 4 13) (9 8 17) (10 1 11) (10 3 13) (10 7 17) (10 9 19))
-: (1 2 3 4 5 6 7 8 9 10)
-: ((2 1) (3 1) (3 2) (4 1) (4 2) (4 3) (5 1) (5 2) (5 3) (5 4) (6 1) (6 2) (6 3) (6 4) (6 5) (7 1) (7 2) (7 3) (7 4) (7 5) (7 6) (8 1) (8 2) (8 3) (8 4) (8 5) (8 6) (8 7) (9 1) (9 2) (9 3) (9 4) (9 5) (9 6) (9 7) (9 8) (10 1) (10 2) (10 3) (10 4) (10 5) (10 6) (10 7) (10 8) (10 9))
-: (1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9 10 10)
 
 flatmap
 
@@ -3453,10 +3046,6 @@ Flatmap then flattens this, so the original list is expanded with additional ele
   (prime-sum-pairs-up 10)
 #+END_SRC
 
-#+RESULTS:
-: ((2 1) (3 1) (3 2) (4 1) (4 2) (4 3) (5 1) (5 2) (5 3) (5 4) (6 1) (6 2) (6 3) (6 4) (6 5) (7 1) (7 2) (7 3) (7 4) (7 5) (7 6) (8 1) (8 2) (8 3) (8 4) (8 5) (8 6) (8 7) (9 1) (9 2) (9 3) (9 4) (9 5) (9 6) (9 7) (9 8) (10 1) (10 2) (10 3) (10 4) (10 5) (10 6) (10 7) (10 8) (10 9))
-: ((2 1 3) (3 2 5) (4 1 5) (4 3 7) (5 2 7) (6 1 7) (6 5 11) (7 4 11) (7 6 13) (8 3 11) (8 5 13) (9 2 11) (9 4 13) (9 8 17) (10 1 11) (10 3 13) (10 7 17) (10 9 19))
-
 But, this was just cutting apart the definition of prime-sum-pairs…
 
 Or was this the point? To make sure the reader understands what's going on…
@@ -3479,9 +3068,6 @@ Or was this the point? To make sure the reader understands what's going on…
 
   (unique-triples-to-n-sum-to-s 10 10)
 #+END_SRC
-
-#+RESULTS:
-: ((5 3 2) (5 4 1) (6 3 1) (7 2 1))
 
 ** 2.42 (Queens)
 
@@ -3509,16 +3095,10 @@ Index starts at 0.
       (cons (car split) (recombine (car (cdr split)) (cdr (cdr split))))))
 #+END_SRC
 
-#+RESULTS: def-shift-to-front
-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<def-shift-to-front>>
   (cdr (shift-to-front 3 (list 1 2 3 4 5 6)))
 #+END_SRC
-
-#+RESULTS:
-: (1 2 3 5 6)
-
 
 A variant of map.
 Instead of applying each item to proc, we apply a number corresponding to the instance of map and the item.
@@ -3534,8 +3114,6 @@ So, for example, (map-i proc (a b)) does (proc 0 a) and then (proc 1 b).
               (map-apply-index proc (+ i 1) (cdr items) n))))
   (map-apply-index proc 0 items n))
 #+END_SRC
-
-#+RESULTS: def-map-i-to-n
 
 So, now it's easy to apply shift-to-front diagonally
 
@@ -3578,15 +3156,10 @@ So, filter this out.
     (filter (lambda (x) (not (null? x))) (collect-diag-to nil grid)))
 #+END_SRC
 
-#+RESULTS: def-get-diags-lr
-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<def-get-diags-lr>>
   (get-diags-lr (list (list 1 2 3) (list 4 5 6) (list 7 8 9) (list 10 11 12)))
 #+END_SRC
-
-#+RESULTS:
-: ((1 5 9) (4 8 12) (7 11) (2 6) (3) (10))
 
 get-diags-lr only gets diags going left to right.
 But, given the representation of a grid here, there's an easy fix.
@@ -3601,15 +3174,10 @@ Hence, lr becomes rl.
     (get-diags-lr (reverse grid)))
 #+END_SRC
 
-#+RESULTS: def-get-diags-rl
-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<def-enumerate-interval>>
   (map (lambda (x) (if (= 2 x) 0 x)) (enumerate-interval 1 10))
 #+END_SRC
-
-#+RESULTS:
-: (1 0 3 4 5 6 7 8 9 10)
 
 We'll represent queens as 0s.
 To test whether a board is safe, we check to see there are no two queens in a row column or diagonial.
@@ -3625,8 +3193,6 @@ That's all these two functions do.
     (length (filter (lambda (x) (= x n)) l)))
 #+END_SRC
 
-#+RESULTS: def-count-ns-in-list
-
 #+name: def-unique-n?
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   (define (unique-n? n listOfLists)
@@ -3635,8 +3201,6 @@ That's all these two functions do.
 	#t
 	(and (< (count-ns-in-list n (car listOfLists)) 2) (unique-n? n (cdr listOfLists)))))
 #+END_SRC
-
-#+RESULTS: def-unique-n?
 
 #+name: def-queens
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
@@ -3680,15 +3244,10 @@ That's all these two functions do.
       (queens-cols board-size))
 #+END_SRC
 
-#+RESULTS: def-queens
-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<def-queens>>
   (queens 8)
 #+END_SRC
-
-#+RESULTS:
-: (((1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8)) ((1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8)) ((1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8)) ((1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8)) ((1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8)) ((1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8)) ((1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8)) ((1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8)) ((0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8)) ((1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8)) ((1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8)) ((1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8)) ((1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8)) ((0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8)) ((1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8)) ((1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8)) ((1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8)) ((1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8)) ((1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8)) ((1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8)) ((1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8)) ((1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8)) ((1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8)) ((1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8)) ((0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8)) ((1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8)) ((1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8)) ((1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8)) ((1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8)) ((1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8)) ((1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8)) ((1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8)) ((1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8)) ((1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8)) ((1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8)) ((1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8)) ((1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8)) ((1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8)) ((1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8)) ((1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8)) ((1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8)) ((1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8)) ((1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8)) ((1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8)) ((1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8)) ((1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8)) ((1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0)) ((1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0)) ((1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0)))
 
 ** 2.43
 
@@ -3905,15 +3464,6 @@ Maybe someday I'll come back to this and see if there's a way to get everything 
   (memq 'red '(red shoes blue socks)) ; the entire list, as red is the first thing.
 #+END_SRC
 
-#+RESULTS:
-: (a b c)
-: ((george))
-: ((y1 y2))
-: (y1 y2)
-: #f
-: #f
-: (red shoes blue socks)
-
 ** 2.54
 
 #+name: def-my-equal?
@@ -3929,10 +3479,6 @@ Maybe someday I'll come back to this and see if there's a way to get everything 
   (my-equal? '(a b) '(c d))
   (my-equal? '(a b) '(a b))
 #+END_SRC
-
-#+RESULTS:
-: #f
-: #t
 
 I think this is what's being requested.
 This is similar to how I did valid? for 8-queens.
@@ -4066,8 +3612,6 @@ Yeah, seems about right.
 	   (error "unknown expression type -- DERIV" exp))))
 #+END_SRC
 
-#+RESULTS:
-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<sc-def-my-deriv>>
   (my-deriv (make-product 0 'x) 'x)
@@ -4078,15 +3622,6 @@ Yeah, seems about right.
   (my-deriv '(+ 5 (^ x 3)) 'x)
   (my-deriv '(* x y (+ x 3)) 'x)
 #+END_SRC
-
-#+RESULTS:
-: 0
-: 1
-: (* y z 5)
-: (* 2 x)
-: (* 3 (^ x 2))
-: (* 3 (^ x 2))
-: (+ (* x y) (* y (+ x 3)))
 
 ** 2.57
 
@@ -4168,8 +3703,6 @@ In this way, we could test for a list, and if not then take on the second argume
         (else (element-of-set? x (cdr set)))))
 #+END_SRC
 
-#+RESULTS: def-element-of-set?
-
 #+name: def-union-set
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   (define (union-set set1 set2)
@@ -4179,15 +3712,10 @@ In this way, we could test for a list, and if not then take on the second argume
 	  (else (union-set (cdr set1) (cons (car set1) set2)))))
 #+END_SRC
 
-#+RESULTS: def-union-set
-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<def-union-set>>
   (union-set (list 1 2 3) (list 3 4 5))
 #+END_SRC
-
-#+RESULTS:
-: (2 1 3 4 5)
 
 ** 2.60
 
@@ -4219,8 +3747,6 @@ But, I'm not sure when this is the case.
         (else (cons (car set) (adjoin-set-o e (cdr set))))))
 #+END_SRC
 
-#+RESULTS: def-adjoin-set-o
-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<def-adjoin-set-o>>
   (adjoin-set-o 4 (list 1 2 3 5 6 7))
@@ -4229,11 +3755,6 @@ But, I'm not sure when this is the case.
   (adjoin-set-o 8 (list 1 9 3 5 6 7))
 #+END_SRC
 
-#+RESULTS:
-: (1 2 3 4 5 6 7)
-: (0 1 2 3 5 6 7)
-: (1 2 3 5 6 7 8)
-: (1 8 9 3 5 6 7)
 
 ** 2.62
 
@@ -4255,11 +3776,6 @@ But, I'm not sure when this is the case.
   (union-set-o (list 1 4) (list 2 3))
 #+END_SRC
 
-#+RESULTS:
-: (1 2 3 4 5 6)
-: (1 2 3)
-: (1 2 3 4 5 6)
-: (1 2 3 4)
 
 ** 2.63
 
@@ -4275,8 +3791,6 @@ But, I'm not sure when this is the case.
     (list entry left right))
 #+END_SRC
 
-#+RESULTS: sc-tree
-
 #+name: def-element-of-set?-tree
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   (define (element-of-set?-tree x set)
@@ -4286,8 +3800,6 @@ But, I'm not sure when this is the case.
 	  ((< x (entry set)) (element-of-set?-tree x (left-branch-tree set)))
 	  (else (element-of-set?-tree x (right-branch-tree set)))))
 #+END_SRC
-
-#+RESULTS:
 
 #+name: def-adjoin-set
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
@@ -4299,8 +3811,6 @@ But, I'm not sure when this is the case.
 	  ((> x (entry set)) (make-tree (entry set) (left-branch-tree set) (adjoin-set x (right-branch-tree set))))))
 #+END_SRC
 
-#+RESULTS: adjoin-set
-
 #+name: def-tree->list-1
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   (define (tree->list-1 tree)
@@ -4311,8 +3821,6 @@ But, I'm not sure when this is the case.
 		(cons (entry tree)
 		      (tree->list-1 (right-branch-tree tree))))))
 #+END_SRC
-
-#+RESULTS: def-tree->list-1
 
 #+name: def-tree->list-2
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
@@ -4327,10 +3835,6 @@ But, I'm not sure when this is the case.
     (copy-to-list tree '()))
 #+END_SRC
 
-#+RESULTS: def-tree->list-2
-
-#+RESULTS:
-
 #+name: consts-2.16
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<sc-tree>>
@@ -4339,8 +3843,6 @@ But, I'm not sure when this is the case.
   (define 2.16b (make-tree 3 (make-tree 1 nil nil) (make-tree 7 (make-tree 5 nil nil) (make-tree 9 nil (make-tree 11 nil nil)))))
   (define 2.16c (make-tree 5 (make-tree 3 (make-tree 1 nil nil) nil) (make-tree 9 (make-tree 7 nil nil) (make-tree 11 nil nil))))
 #+END_SRC
-
-#+RESULTS: consts-2.16
 
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   (tree->list-1 2.16a)
@@ -4351,14 +3853,6 @@ But, I'm not sure when this is the case.
   (tree->list-2 2.16b)
   (tree->list-2 2.16c)
 #+END_SRC
-
-#+RESULTS:
-: (1 3 5 7 9 11)
-: (1 3 5 7 9 11)
-: (1 3 5 7 9 11)
-: (1 3 5 7 9 11)
-: (1 3 5 7 9 11)
-: (1 3 5 7 9 11)
 
 
 I think it's clear these are equivalent by inspection.
@@ -4429,12 +3923,6 @@ This is then n.
       (partial-tree unionOL (length unionOL))))
 #+END_SRC
 
-#+RESULTS:
-: /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-FXoiQY/org-babel-fr1Rhe.rkt:27:5: partial-tree: unbound identifier
-:   in: partial-tree
-:   location...:
-:    /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-FXoiQY/org-babel-fr1Rhe.rkt:27:5
-
 Intersection is then analogous.
 
 Note, creating a tree by adjoining each element wound't be as effective.
@@ -4462,8 +3950,6 @@ Indeed, it's easy to convert all of the old ordered list sets into binary tree s
 	  (else (or (lookup-b e (left-branch-tree set)) (lookup-b e (right-branch-tree set))))))
 #+END_SRC
 
-#+RESULTS: def-lookup-b
-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   <<def-lookup-b>>
   <<consts-2.16>>
@@ -4471,11 +3957,6 @@ Indeed, it's easy to convert all of the old ordered list sets into binary tree s
   (lookup-b 2 2.16b)
   (lookup-b 9 2.16c)
 #+END_SRC
-
-#+RESULTS:
-: #t
-: #f
-: #t
 
 Straightfoward.
 Can't do better than n as may need to check every node.
