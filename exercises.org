@@ -1,6 +1,21 @@
-#+OPTIONS: toc:2
+#+TITLE: SICP Exercises
+
 
 * Some notes
+
+** Racket and org
+
+To get Racket working inside org-mode I'm using [emacs-ob-racket by hasu](https://github.com/hasu/emacs-ob-racket) and [racket-mode](https://racket-mode.com).
+
+The relevant part of my emacs config looks like:
+
+: (add-to-list 'load-path "~/path/to/emacs-ob-racket")
+: (add-to-list 'org-src-lang-modes '("racket" . racket))
+:    (org-babel-do-load-languages
+:  'org-babel-load-languages
+:  '((racket . t)))
+
+(I.e. nothing too fancy.)
 
 ** code-block syntax
 
@@ -13006,7 +13021,7 @@ Hence, +, *, etc should work fine
 Things like list fail as (list 2 3) = (2 3) != (3 2) = (list 3 2).
 Same for /, ^, etc.
 
-** Ex. 2.39
+** 2.39
 
 #+name: def-filter
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
@@ -13141,7 +13156,6 @@ So, in this case, after applying the procedure with map, we have a list of lists
 Or, at least, each elemnt mapped over is replaced by a list.
 Flatmap then flattens this, so the original list is expanded with additional elements, but these aren't themselves inside a list.
 
-
 ** 2.40
 
 #+name: def-unique-pairs
@@ -13201,7 +13215,6 @@ Or was this the point? To make sure the reader understands what's going on…
 
 #+RESULTS:
 : ((5 3 2) (5 4 1) (6 3 1) (7 2 1))
-
 
 ** 2.42 (Queens)
 
@@ -13442,7 +13455,6 @@ Going by the suggestion, this should paint two copies side-by-side below the arg
 	  (below painter (beside smaller smaller)))))
 #+END_SRC
 
-
 ** 2.45
 
 For reference, here's right-split
@@ -13496,7 +13508,6 @@ lambda makes this easy.
 (define (scale-vect s v1)
   (make-vect (* s (xcor-vect v1)) (* s (ycor-vect v1))))
 #+END_SRC
-
 
 ** 2.47
 
@@ -13668,7 +13679,6 @@ For a similar or implementation DeMorgan.
 Base case is false, and build up with or.
 Though, something iterative would be better, as you can skip everything after finding a matching pair.
 
-
 ** 2.55
 
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
@@ -13821,7 +13831,6 @@ Yeah, seems about right.
 : (* 3 (^ x 2))
 : (+ (* x y) (* y (+ x 3)))
 
-
 ** 2.57
 
 Modified above.
@@ -13873,7 +13882,6 @@ But, ugh.
 At this point we have to modify deriv.
 As, there's no way to allow the user to give a list, and for deriv to provide two arguments.
 
-
 ** 2.58
 
 With infix and explicit parentheses, this amounts to reverting the representation of sum and product to work with two arguments and then updating where the symbol is stored.
@@ -13893,7 +13901,6 @@ Ah, though maybe there is.
 For example, we could write a proc which takes a single argumnet.
 Then, depending on the value, does something or takes another argument.
 In this way, we could test for a list, and if not then take on the second argument.
-
 
 ** 2.59
 
@@ -14114,7 +14121,6 @@ tree->list-2 does recursion on the right braches and then on the left.
 So, on the close of a recursion call the only task is to add whatever the current entry is.
 Everything to the right is already reduced to a list.
 
-
 ** 2.64
 
 partial-tree takes two arguments:
@@ -14145,7 +14151,6 @@ Visually, the process is something like this, from left to right (where the last
 Growth should be n.
 For, each recursive call is tasked with half the work, intuitively.
 However, we still need to do the work on both halves.
-
 
 ** 2.65
 
