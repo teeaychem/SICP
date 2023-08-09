@@ -262,8 +262,12 @@ Alternatively, can apply to (square guess) (square previousGuess), etc.
 Then, it's significant digits of the squared number, rather than root.
 
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output
-(define (improve guess x) (average guess (/ x guess)))
-(define (average x y) (/ (+ x y) 2))
+  (define (improve guess x) (average guess (/ x guess)))
+#+END_SRC
+
+#+name: def-average
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output
+  (define (average x y) (/ (+ x y) 2))
 #+END_SRC
 
 #+RESULTS:
@@ -10605,3 +10609,731 @@ The evaluated value is used twice, but the evaluation only happens once.
 
 #+RESULTS:
 :  fooled  fooled  fooled  fooled  fooled  fooled  found  found 
+
+
+** 1.28
+
+Modifying expmod to signal whether it discovers a non-trivial square root of 1.
+
+An important detail was a little buried.
+For, the test is only guaranteed for odd numbers.
+So, when working through half of the numbers, we need to already be sure the number is odd.
+
+Added some formatting, though ofc I should have a single call for n/prime display.
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-square>>
+  (define (MR-expmod base exp m) ; base = a, exp = n
+    (cond ((= exp 0) 1)
+	  ((even? exp)
+	   (remainder (square (MR-check-sqaure (MR-expmod base (/ exp 2) m) m)) m))
+	  (else (remainder (* base (MR-expmod base (- exp 1) m)) m))
+	  ))
+
+  (define (MR-check-sqaure a m)
+    (cond
+      ((or (= a 1) (= a (- m 1))) a) ; In this case, a is trivial, so continue
+      ((= (remainder (square a) m) 1) 0) ; We know a != 1 nor (m - 1), so check a % n = 1. Not prime if satisfied.
+      (else a))) ; Otherwise, continue
+
+  (define (MR-seq-test n a)
+    (cond
+      ((> a (/ n 2)) (display "Prime!\n"))
+      ((= (MR-expmod a (- n 1) n) 0) (display "Not prime…\n"))
+      (else (MR-seq-test n (+ a 1)))))
+
+
+  (define (MR-prime? n)
+    (display "Checking: ")
+    (display n)
+      (display "\n")
+    (cond
+      ((= n 2) (display "Prime!\n"))
+      ((even? n) (display "Not prime…\n"))
+      (else (MR-seq-test n 1))))
+
+  (MR-prime? 2)
+  (MR-prime? 3)
+  (MR-prime? 4)
+  (MR-prime? 7)
+  (MR-prime? 9)
+  (MR-prime? 10)
+  (MR-prime? 11)
+  (MR-prime? 12)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+Checking: 2
+Prime!
+Checking: 3
+Prime!
+Checking: 4
+Not prime…
+Checking: 7
+Prime!
+Checking: 9
+Not prime…
+Checking: 10
+Not prime…
+Checking: 11
+Prime!
+Checking: 12
+Not prime…
+#+end_example
+
+** 1.29
+
+#+name: def-sum
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (sum term a next b)
+    (if (> a b)
+	0
+	(+ (term a)
+	   (sum term (next a) next b))))
+#+END_SRC
+
+#+name: def-inc
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (inc n) (+ n 1))
+#+END_SRC
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-cube>>
+  <<def-sum>>
+  <<def-inc>>
+
+  (define (simpson f a b n)
+    (define (sM k x)
+      (cond
+	((or (= k 0) (= k n)) x)
+	((even? k) (* 2 x))
+	(else (* 4 x))
+	))
+    (define (h) (/ (- b a) n))
+    (define (fakh k) (sM k (f (+ a (* k (h))))))
+    (* (/ (h) 3) (sum fakh 0 inc n)))
+
+  (simpson cube 0 1 1000.0)
+  (simpson cube 0 1 10000.0)
+#+END_SRC
+
+#+RESULTS:
+: 0.2500000000000003
+: 0.2500000000000011
+
+Well, the results are closer to 1/4…
+
+** 1.30
+
+#+name: def-sum-iter
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (sum-iter term a next b)
+  (define (iter a result)
+    (if (> a b)
+        result
+        (iter (next a) (+ (term a) result)))
+    )
+  (iter a 0)
+  )
+#+END_SRC
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-sum-iter>>
+  <<def-cube>>
+  (sum-iter cube 0 inc 10)
+#+END_SRC
+
+#+RESULTS:
+: 3025
+
+** 1.31
+
+
+
+*** a.
+
+#+name: def-product
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (product term a next b)
+  (if (> a b)
+      1
+      (* (term a)
+         (product term (next a) next b))
+      ))
+#+END_SRC
+
+
+This is just substituting * for +…
+And factorial works with identiy and inc.
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-product>>
+  (define (factorial n) (product identity 1 inc n))
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-square>>
+  <<def-product>>
+  (define (piHelpB d)
+    (/ (* (- d 1) (+ d 1)) (square d)))
+
+  (define (incTwo n) (+ n 2))
+
+  (define (piClose n)
+    (* 4.0 (product piHelpB 3 incTwo (+ n 3))))
+
+  (piClose 500)
+#+END_SRC
+
+#+RESULTS:
+: 3.144710857394762
+
+Use the numerator as the index, and work through pairs of denominators.
+
+Either I've done something wrong, on this takes a lot to get close to pi.
+
+*** b.
+
+#+name: def-product-iter
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (product-iter term a next b)
+  (define (iter a result)
+    (if (> a b)
+        result
+        (iter (next a) (* (term a) result)))
+    )
+  (iter a 1))
+#+END_SRC
+
+
+** Ex. 1.32
+
+
+
+Made both versions, then read part b…
+
+#+name: def-accumulate-first
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (accumulate-first combiner null-value term a next b)
+  (if (> a b)
+      null-value
+      (combiner (term a)
+         (accumulate-first combiner null-value term (next a) next b))
+      ))
+#+END_SRC
+
+#+name: def-accumulate-first-iter
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (accumulate-first-iter combiner null-value term a next b)
+    (define (iter a result)
+      (if (> a b)
+	  result
+	  (iter (next a) (combiner (term a) result)))
+      )
+    (iter a null-value)
+    )
+#+END_SRC
+
+
+E.g.…
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-accumulate-first>>
+  (define (sum-accumulate-first term a next b)
+    (accumulate-first + 0 term a next b))
+#+END_SRC
+
+To test, adapt previous use of sum/product.
+Replace accumalate with accumalate-iter to vary recu/iter.
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+;; (sum-iter cube 0 inc 10)
+;; (sum-accumulate-first cube 0 inc 10)
+#+END_SRC
+
+
+** 1.33
+
+#+name: def-filtered-accumulate-first
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+
+(define (filtered-accumulate-first filter combiner null-value term a next b)
+  (if (> a b)
+      null-value
+      (combiner (if (filter a) (term a) null-value)
+                (filtered-accumulate-first filter combiner null-value term (next a) next b))
+      ))
+#+END_SRC
+
+If the filter is satisfied, then combine (term a), otherwise combine via the null-value.
+
+*** a.
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-filtered-accumulate-first>>
+  <<def-prime?>>
+  (define (sum-square-prime a b)
+    (filtered-accumulate-first prime? + 0 square a inc b))
+
+  (sum-square-prime 1 10)
+#+END_SRC
+
+#+RESULTS:
+: 88
+
+*** b.
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-filtered-accumulate-first>>
+  (define (sum-relatively-prime n)
+    (define (predicate? a)
+      (= (gcd a n) 1))
+    (filtered-accumulate-first predicate? * 0 identity 0 inc n))
+
+  (sum-relatively-prime 20)
+#+END_SRC
+
+#+RESULTS:
+: 0
+
+No test values for this, but at least here I have a nice example of blocking the predicate.
+
+** 1.34
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (f g) (g 2))
+
+  (f square)
+  (f (lambda (z) (* z (+ z 1))))
+#+END_SRC
+
+We apply 2 to 2.
+With f labelled
+(f1 f2) - > (f2 2) -> (2 2)
+But, 2 isn't a procedure.
+
+** 1.35
+
+
+From p. 38 we have the golden ratio is (1 + sqrt(5))/2.
+Let φ = (1 + sqrt(5))/2.
+And, we know φ^2 = φ + 1.
+
+To figure out how to express φ as a fixed point of x, we'll work through x = φ until we have a non-trivial transformation of x on the rhs.
+So:
+
+x = φ
+x^2 = φ^2 \ Algebra
+x^2 = φ + 1 \ Given
+x^2 = x + 1 \ Initial equality.
+x = (x + 1)/x \ Algebra
+x = (x/x + 1/x) \ Algebra
+x = (1 + 1/x) \ Algebra
+
+#+name: def-fixed-point
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (fixed-point f first-guess tolerance)
+    (define (close-enough? v1 v2)
+      (< (abs (- v1 v2)) tolerance))
+    (define (try guess)
+      (let ((next (f guess)))
+	(if (close-enough? guess next)
+	    next
+	    (try next))))
+    (try first-guess))
+#+END_SRC
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-fixed-point>>
+  (display "φ is roughly: ")
+  (fixed-point (lambda (x) (+ 1 (/ 1 x))) 1.0 0.0000001)
+#+END_SRC
+
+#+RESULTS:
+: φ is roughly: 1.6180339631667064
+
+** 1.36
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (fixed-point-display f first-guess tolerance)
+  (define (close-enough? v1 v2)
+    (< (abs (- v1 v2)) tolerance))
+  (define (try guess guess-number)
+    (let ((next (f guess)))
+      (display "Guess: ")
+      (display guess-number)
+      (display " is: ")
+      (display guess)
+      (newline)
+      (if (close-enough? guess next)
+          next
+          (try next (+ guess-number 1)))))
+  (try first-guess 1))
+
+(fixed-point-display (lambda (x) (/ (log 1000) (log x))) 20 0.0001)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+Guess: 1 is: 20
+Guess: 2 is: 2.3058653605207224
+Guess: 3 is: 8.268245127898153
+Guess: 4 is: 3.270063620521572
+Guess: 5 is: 5.830266912670698
+Guess: 6 is: 3.9180427094069006
+Guess: 7 is: 5.058431921616023
+Guess: 8 is: 4.261267337400184
+Guess: 9 is: 4.765393474608402
+Guess: 10 is: 4.424134287423568
+Guess: 11 is: 4.645197487128418
+Guess: 12 is: 4.497722921421146
+Guess: 13 is: 4.594232081296909
+Guess: 14 is: 4.530264909418489
+Guess: 15 is: 4.57230925334424
+Guess: 16 is: 4.544520875578216
+Guess: 17 is: 4.562820205508522
+Guess: 18 is: 4.550740602562961
+Guess: 19 is: 4.558701850336742
+Guess: 20 is: 4.553449372746291
+Guess: 21 is: 4.556912333549503
+Guess: 22 is: 4.554628162462987
+Guess: 23 is: 4.556134350974488
+Guess: 24 is: 4.555140969619161
+Guess: 25 is: 4.55579605209843
+Guess: 26 is: 4.555364022646872
+Guess: 27 is: 4.555648931579696
+Guess: 28 is: 4.555461036659186
+Guess: 29 is: 4.555584948637098
+4.555503230471071
+#+end_example
+
+** 1.37
+
+*** a.
+
+#+name: def-cont-frac
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (cont-frac n d k)
+    (define (cont-frac-i n d k step)
+      (if (= step k)
+	  (/ (n step) (d step))
+	  (/ (n step) (+ (d step) (cont-frac-i n d k (+ step 1))))
+	  )
+    )
+    (cont-frac-i n d k 1)
+    )
+#+END_SRC
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-cont-frac>>
+  (cont-frac (lambda (i) 1.0)
+	     (lambda (i) 1.0)
+	     11)
+#+END_SRC
+
+#+RESULTS:
+: 0.6180555555555556
+
+Looks as though k = 11 works for 4 decimal places.
+1/φ = 0.6180339887498948482045868343656381177203091798057628621354486227…
+
+
+
+*** b.
+
+cont-frac is recursive, so for an iterative version…
+Start the other way.
+Do N_k/D_k and then work backwards.
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (cont-frac-iter n d k)
+  (define (cont-frac-i n d k so-far)
+    (if (= k 0)
+        so-far
+        (cont-frac-i n d (- k 1) (/ (n k) (+ (d k) so-far)))
+        )
+  )
+  (cont-frac-i n d k 0)
+  )
+
+(cont-frac-iter (lambda (i) 1.0)
+                (lambda (i) 1.0)
+                11)
+#+END_SRC
+
+#+RESULTS:
+: 0.6180555555555556
+
+** 1.38
+
+There's nothing here other than figuring out a way to generate the desired sequence for Dk.
+So, here's something excessive.
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-cont-frac>>
+  (define (dk i)
+    (let ((x (- i (/ i 3))))
+      (if (= (- x (floor x)) (/ 1 3))
+	  (ceiling x)
+	  1)))
+
+  (+ 2 (cont-frac (lambda (x) 1.0) dk 200))
+#+END_SRC
+
+#+RESULTS:
+: 2.7182818284590455
+
+e = 2.7182818284590452353602874713526624977572470936999595749669676277…
+
+
+** 1.39
+
+
+Modify cont-frac.
+n is constant x^2.
+d is number variable, given as argument.
+And, offset things a little.
+
+At start, calculate x^2 to save some resources.
+Then, work through offset cont-frac k times.
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-square>>
+  (define (tan-cf x k)
+
+    (define (cont-frac-i x2 d k step)
+      (if (= step k)
+	  (/ x2 d)
+	  (/ x2 (- d (cont-frac-i x2 (+ d 2) k (+ step 1))))
+	  ))
+      (let (
+	    (x2 (square x)))
+	(/ x (- 1 (cont-frac-i x2 3 k 1)))))
+
+    (tan-cf 1.0 10.0)
+#+END_SRC
+
+#+RESULTS:
+: 1.557407724654902
+
+** 1.40
+
+#+name: def-deriv
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (deriv g)
+  (let ((dx 0.00001))
+    (lambda (x)
+           (/ (- (g (+ x dx)) (g x))
+              dx)))
+  )
+#+END_SRC
+
+#+RESULTS:
+
+#+name: def-newton-transform
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-deriv>>
+  (define (newton-transform g)
+    (lambda (x) (- x (/ (g x) ((deriv g) x)))))
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-newton-transform>>
+  <<def-fixed-point>>
+
+  (define (newtons-method g guess)
+    (fixed-point (newton-transform g) guess 0.0000001))
+#+END_SRC
+
+#+RESULTS:
+
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-square>>
+  <<def-cube>>
+  (define (cubic a b c)
+    (define (cubic-all x a b c)
+      (+ (cube x) (* a (square x)) (* b x) c))
+    (lambda (x) (cubic-all x a b c)))
+  ;; (lambda (x)
+  ;;   (+ (cube x) (* a (square x)) (* b x) c)
+  ;;   ))
+#+END_SRC
+
+#+RESULTS:
+
+Here, just constructing a function.
+There's two options.
+First (as taken), define the general function, and then obtain a particular instance.
+Second, directly define a particular instance (as commented).
+
+** 1.41
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (double f) (lambda (x) (f (f x))))
+
+((double inc) 2)
+(((double (double double)) inc) 5)
+#+END_SRC
+
+#+RESULTS:
+: 4
+: 21
+
+** 1.42
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (compose f g) (lambda (x) (f (g x))))
+
+((compose square inc) 6)
+#+END_SRC
+
+** 1.43
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (repeated f times)
+    (if (= times 1)
+        f
+        (compose f (repeated f (- times 1)))
+        )
+  )
+
+((repeated square 2) 5)
+#+END_SRC
+
+This is a little surprising.
+For, the most natural base case is f x.
+With this, completing recursive calls gets f^n x.
+And, as a last step take λ x f^n x, or just leave the procedure as it is.
+
+But, this isn't okay, as x dones't evaluate to anything.
+
+So, instead, the base case is f.
+The argument is not made explicit, so there's no issue of evaluting it.
+We just return the procedure.
+
+So, mabye it's not *that* strange.
+With f x we are working with some arbitrary value, and as this is arbitrary, what we're doing is transformed into a procedure.
+And, with f we are working with a procedure directly.
+
+Hm.
+
+** 1.44
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (smoothed f dx)
+  (lambda (x)
+    (/ (+ (f x) (f (+ x dx)) (f (- x dx))) 3)))
+
+
+(define (smooth-fold f dx n)
+  ((repeated (lambda (x) (smoothed x dx)) n) f))
+#+END_SRC
+
+
+Nothing too exciting here.
+We repeat the smoothing, and then apply this to the function.
+(Repeating smoothing applied to the function would involve repeating the function.)
+lambda lets us do this easily, though I guess it would also be easy if dx was fixed as a constant somewhere.
+
+** 1.45
+
+Average-damp(f(x)) = (x + f(x))/2
+
+e.g. Average-damp(10^2) = 55 = (10 + 100)/2
+
+In general, fixed point fails without dampening as y -> x/y -> x/(x/y) -> y
+Then, y -> (x + x/y)/2.
+
+In any case, this exercise seems rough.
+We're asked to experiment to find out how many average damps are required to compute nth roots as a fixed-point search.
+The problem is failure to converge, though.
+Of course, things are a little better.
+For, the general form of the problem is re-obtaining the initial value, or at least a prior value.
+So, it's in principle possible to store every value computed and then check to see if any of these are repeated.
+Still, it's not very interesting.
+
+The final function isn't too interesting either.
+Once the required number of times to average damp is figured out, the next task is to repeatedly average damp the function, and then apply the fixed point solver to this.
+
+
+** 1.46
+
+In outline, a conditional:
+
+if (good? guess) guess (improve guess)
+
+So, here, the only issue is obtaining the guess.
+But, this is two lambda terms.
+lambda f lambda x (f x)
+
+#+name: def-iterative-improve
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (iterative-improve good? improve)
+  (lambda (guess) (if (good? guess)
+      guess
+      ((iterative-improve good? improve) (improve guess))))
+  )
+#+END_SRC
+
+#+RESULTS: def-iterative-improve
+
+To help make things clear, a couple of let statements to define the relevant procedures.
+Then, call iterative-improve.
+Here, 1 could be anything – it's just a first guess.
+
+#+name: def-iiSqrt
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-square>>
+  <<def-average>>
+  <<def-iterative-improve>>
+    (define (iiSqrt x)
+      (let ((good? (lambda (guess) (< (abs (- (square guess) x)) 0.001)))
+	    (improve (lambda (guess) (average guess (/ x guess)))))
+	((iterative-improve good? improve) 1)))
+#+END_SRC
+
+#+RESULTS:
+
+Some tests
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-iiSqrt>>
+  (iiSqrt 4.0)
+  (iiSqrt 16.0)
+  (iiSqrt 125.0)
+#+END_SRC
+
+#+RESULTS:
+: 2.0000000929222947
+: 4.000000636692939
+: 11.18033988989035
+
+#+name: def-iiFixed-Point
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-iterative-improve>>
+  (define (iiFixed-Point f)
+    (let (
+	  (good? (lambda (guess) (< (abs (- (f guess) guess)) 0.00001)))
+	  (improve (lambda (guess) (f guess))))
+      ((iterative-improve good? improve) 1)))
+#+END_SRC
+
+#+RESULTS:
+
+A couple of funcs from 1.3.3 (p. 69) for testing
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-iiFixed-Point>>
+  (iiFixed-Point cos)
+  (iiFixed-Point (lambda (y) (+ (sin y) (cos y))))
+#+END_SRC
+
+#+RESULTS:
+: 0.7390893414033927
+: 1.2587228743052672
