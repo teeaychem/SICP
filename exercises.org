@@ -5,9 +5,9 @@
 ** code-block syntax
 
 #+begin_quote
-#+name:
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
-#+END_SRC
+: #+name:
+: #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+: #+END_SRC
 #+end_quote
 
 ** Referenced code-blocks
