@@ -1,4 +1,5 @@
 #+STARTUP: overview
+#+PROPERTY: header-args :prologue "#lang sicp" :noweb eval :results output :tangle test.rkt
 #+TITLE: SICP Exercises
 
 * Some notes
@@ -25,12 +26,16 @@ If you don't find a procedure, it's probably not detailed in the book.
 
 Code blocks are as follows:
 
-: #+name:
-: #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+: #+NAME:
+: #+BEGIN_SRC racket
 : wwwww
 : #+END_SRC
 
-name is optional.
+name is optional etc.
+
+At the start of this file I have:
+
+: #+PROPERTY: header-args :prologue "#lang sicp" :noweb yes :results output
 
 ** Referenced code-blocks
 
@@ -46,7 +51,7 @@ However, this introcudes some small issues.
 
 First, we need to name and reference blocks of code.
 
-A nanmed block of code begins with: #+name:
+A nanmed block of code begins with: #+NAME:
 To help clarify what's being referenced, a few common prefixes are used:
 
 | def:    | definitions                   |
@@ -65,11 +70,12 @@ But, I think it's an okay trade-off.
 
 
 
+
 * Chapter 1
 
 ** 1.1
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output
+#+BEGIN_SRC racket
   10 ;; 10
 
   (+ 5 3 4) ;; 12
@@ -104,9 +110,12 @@ But, I think it's an okay trade-off.
 
 ** 1.2
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output
+#+BEGIN_SRC racket
 (/ (+ 5 4 (- 2 (- 3 (+ 6 (/ 4 5))))) (* 3 (- 6 2) (- 2 7)))
 #+END_SRC
+
+#+RESULTS:
+: -37/150
 
 ** 1.3
 
@@ -116,12 +125,12 @@ If a >= b fix a, else b.
 If a, then compare b and c.
 If b, then compare a and c.
 
-#+name: def:square
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output
+#+NAME: def:square
+#+BEGIN_SRC racket
       (define (square x) (* x x))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:square>>
   (define (sumSquare a b) (+ (square a) (square b)))
 
@@ -140,7 +149,7 @@ If b, then compare a and c.
 
 ** 1.4
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output
+#+BEGIN_SRC racket
   (define (a-plus-abs-b a b) ;; Define procedure with two arguments
     ((if (> b 0) ;; Operator position is a procedure, so begin by evaluating this.
 	 +       ;; Returns + procedure if b > 0, else the - procedure.
@@ -154,7 +163,7 @@ If b, then compare a and c.
 
 ** 1.5
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output
+#+BEGIN_SRC racket
   (define (p) (p))
 
   (define (test x y)
@@ -179,7 +188,7 @@ In turn, whatever procedure is obtained from this determines which arguments to 
 
 So, here, first checking whether x or y are 0 would lead to a different result, e.g.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output
+#+BEGIN_SRC racket
   (define (test2 x y)
   (if (or (x = 0) (y = 0)) 0
       (if (= x 0)
@@ -191,7 +200,7 @@ Nothing really changes on good values. If 0 is 0, 0 is returned, else, if 0 is n
 Still, in contrast to test we've not got to evaluate y on the first test.
 ** 1.6
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output
+#+BEGIN_SRC racket
   (define (new-if predicate then-clause else-clause)
   (cond (predicate then-clause)
         (else else-clause)))
@@ -206,7 +215,7 @@ evaluate before returning.
 
 Consider:
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output
+#+BEGIN_SRC racket
   (define (a-plus-abs-b a b)
     ((if (> b 0) + -) a b))
 #+END_SRC
@@ -222,7 +231,7 @@ However, as sqrt-iter is recursive, a new instance of sqrt-iter
 is made before any evaluation takes place.
 Can see this with rTest
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output
+#+BEGIN_SRC racket
 (define (rTest x)
 	(new-if (> 1 x) 0 (rTest (- x 1))))
 (rTest 2)
@@ -246,7 +255,7 @@ As good-enough? compares two squared numbers, for small values there won't be mu
 
 Observe, squares increaes fast with magnitude.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:square>>
   (- (square 0.5) (square 0.25))
   (- (square 5) (square 2.5))
@@ -258,11 +267,11 @@ This means, more precision is needed to get below the threshold in the
 small case, where the resulting difference isn't going to be noticable.
 And, less precision is needed in the large case.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output
+#+BEGIN_SRC racket
 (define (sqrt2 x) (sqrtItr2 1.0 0.0 x))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output
+#+BEGIN_SRC racket
   (define (sqrtItr2 guess previousGuess x)
     (if (goodEnough2? guess previousGuess)
 	guess
@@ -271,7 +280,7 @@ And, less precision is needed in the large case.
 
 Mostly the same but for goodEnough2.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output
+#+BEGIN_SRC racket
 (define (goodEnough2? guess previousGuess)
   (< (abs (- guess previousGuess)) 0.001))
 #+END_SRC
@@ -280,12 +289,12 @@ This, then, works as a limit on the number of significant digits we care about.
 Alternatively, can apply to (square guess) (square previousGuess), etc.
 Then, it's significant digits of the squared number, rather than root.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output
+#+BEGIN_SRC racket
   (define (improve guess x) (average guess (/ x guess)))
 #+END_SRC
 
-#+name: def:average
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output
+#+NAME: def:average
+#+BEGIN_SRC racket
   (define (average x y) (/ (+ x y) 2))
 #+END_SRC
 
@@ -297,13 +306,13 @@ For small numbers, things are less accurate, as the sqrt of a small number is go
 Only thing that changes here is the improve function, where formula for better approximation is given.
 goodCubeGuess? could also be adjusted, as with previous exercise.
 
-#+name: def:cube
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output
+#+NAME: def:cube
+#+BEGIN_SRC racket
 (define (cube x) (* x x x))
 #+END_SRC
 
-#+name: def:cubeRt
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:cubeRt
+#+BEGIN_SRC racket
   <<def:cube>>
   (define (cubeRt x)
     (define (cubeInt guess) ; Using block structure and lexical scoping
@@ -315,7 +324,7 @@ goodCubeGuess? could also be adjusted, as with previous exercise.
     (cubeInt 1.0))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:cubeRt>>
   (cube 3)
   (cubeRt 27)
@@ -325,7 +334,7 @@ goodCubeGuess? could also be adjusted, as with previous exercise.
 
 ** 1.9
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (+ a b)
     (if (= a 0)
 	b
@@ -333,7 +342,7 @@ goodCubeGuess? could also be adjusted, as with previous exercise.
     )
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (+ 4 5)
 (inc (+ (dec a) b))
 (inc (+ 3 5))
@@ -349,14 +358,14 @@ goodCubeGuess? could also be adjusted, as with previous exercise.
 
 Recursive prodecure and recursive process.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (+ a b)
     (if (= a 0)
 	b
 	(+ (dec a) (inc b))))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (+ 4 5)
   (+ (dec 4) (inc 5))
   (+ 3 6)
@@ -370,7 +379,7 @@ Recursve procedure but iterative process
 
 ** 1.10
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (A 1 10)
 (A 0 (A 1 9))
 (A 0 (A 0 (A 1 8)))
@@ -393,7 +402,7 @@ Recursve procedure but iterative process
 1024
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (A 2 4)
 (A 1 (A 2 3))
 (A 1 (A 1 (A 2 2)))
@@ -416,8 +425,8 @@ Recursve procedure but iterative process
 Okay, this grows in a cool way.
 
 
-#+name: def:A
-#+BEGIN_SRC racket :prologue "#lang sicp" :results none :noweb yes
+#+NAME: def:A
+#+BEGIN_SRC racket :results none
 (define (A x y)
   (cond
     ((= y 0) 0)
@@ -427,7 +436,7 @@ Okay, this grows in a cool way.
 #+END_SRC
 
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:A>>
   (A 1 10)
   (A 2 4)
@@ -441,7 +450,7 @@ Okay, this grows in a cool way.
 
 ** 1.11
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (fR n)
     (if (< n 3)
 	n
@@ -480,7 +489,7 @@ And, the triangle is generated by fixing (1, 1) as 1.
 
 Very ineffective.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (pascal x y)
     (cond
       ((or (< x 1) (< y 1)) 0)
@@ -574,16 +583,16 @@ Right, this is a linear recursive process.
 
 Helper function to test for even
 
-#+name: def:even?
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:even?
+#+BEGIN_SRC racket
   (define (even? n)
     (= (remainder n 2) 0))
 #+END_SRC
 
 Main fuction, following the hint
 
-#+name: def:try
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:try
+#+BEGIN_SRC racket
   <<def:even?>>
   (define (try a b n) ; a is current value, n is number of exponents remaining
     (cond
@@ -595,14 +604,14 @@ Main fuction, following the hint
       (else (try (* a b) b (- n 1)))))
 #+END_SRC
 
-#+name: def:expItr
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:expItr
+#+BEGIN_SRC racket
   <<def:try>>
   (define (expItr b n)
     (try 1 b n)) ; Hide a as a helper variable.
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:expItr>>
   (expItr 2 4)
   (expItr 6 5) ; Expect 7776
@@ -618,14 +627,14 @@ Using (* 2 x) for double x and (/ x 2) for half x.
 dhMultH, only works for positive integers.
 So, dhMult ensures positive numbers are passed through, and adjusts the result appropriately.
 
-#+name: def:multPositiveTranslate
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:multPositiveTranslate
+#+BEGIN_SRC racket
 (define (multPositiveTranslate func a b)
   ((if (> 0 b) + -) 0 ((if (> 0 a) + -) 0 (func (abs a) (abs b)))))
 #+END_SRC
 
-#+name: def:dhMult
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:dhMult
+#+BEGIN_SRC racket
   (define (dhMultH a b)
     (cond
       ((> 0 b) (- 0 (dhMultH a (- 0 b))))
@@ -641,7 +650,7 @@ So, dhMult ensures positive numbers are passed through, and adjusts the result a
 #+END_SRC
 
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:dhMult>>
   ;(dhMult 1 4)
   ;(dhMult 5 5)
@@ -662,8 +671,8 @@ Do this iteratively by doubling m and havling n.
 When n is odd, copy the value of m to a store variable, added at the end.
 Always go to n = 1, so add m to store variable.
 
-#+name: def:dhMultIter
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:dhMultIter
+#+BEGIN_SRC racket
   <<def:multPositiveTranslate>>
 
   (define (dhMultIterHelp a m n)
@@ -681,7 +690,7 @@ Always go to n = 1, so add m to store variable.
 
 Some tests
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:dhMultIter>>
   (dhMultIter 2 6)
   (dhMultIter 3 5)
@@ -703,8 +712,8 @@ new_p = (p^2)
 With this in mind, finishing the function is simple, to double the values of
 p and q, apply this transformation to itself.
 
-#+name: def:fibI
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:fibI
+#+BEGIN_SRC racket
   (define (fibI n)
     (fib-iter 1 0 0 1 n))
 
@@ -725,7 +734,7 @@ p and q, apply this transformation to itself.
 
 Testing
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:fibI>>
   (fibI 0)
   (fibI 1)
@@ -736,8 +745,8 @@ Testing
 
 ** 1.20
 
-#+name: def:gcd
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:gcd
+#+BEGIN_SRC racket
   (define (gcd a b)
     (if (= b 0)
 	a
@@ -773,14 +782,14 @@ To show d divides n, just need an int such that d * a = n.
 Consider n/d.
 As d is a divisor of n, so n/d is an int, and clearly d * n/d = n.
 
-#+name: def:divides?
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:divides?
+#+BEGIN_SRC racket
   (define (divides? a b)
     (= (remainder b a) 0))
 #+END_SRC
 
-#+name: def:smallest-divisor
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:smallest-divisor
+#+BEGIN_SRC racket
   <<def:divides?>>
   <<def:square>>
   (define (smallest-divisor n)
@@ -792,7 +801,7 @@ As d is a divisor of n, so n/d is an int, and clearly d * n/d = n.
 	  (else (find-divisor n (+ test-divisor 1)))))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:smallest-divisor>>
   (smallest-divisor 199)
   (smallest-divisor 1999)
@@ -803,16 +812,16 @@ As d is a divisor of n, so n/d is an int, and clearly d * n/d = n.
 
 ** 1.22
 
-#+name: def:prime?
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:prime?
+#+BEGIN_SRC racket
   <<def:smallest-divisor>>
   (define (prime? n)
     (= n (smallest-divisor n)))
 #+END_SRC
 
 
-#+name: def:search-for-primes
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:search-for-primes
+#+BEGIN_SRC racket
   <<def:prime?>>
   (define (timed-prime-test n)
     (start-prime-test n (runtime)))
@@ -838,7 +847,7 @@ As d is a divisor of n, so n/d is an int, and clearly d * n/d = n.
     (prime-test-range-k-step (if (even? n) (+ n 1) n) (if (even? m) (- m 1) m) 2))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:search-for-primes>>
   (search-for-primes 1 100000)
 #+END_SRC
@@ -848,24 +857,24 @@ And, any significant deviation from average is probs. a scheduling thing.
 
 ** 1.23
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (define (next n)
   (if (= n 2) 3 (+ n 2)))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (define (find-divisor-next n test-divisor)
   (cond ((> (square test-divisor) n) n)
         ((divides? test-divisor n) test-divisor)
         (else (find-divisor-next n (next test-divisor)))))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (define (smallest-divisor-next n)
   (find-divisor-next n 2))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (search-for-primes 1 100000)
 #+END_SRC
 
@@ -874,7 +883,7 @@ Around 2~3 times as fast at the end tail.
 
 ** 1.24
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (define (expmod base exp m)
   (cond ((= exp 0) 1)
         ((even? exp)
@@ -883,14 +892,14 @@ Around 2~3 times as fast at the end tail.
          (remainder (* base (expmod base (- exp 1) m)) m))))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (define (fermat-test n)
   (define (try-it a)
     (= (expmod a n n ) a))
   (try-it (+ 1 (random (- n 1)))))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (define (fast-prime? n times)
 (cond ((= times 0) true)
       ((fermat-test n) (fast-prime? n (- times 1)))
@@ -928,8 +937,8 @@ The evaluated value is used twice, but the evaluation only happens once.
 
 ** 1.27
 
-#+name: def:carmichael-fool
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:carmichael-fool
+#+BEGIN_SRC racket
   <<def:expItr>>
   (define (carmichael-fool n)
     (hidden-fool (- n 1) n))
@@ -941,7 +950,7 @@ The evaluated value is used twice, but the evaluation only happens once.
 #+END_SRC
 
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:carmichael-fool>>
   (carmichael-fool 561)
   (carmichael-fool 1105)
@@ -963,7 +972,7 @@ So, when working through half of the numbers, we need to already be sure the num
 
 Added some formatting, though ofc I should have a single call for n/prime display.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:square>>
   (define (MR-expmod base exp m) ; base = a, exp = n
     (cond ((= exp 0) 1)
@@ -1006,8 +1015,8 @@ Added some formatting, though ofc I should have a single call for n/prime displa
 
 ** 1.29
 
-#+name: def:sum
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:sum
+#+BEGIN_SRC racket
   (define (sum term a next b)
     (if (> a b)
 	0
@@ -1015,12 +1024,12 @@ Added some formatting, though ofc I should have a single call for n/prime displa
 	   (sum term (next a) next b))))
 #+END_SRC
 
-#+name: def:inc
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:inc
+#+BEGIN_SRC racket
   (define (inc n) (+ n 1))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:cube>>
   <<def:sum>>
   <<def:inc>>
@@ -1044,8 +1053,8 @@ Well, the results are closer to 1/4…
 
 ** 1.30
 
-#+name: def:sum-iter
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:sum-iter
+#+BEGIN_SRC racket
   (define (sum-iter term a next b)
     (define (iter a result)
       (if (> a b)
@@ -1054,7 +1063,7 @@ Well, the results are closer to 1/4…
     (iter a 0))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:sum-iter>>
   <<def:cube>>
   (sum-iter cube 0 inc 10)
@@ -1066,8 +1075,8 @@ Well, the results are closer to 1/4…
 
 *** a.
 
-#+name: def:product
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:product
+#+BEGIN_SRC racket
 (define (product term a next b)
   (if (> a b)
       1
@@ -1079,13 +1088,13 @@ Well, the results are closer to 1/4…
 This is just substituting * for +…
 And factorial works with identiy and inc.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:product>>
   (define (factorial n) (product identity 1 inc n))
 #+END_SRC
 
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:square>>
   <<def:product>>
   (define (piHelpB d)
@@ -1105,8 +1114,8 @@ Either I've done something wrong, on this takes a lot to get close to pi.
 
 *** b.
 
-#+name: def:product-iter
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:product-iter
+#+BEGIN_SRC racket
 (define (product-iter term a next b)
   (define (iter a result)
     (if (> a b)
@@ -1121,8 +1130,8 @@ Either I've done something wrong, on this takes a lot to get close to pi.
 
 Made both versions, then read part b…
 
-#+name: def:accumulate-first
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:accumulate-first
+#+BEGIN_SRC racket
 (define (accumulate-first combiner null-value term a next b)
   (if (> a b)
       null-value
@@ -1130,8 +1139,8 @@ Made both versions, then read part b…
          (accumulate-first combiner null-value term (next a) next b))))
 #+END_SRC
 
-#+name: def:accumulate-first-iter
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:accumulate-first-iter
+#+BEGIN_SRC racket
   (define (accumulate-first-iter combiner null-value term a next b)
     (define (iter a result)
       (if (> a b)
@@ -1143,7 +1152,7 @@ Made both versions, then read part b…
 
 E.g.…
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:accumulate-first>>
   (define (sum-accumulate-first term a next b)
     (accumulate-first + 0 term a next b))
@@ -1152,15 +1161,15 @@ E.g.…
 To test, adapt previous use of sum/product.
 Replace accumalate with accumalate-iter to vary recu/iter.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 ;; (sum-iter cube 0 inc 10)
 ;; (sum-accumulate-first cube 0 inc 10)
 #+END_SRC
 
 ** 1.33
 
-#+name: def:filtered-accumulate-first
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:filtered-accumulate-first
+#+BEGIN_SRC racket
 
 (define (filtered-accumulate-first filter combiner null-value term a next b)
   (if (> a b)
@@ -1174,7 +1183,7 @@ If the filter is satisfied, then combine (term a), otherwise combine via the nul
 
 *** a.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:filtered-accumulate-first>>
   <<def:prime?>>
   (define (sum-square-prime a b)
@@ -1185,7 +1194,7 @@ If the filter is satisfied, then combine (term a), otherwise combine via the nul
 
 *** b.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:filtered-accumulate-first>>
   (define (sum-relatively-prime n)
     (define (predicate? a)
@@ -1199,7 +1208,7 @@ No test values for this, but at least here I have a nice example of blocking the
 
 ** 1.34
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (f g) (g 2))
 
   (f square)
@@ -1229,8 +1238,8 @@ x = (x + 1)/x \ Algebra
 x = (x/x + 1/x) \ Algebra
 x = (1 + 1/x) \ Algebra
 
-#+name: def:fixed-point
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:fixed-point
+#+BEGIN_SRC racket
   (define (fixed-point f first-guess tolerance)
     (define (close-enough? v1 v2)
       (< (abs (- v1 v2)) tolerance))
@@ -1242,7 +1251,7 @@ x = (1 + 1/x) \ Algebra
     (try first-guess))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:fixed-point>>
   (display "φ is roughly: ")
   (fixed-point (lambda (x) (+ 1 (/ 1 x))) 1.0 0.0000001)
@@ -1250,7 +1259,7 @@ x = (1 + 1/x) \ Algebra
 
 ** 1.36
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (define (fixed-point-display f first-guess tolerance)
   (define (close-enough? v1 v2)
     (< (abs (- v1 v2)) tolerance))
@@ -1273,8 +1282,8 @@ x = (1 + 1/x) \ Algebra
 
 *** a.
 
-#+name: def:cont-frac
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:cont-frac
+#+BEGIN_SRC racket
   (define (cont-frac n d k)
     (define (cont-frac-i n d k step)
       (if (= step k)
@@ -1283,7 +1292,7 @@ x = (1 + 1/x) \ Algebra
     (cont-frac-i n d k 1))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:cont-frac>>
   (cont-frac (lambda (i) 1.0)
 	     (lambda (i) 1.0)
@@ -1299,7 +1308,7 @@ cont-frac is recursive, so for an iterative version…
 Start the other way.
 Do N_k/D_k and then work backwards.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (define (cont-frac-iter n d k)
   (define (cont-frac-i n d k so-far)
     (if (= k 0)
@@ -1317,7 +1326,7 @@ Do N_k/D_k and then work backwards.
 There's nothing here other than figuring out a way to generate the desired sequence for Dk.
 So, here's something excessive.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:cont-frac>>
   (define (dk i)
     (let ((x (- i (/ i 3))))
@@ -1341,7 +1350,7 @@ And, offset things a little.
 At start, calculate x^2 to save some resources.
 Then, work through offset cont-frac k times.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:square>>
   (define (tan-cf x k)
 
@@ -1358,8 +1367,8 @@ Then, work through offset cont-frac k times.
 
 ** 1.40
 
-#+name: def:deriv
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:deriv
+#+BEGIN_SRC racket
 (define (deriv g)
   (let ((dx 0.00001))
     (lambda (x)
@@ -1367,21 +1376,21 @@ Then, work through offset cont-frac k times.
               dx))))
 #+END_SRC
 
-#+name: def:newton-transform
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:newton-transform
+#+BEGIN_SRC racket
   <<def:deriv>>
   (define (newton-transform g)
     (lambda (x) (- x (/ (g x) ((deriv g) x)))))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (newtons-method g guess)
     <<def:newton-transform>>
     <<def:fixed-point>>
     (fixed-point (newton-transform g) guess 0.0000001))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:square>>
   <<def:cube>>
   (define (cubic a b c)
@@ -1400,7 +1409,7 @@ Second, directly define a particular instance (as commented).
 
 ** 1.41
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (define (double f) (lambda (x) (f (f x))))
 
 ((double inc) 2)
@@ -1409,7 +1418,7 @@ Second, directly define a particular instance (as commented).
 
 ** 1.42
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (define (compose f g) (lambda (x) (f (g x))))
 
 ((compose square inc) 6)
@@ -1417,7 +1426,7 @@ Second, directly define a particular instance (as commented).
 
 ** 1.43
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (define (repeated f times)
     (if (= times 1)
         f
@@ -1445,7 +1454,7 @@ Hm.
 
 ** 1.44
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (define (smoothed f dx)
   (lambda (x)
     (/ (+ (f x) (f (+ x dx)) (f (- x dx))) 3)))
@@ -1491,8 +1500,8 @@ So, here, the only issue is obtaining the guess.
 But, this is two lambda terms.
 lambda f lambda x (f x)
 
-#+name: def:iterative-improve
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:iterative-improve
+#+BEGIN_SRC racket
 (define (iterative-improve good? improve)
   (lambda (guess) (if (good? guess)
       guess
@@ -1503,56 +1512,29 @@ To help make things clear, a couple of let statements to define the relevant pro
 Then, call iterative-improve.
 Here, 1 could be anything – it's just a first guess.
 
-#+name: def:iiSqrt
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:iiSqrt
+#+BEGIN_SRC racket
   <<def:square>>
   <<def:average>>
   <<def:iterative-improve>>
     (define (iiSqrt x)
       (let ((good? (lambda (guess) (< (abs (- (square guess) x)) 0.001)))
 	    (improve (lambda (guess) (average guess (/ x guess)))))
-	((iterative-improve good? improve) 1)))
-#+END_SRC
+	((iterative-improve good?ketketketketketketketketketketketketketketketketketketketketketketketketketketketketketketketketketket
 
-Some tests
-
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
-  <<def:iiSqrt>>
-  (iiSqrt 4.0)
-  (iiSqrt 16.0)
-  (iiSqrt 125.0)
-#+END_SRC
-
-#+name: def:iiFixed-Point
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
-  <<def:iterative-improve>>
-  (define (iiFixed-Point f)
-    (let (
-	  (good? (lambda (guess) (< (abs (- (f guess) guess)) 0.00001)))
-	  (improve (lambda (guess) (f guess))))
-      ((iterative-improve good? improve) 1)))
-#+END_SRC
-
-A couple of funcs from 1.3.3 (p. 69) for testing
-
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
-  <<def:iiFixed-Point>>
-  (iiFixed-Point cos)
-  (iiFixed-Point (lambda (y) (+ (sin y) (cos y))))
-#+END_SRC
 
 
 * Chapter 2
 
 ** 2.1
 
-#+name: def:numer
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:numer
+#+BEGIN_SRC racket
     (define (numer x) (car x))
 #+END_SRC
 
-#+name: def:demon
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:demon
+#+BEGIN_SRC racket
   (define (demon x) (cdr x))
 #+END_SRC
 
@@ -1560,8 +1542,8 @@ Not particularly elegant.
 Though, cheeky λ to avoid calculating (* n d) twice.
 Note, doing (define (mult) (* n d)) wouldn't be any help, as this would just call the multiplcation.
 
-#+name: def:make-rat-basic
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:make-rat-basic
+#+BEGIN_SRC racket
   (define (make-rat-basic n d)
     (let ((sign  ((lambda (x) (/ x (abs x))) (* n d))))
       (cons (* sign (abs n)) (abs d))))
@@ -1573,7 +1555,7 @@ At some point, need to make the reference happen.
 This way, reference isn't assumed to be sequential, nor does one need to track dependencies.
 
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (define (make-rat-basic-x n d)
   (let ((mult (* n d))
         (sign (/ mult (abs mult))))
@@ -1587,8 +1569,8 @@ Yet, (gcd 2 -3) = -1.
 And, in general, given (gcd a b), if a is positive and b is negative, then the result is negative.
 Otherwise, the result has the sign of a.
 
-#+name: def:make-rat
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:make-rat
+#+BEGIN_SRC racket
 (define (make-rat n d)
   (let ((g (gcd n d)))
     (cons (/ n g) (/ d g))))
@@ -1596,8 +1578,8 @@ Otherwise, the result has the sign of a.
 
 In the book, newline is first, but newline last fits with previous displays.
 
-#+name: def:print-rat
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:print-rat
+#+BEGIN_SRC racket
   <<def:numer>>
   <<def:demon>>
   (define (print-rat x)
@@ -1607,17 +1589,15 @@ In the book, newline is first, but newline last fits with previous displays.
     (newline))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:print-rat>>
-
   <<def:make-rat-basic>>
+  <<def:make-rat>>
 
   (print-rat (make-rat-basic -2 -3))
   (print-rat (make-rat-basic -2 3))
   (print-rat (make-rat-basic 2 3))
   (print-rat (make-rat-basic -2 3))
-
-  <<def:make-rat>>
 
   (print-rat (make-rat -2 -3))
   (print-rat (make-rat 2 -3))
@@ -1627,8 +1607,8 @@ In the book, newline is first, but newline last fits with previous displays.
 
 ** 2.2
 
-#+name: sc:point
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: sc:point
+#+BEGIN_SRC racket
   (define (make-point x y) (cons x y))
 
   (define (x-point point) (car point))
@@ -1636,14 +1616,14 @@ In the book, newline is first, but newline last fits with previous displays.
   (define (y-point point) (cdr point))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<sc:point>>
   (x-point (make-point 1 2))
   (y-point (make-point 1 2))
 #+END_SRC
 
-#+name: sc:segment
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: sc:segment
+#+BEGIN_SRC racket
   <<sc:point>>
   (define (make-segment start-point end-point) (cons start-point end-point))
 
@@ -1657,7 +1637,7 @@ In the book, newline is first, but newline last fits with previous displays.
      (/ (+ (y-point (start-segment segment)) (y-point (end-segment segment))) 2)))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<sc:segment>>
   (midpoint-segment (make-segment (make-point 2 2) (make-point 4 4)))
   (midpoint-segment (make-segment (make-point -4 -8) (make-point 4 4)))
@@ -1677,8 +1657,8 @@ Though, point for origin and rationals for legnth and width seems most straightf
 
 A rectange is stored as ((origin-x origin-y) (width height))
 
-#+name: sc:rectangle
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: sc:rectangle
+#+BEGIN_SRC racket
 (define (make-rectangle origin width height)
   (cons origin (cons width height)))
 
@@ -1699,8 +1679,8 @@ Points to construct the perimeter is a little better.
 So, that's what the following procedure does.
 Points are enumerated clockwise starting with 1 as top-left going to 3 as bottom-left.
 
-#+name: def-rectangle-perimeter
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def-rectangle-perimeter
+#+BEGIN_SRC racket
   <<sc:rectangle>>
   <<sc:point>>
   (define (rectangle-perimeter rectangle point)
@@ -1714,13 +1694,13 @@ Points are enumerated clockwise starting with 1 as top-left going to 3 as bottom
 	    ((= point 3) (make-point xPoint (+ yPoint (rectangle-height rectangle))))))))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<sc:rectangle>>
   (define (rectangle-area rectangle)
     (* (rectangle-width rectangle) (rectangle-height rectangle)))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:rectangle-perimeter>>
   (define test-rect (make-rectangle (make-point 5 10) 15 10))
   (rectangle-origin test-rect)
@@ -1764,7 +1744,7 @@ To break apart the number, keep dividing by either 2 or 3 until no further integ
 
 I'd guess there's some trick with log here, but I don't see it quickly.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (break-down pair n)
     (define (break-down-i pair n m)
       (if (not (= 0 (remainder pair n)))
@@ -1830,8 +1810,8 @@ So, either way seems fine.
 
 *** 2.7
 
-#+name: sc-interval
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: sc-interval
+#+BEGIN_SRC racket
 (define (make-interval a b) (cons a b))
 (define (lower-bound i) (car i))
 (define (upper-bound i) (cdr i))
@@ -1845,16 +1825,16 @@ So, add-interval reduces to addition on the upper and lower bounds.
 In this way, sub-interval will do the same.
 Though, add a check to ensure upper is upper and lower is lower.
 
-#+name: def-add-interval
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def-add-interval
+#+BEGIN_SRC racket
   (define (add-interval x y)
     <<sc:interval>>
     (make-interval (+ (lower-bound x) (lower-bound y))
 		   (+ (upper-bound x) (upper-bound y))))
 #+END_SRC
 
-#+name: def:sub-interval
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:sub-interval
+#+BEGIN_SRC racket
   (define (sub-interval x y)
     <<sc:interval>>
     (let (
@@ -1865,7 +1845,7 @@ Though, add a check to ensure upper is upper and lower is lower.
 	  (make-interval lIS hIS))))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:add-interval>>
   <<def:sub-interval>>
   (add-interval (make-interval 0 1) (make-interval 9 10))
@@ -1878,7 +1858,7 @@ Instead, go with proposal above and take an procedure for combining two toleranc
 
 *** 2.9
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (interval-width i)
     (/ (- (upper-bound i) (lower-bound i)) 2))
 #+END_SRC
@@ -1907,7 +1887,7 @@ This isn't a proof, but suggests similar problems.
 I mean, and interval crossing over 0 should be no problem.
 Anyway, mul-interval written so variant of div-interval doesn't prevent anything else running.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (mul-interval x y)
     (let (
 	  (p1 (* (lower-bound x) (lower-bound y)))
@@ -1975,7 +1955,7 @@ Ah, I guess I'm this potential user, huh.
 
 *** 2.12
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (make-center-width c w)
     (make-interval (- c w) (+ c w)))
 
@@ -1991,12 +1971,12 @@ This isn't super precise with small percentages.
 But, there's no way around this without changing the bound constructor.
 As, imprecision has already entered by multiplying the center by the percentage to get the bounds.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (define (i-percent i)
   (- (/ (upper-bound i) (i-center i)) 1))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (i-center (make-center-percent 10 0.001))
 (i-percent (make-center-percent 10 1.01))
 #+END_SRC
@@ -2035,20 +2015,20 @@ In this case, then, why not take the tolerance as tx + ty + txty?
 This seems sufficiently simple, but gives the exactl tolerance…
 Of course, tx + ty should get quite close when tx and ty are very small, as txty is going to be very very small.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (define (quick-mul-tolerance i1 i2) (+ (i-percent i1) (i-percent i2)))
 #+END_SRC
 
 This looks good to me…
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (quick-mul-tolerance (make-center-percent 10 0.001) (make-center-percent 10 0.006))
 (i-percent (mul-interval (make-center-percent 10 0.001) (make-center-percent 10 0.006)))
 #+END_SRC
 
 *** 2.14
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (par1 r1 r2)
     (div-interval (mul-interval r1 r2)
 		  (add-interval r1 r2)))
@@ -2116,7 +2096,7 @@ It's a mistake to think operations on fixed values apply equally to intervals or
 
 ** 2.17
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (define (last-pair l)
   (define (last-pear l e)
     (if (null? l)
@@ -2134,8 +2114,8 @@ It's a mistake to think operations on fixed values apply equally to intervals or
 See reverse as a special case of appending in reverse.
 Then, reverse is just this with an empty list.
 
-#+name: def-reverse
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def-reverse
+#+BEGIN_SRC racket
   (define (reverse l)
     (define (mirror-onto l1 l2)
       (if (null? l1)
@@ -2144,7 +2124,7 @@ Then, reverse is just this with an empty list.
     (mirror-onto l nil))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 <<def:reverse>>
 (reverse (list 23 72 149 34))
 #+END_SRC
@@ -2159,14 +2139,14 @@ We need to keep track of things, and the easy-write probably changes more than t
 
 ** 2.19
 
-#+name: coin-lists
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: coin-lists
+#+BEGIN_SRC racket
   (define us-coins (list 50 25 10 5 1))
   (define uk-coins (list 100 50 20 10 5 2 1 0.5))
 #+END_SRC
 
-#+name: def-cc-list
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def-cc-list
+#+BEGIN_SRC racket
   (define (first-denomination coin-list) (car coin-list))
   (define (except-first-denomination coin-list) (cdr coin-list))
   (define (no-more? coin-list) (null? coin-list))
@@ -2182,7 +2162,7 @@ We need to keep track of things, and the easy-write probably changes more than t
 #+END_SRC
 
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<coin-lists>>
   <<def:cc-list>>
   (cc-list 100 us-coins)
@@ -2196,8 +2176,8 @@ While, if 50 is up somewhere in the middle, this split will happen multiple time
 
 ** 2.20
 
-#+name: def-same-parity
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def-same-parity
+#+BEGIN_SRC racket
 (define (same-parity e . l)
   (define (parity-list ie il)
     (if (null? il)
@@ -2210,7 +2190,7 @@ While, if 50 is up somewhere in the middle, this split will happen multiple time
   (cons e (parity-list e l)))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:same-parity>>
   (same-parity 1 2 3 4 5 6 7)
   (same-parity 2 3 4 5 6 7)
@@ -2229,8 +2209,8 @@ Ok.
 
 ** 2.21
 
-#+name: def:my-map
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:my-map
+#+BEGIN_SRC racket
   (define (my-map proc items)
     (if (null? items)
 	nil
@@ -2238,22 +2218,22 @@ Ok.
 	      (my-map proc (cdr items)))))
 #+END_SRC
 
-#+name: def:square-list-full
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:square-list-full
+#+BEGIN_SRC racket
   (define (square-list-full items)
     (if (null? items)
 	nil
 	(cons (* (car items) (car items)) (square-list-full (cdr items)))))
 #+END_SRC
 
-#+name: def:square-list-my-map
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:square-list-my-map
+#+BEGIN_SRC racket
   <<def:my-map>>
   (define (square-list-my-map items)
     (my-map (lambda (x) (* x x)) items))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define testSqList (list 1 2 3 4))
 
   <<def:square-list-full>>
@@ -2280,8 +2260,8 @@ In the second case we're not building a list.
 
 ** 2.23
 
-#+name: def-for-each
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def-for-each
+#+BEGIN_SRC racket
 (define (for-each proc l)
   (cond ((null? (cdr l)) (proc (car l)))
         (else
@@ -2291,7 +2271,7 @@ In the second case we're not building a list.
 Ideally I'd use a pass procedure on the null? test here.
 Then, we could check if the argument is nil, rather than looking a step ahead.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:for-each>>
   (for-each (lambda (x) (display x) (newline))(list 57 321 88))
 #+END_SRC
@@ -2307,7 +2287,7 @@ Though, moving to pointers things are very easy, especially if the length of the
 
 ** 2.24
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (list 1 (list 2 (list 3 4)))
 #+END_SRC
 
@@ -2315,7 +2295,7 @@ This is basically a tree which immediately terminates when branching to the left
 
 ** 2.25
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (car (cdr (car (cdr (cdr (list 1 3 (list 5 7) 9))))))
 (car (car (list (list 7))))
 (car (cdr (car (cdr (car (cdr (car (cdr (car (cdr (car (cdr (list 1 (list 2 (list 3 (list 4 (list 5 (list 6 7))))))))))))))))))
@@ -2330,15 +2310,15 @@ So, we have a list with (2 …) as the first element.
 
 ** 2.26
 
-#+name: def-append
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def-append
+#+BEGIN_SRC racket
 (define (append list1 list2)
   (if (null? list1)
       list2
       (cons (car list1) (append (cdr list1) list2))))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:append>>
   (define lx (list 1 2 3))
   (define ly (list 4 5 6))
@@ -2350,7 +2330,7 @@ So, we have a list with (2 …) as the first element.
 
 ** 2.27
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (reverse l)
     (define (mirror-onto l1 l2)
       (if (null? l1)
@@ -2361,7 +2341,7 @@ So, we have a list with (2 …) as the first element.
   (reverse (list 23 72 149 34))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (define (deep-reverse l)
   (define (mirror-onto l1 l2)
     (if (null? l1)
@@ -2383,8 +2363,8 @@ lx2
 
 ** 2.28
 
-#+name: def-fringe
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def-fringe
+#+BEGIN_SRC racket
   (define (fringe tree)
     (cond ((and (not (pair? tree)) (not (null? tree))) (list tree))
 	  ((not (pair? tree)) nil)
@@ -2392,7 +2372,7 @@ lx2
 	   (append (fringe (car tree)) (fringe (cdr tree))))))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (fringe tree)
     (cond ((null? tree) nil)
 	  ((not (pair? tree)) (list tree))
@@ -2400,7 +2380,7 @@ lx2
 	   (append (fringe (car tree)) (fringe (cdr tree))))))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:fringe>>
   (define tx (list (list 1 2) (list 3 4)))
   (define tx2 (list (list (list 1 2) (list 4)) (list (list 1 2) (list 3 4))))
@@ -2428,8 +2408,8 @@ Base case conditions are in line with scale-tree
 
 ** 2.29
 
-#+name: sc:mobile
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: sc:mobile
+#+BEGIN_SRC racket
   (define (make-mobile left right) (list left right))
 
   (define (make-branch length structure) (list length structure))
@@ -2447,8 +2427,8 @@ I guess there's a better way of doing this.
 As, sum-up here is just +, but applied to a list.
 (cons + list) doesn't work, though.
 
-#+name: def:sum-up
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:sum-up
+#+BEGIN_SRC racket
   (define (sum-up list)
     (if (null? list)
 	0
@@ -2460,8 +2440,8 @@ we look at the right element.
 If this is a pair, then we've got another mobile.
 Else, it's an int representing some weight.
 
-#+name: sc:mobile-more
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: sc:mobile-more
+#+BEGIN_SRC racket
   <<sc:mobile>>
   (define (to-mobile? branch)
     (pair? (branch-structure branch)))
@@ -2475,8 +2455,8 @@ Else, it's an int representing some weight.
       (+ twL twR)))
 #+END_SRC
 
-#+name: consts:m1-m2
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: consts:m1-m2
+#+BEGIN_SRC racket
   <<sc:mobile-more>>
   (define lb1 (make-branch 1 10))
   (define rb1 (make-branch 1 10))
@@ -2487,7 +2467,7 @@ Else, it's an int representing some weight.
   (define m3 (make-mobile lb2 rb2))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<consts:m1-m2>>
   (total-weight m1)
   (total-weight m2)
@@ -2495,8 +2475,8 @@ Else, it's an int representing some weight.
 
 A 'relaxed' version of total-weight, which may be applied to mobiles or weights.
 
-#+name: def:total-weight-relaxed
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:total-weight-relaxed
+#+BEGIN_SRC racket
   (define (total-weight-relaxed weight-or-mobile)
     <<sc:mobile-more>>
     (if (pair? weight-or-mobile)
@@ -2504,23 +2484,23 @@ A 'relaxed' version of total-weight, which may be applied to mobiles or weights.
 	weight-or-mobile))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:total-weight-relaxed>>
   <<consts:m1-m2>>
   (total-weight-relaxed 10)
   (total-weight-relaxed m2)
 #+END_SRC
 
-#+name: def:hang-weight
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:hang-weight
+#+BEGIN_SRC racket
   (define (hang-weight branch)
     <<sc:mobile>>
     <<def:total-weight-relaxed>>
     (* (branch-length branch) (total-weight-relaxed (branch-structure branch))))
 #+END_SRC
 
-#+name: def:isBalanced?
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:isBalanced?
+#+BEGIN_SRC racket
   (define (isBalanced? mobile)
     <<sc:mobile-more>>
     <<def:hang-weight>>
@@ -2532,7 +2512,7 @@ A 'relaxed' version of total-weight, which may be applied to mobiles or weights.
      (if (to-mobile? (right-branch mobile)) (isBalanced? (branch-structure (right-branch mobile))) #t)))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:isBalanced?>>
   <<consts:m1-m2>>
   (isBalanced? m3)
@@ -2556,7 +2536,7 @@ Hence, we'd car and be done.
 
 ** 2.30
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (define (scale-tree tree factor)
   (cond ((null? tree) nil)
         ((not (pair? tree)) (* tree factor))
@@ -2569,7 +2549,7 @@ Hence, we'd car and be done.
 Cons works fine here, as we're breaking a list down into it's basic elements, then building back up.
 Things would be different if flattening the list, etc.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (square-tree-basic tree)
     (cond ((null? tree) nil)
 	  ((not (pair? tree)) (* tree tree))
@@ -2596,8 +2576,8 @@ The code should look mostly the same, given that little is being done to reconst
 
 ** 2.31
 
-#+name: def:tree-map
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:tree-map
+#+BEGIN_SRC racket
   (define (tree-map proc tree)
     <<def:my-map>>
     (my-map (lambda (sub-tree)
@@ -2607,7 +2587,7 @@ The code should look mostly the same, given that little is being done to reconst
     tree))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (square-tree-again tree)
     <<def:tree-map>>
     <<def:square>>
@@ -2618,8 +2598,8 @@ The code should look mostly the same, given that little is being done to reconst
 
 ** 2.32
 
-#+name: def-subsets
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def-subsets
+#+BEGIN_SRC racket
   (define (subsets s)
     <<def:my-map>>
     (if (null? s)
@@ -2628,7 +2608,7 @@ The code should look mostly the same, given that little is being done to reconst
 	  (append rest (my-map (lambda (x) (cons (car s) x)) rest)))))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 <<def:subsets>>
 (subsets (list 1 2 3))
 #+END_SRC
@@ -2650,8 +2630,8 @@ Combined, we have (() (b) (a) (a b)).
 
 ** 2.33
 
-#+name: def:accumulate
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:accumulate
+#+BEGIN_SRC racket
 (define (accumulate op initial sequence)
   (if (null? sequence)
       initial
@@ -2659,7 +2639,7 @@ Combined, we have (() (b) (a) (a b)).
           (accumulate op initial (cdr sequence)))))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (map-again p sequence)
     <<def:accumulate>>
       (accumulate (lambda (x y) (cons (p x) y))  nil sequence))
@@ -2677,7 +2657,7 @@ So, for example, rather than cons, we could have summed.
 E.g., map-sum maps the procedure and then sums the list.
 
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (map-sum p sequence)
     <<def:accumulate>>
     (accumulate (lambda (x y) (+ (p x) y)) 0 sequence))
@@ -2686,7 +2666,7 @@ E.g., map-sum maps the procedure and then sums the list.
   (map-sum square (list 1 2 3 4 5))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (append-again seq1 seq2)
     <<def:accumulate>>
     (accumulate cons seq2 seq1))
@@ -2699,14 +2679,14 @@ Here, though, you need some idea of the way lists and accumulate work.
 For, if we worked through the list on call rather than close, this would reverse list1.
 I like abstraction, but here I'm not sure what the point is, given we need the details to understand why the abstraction works.
 
-#+name: def:length
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:length
+#+BEGIN_SRC racket
   (define (length sequence)
     <<def:accumulate>>
     (accumulate (lambda (x y) (+ (if (null? x) 0 1) y)) 0 sequence))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:length>>
   (length (list 1 2 3))
   (length (list ))
@@ -2714,8 +2694,8 @@ I like abstraction, but here I'm not sure what the point is, given we need the d
 
 ** 2.34
 
-#+name: def-horner-eval
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def-horner-eval
+#+BEGIN_SRC racket
   (define (horner-eval x coefficient-sequence)
     <<def:accumulate>>
     (accumulate (lambda (this-coeff higher-terms) (+ this-coeff (* higher-terms x)))
@@ -2723,7 +2703,7 @@ I like abstraction, but here I'm not sure what the point is, given we need the d
 		coefficient-sequence))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:horner-eval>>
   (horner-eval 2 (list 1 3 0 5 0 1))
 #+END_SRC
@@ -2740,7 +2720,7 @@ Right, this is clear when looking at the definition of accumulate.
 We have op applied to the current first thing in the sequence and the rest.
 So, by higher-terms this is the op-defined as applied to all the higher-terms from the current term.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (horner-test x coefficient-sequence)
     <<def:accumulate>>
     (accumulate (lambda (this-coeff higher-terms) (display higher-terms) (newline) this-coeff higher-terms)
@@ -2757,8 +2737,8 @@ But, we're also learning about the way remembering what the abstractions really 
 
 ** 2.35
 
-#+name: def-
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def-
+#+BEGIN_SRC racket
   (define (count-leaves-acc tree)
     <<def:accumulate>>
     <<def:fringe>>
@@ -2780,12 +2760,12 @@ Well, here then just set every leaf value to 1.
 Here, a way to make a list of the first elements of the lists.
 Then, the rest of the lists.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (list (list 1 2 3) (list 4 5 6) (list 7 8 9) (list 10 1 1 12))
 #+END_SRC
 
-#+name: def-accumulate-n
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def-accumulate-n
+#+BEGIN_SRC racket
   (define (accumulate-n op init seqs)
     <<def:accumulate>>
     <<def:my-map>>
@@ -2795,7 +2775,7 @@ Then, the rest of the lists.
 			  (accumulate-n op init (my-map cdr seqs)))))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:accumulate-n>>
     (accumulate-n + 0 (list (list 1 2 3) (list 4 5 6) (list 7 8 9) (list 10 11 12)))
 #+END_SRC
@@ -2804,13 +2784,13 @@ Alright, this exercise was really cool!
 
 ** 2.37
 
-#+name: consts:test-matrix
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: consts:test-matrix
+#+BEGIN_SRC racket
   (define test-matrix (list (list 1 2 3 4) (list 4 5 6 6) (list 6 7 8 9)))
 #+END_SRC
 
-#+name: def-dot-product
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def-dot-product
+#+BEGIN_SRC racket
   (define (dot-product v w)
     <<def:accumulate>>
     (accumulate + 0 (map * v w)))
@@ -2824,27 +2804,27 @@ Then, applies the procedure to the ith element in each of the lists.
 
 Oh, right, *this* is in footnote 17.
 
-#+name: def:matrix-*-vector
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:matrix-*-vector
+#+BEGIN_SRC racket
   (define (matrix-*-vector m v)
     <<def:dot-product>>
     (map (lambda (row) (dot-product row v)) m))
 #+END_SRC
 
-#+name: def:transpose
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:transpose
+#+BEGIN_SRC racket
   (define (transpose m)
     <<def:accumulate-n>>
     (accumulate-n cons nil m))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:transpose>>
   (transpose (list (list 1 2) (list 3 4) (list 5 6)))
 #+END_SRC
 
-#+name: def:matrix-*-matrix
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:matrix-*-matrix
+#+BEGIN_SRC racket
   (define (matrix-*-matrix m n)
     <<def:transpose>>
     <<def:matrix-*-vector>>
@@ -2852,7 +2832,7 @@ Oh, right, *this* is in footnote 17.
       (map (lambda (x) (matrix-*-vector cols x)) m)))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:matrix-*-matrix>>
   (matrix-*-matrix (list (list 2 3 4)
 			 (list 1 0 0))
@@ -2863,8 +2843,8 @@ Oh, right, *this* is in footnote 17.
 
 ** 2.38
 
-#+name: def-fold-left
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def-fold-left
+#+BEGIN_SRC racket
 (define (fold-left op initial sequence)
   (define (iter result rest)
     (if (null? rest)
@@ -2874,7 +2854,7 @@ Oh, right, *this* is in footnote 17.
   (iter initial sequence))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:accumulate>>
   <<def:fold-left>>
 
@@ -2892,7 +2872,7 @@ Right, commutative.
 
 Hence, +, *, etc should work fine
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:accumulate>>
   <<def:fold-left>>
   (= (accumulate * 1 (list 1 2 3)) (fold-left * 1 (list 1 2 3)))
@@ -2904,8 +2884,8 @@ Same for /, ^, etc.
 
 ** 2.39
 
-#+name: def:filter
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:filter
+#+BEGIN_SRC racket
 (define (filter predicate sequence)
   (cond ((null? sequence) nil)
         ((predicate (car sequence))
@@ -2925,7 +2905,7 @@ While, in the case of append these can be used for other elements.
 
 I'm really drwawing blanks on a way to do this without refering to the procedure by name.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (append-elem e list)
     (if (null? list)
 	(cons e nil)
@@ -2939,7 +2919,7 @@ I'm really drwawing blanks on a way to do this without refering to the procedure
   (reverse-fr (list 1 2 3))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (reverse-fl sequence)
     <<def:fold-left>>
     (fold-left (lambda (x y) (cons y x)) nil sequence))
@@ -2947,36 +2927,36 @@ I'm really drwawing blanks on a way to do this without refering to the procedure
   (reverse-fl (list 1 2 3))
 #+END_SRC
 
-#+name: def:flatmap
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:flatmap
+#+BEGIN_SRC racket
   (define (flatmap proc seq)
     <<def:accumulate>>
     (accumulate append nil (map proc seq)))
 #+END_SRC
 
-#+name: def:enumerate-interval
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:enumerate-interval
+#+BEGIN_SRC racket
 (define (enumerate-interval low high)
   (if (> low high)
       nil
       (cons low (enumerate-interval (+ low 1) high))))
 #+END_SRC
 
-#+name: def:prime-sum?
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:prime-sum?
+#+BEGIN_SRC racket
   (define (prime-sum? pair)
     <<def:prime?>>
     (prime? (+ (car pair) (cadr pair))))
 #+END_SRC
 
-#+name: def:make-pair-sum
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:make-pair-sum
+#+BEGIN_SRC racket
   (define (make-pair-sum pair)
     (list (car pair) (cadr pair) (+ (car pair) (cadr pair))))
 #+END_SRC
 
-#+name: def:prime-sum-pairs
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:prime-sum-pairs
+#+BEGIN_SRC racket
   (define (prime-sum-pairs n)
     <<def:filter>>
     <<def:enumerate-interval>>
@@ -2992,7 +2972,7 @@ I'm really drwawing blanks on a way to do this without refering to the procedure
 		  (enumerate-interval 1 n)))))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:enumerate-interval>>
   <<def:flatmap>>
   <<def:prime-sum-pairs>>
@@ -3016,15 +2996,15 @@ Flatmap then flattens this, so the original list is expanded with additional ele
 
 ** 2.40
 
-#+name: def-unique-pairs
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def-unique-pairs
+#+BEGIN_SRC racket
   (define (unique-pairs n)
     <<def:flatmap>>
     <<def:enumerate-interval>>
     (flatmap (lambda (i) (map (lambda (j) (list i j)) (enumerate-interval 1 (- i 1)))) (enumerate-interval 1 n)))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:unique-pairs>>
   (unique-pairs 10)
 
@@ -3046,7 +3026,7 @@ Or was this the point? To make sure the reader understands what's going on…
 
 ** 2.41
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (unique-triples n)
     <<def-flatmap>>
     <<def:unique-pairs>>
@@ -3074,8 +3054,8 @@ Originally this was thought of as the ith element removed and the rest of the li
 
 Index starts at 0.
 
-#+name: def-shift-to-front
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def-shift-to-front
+#+BEGIN_SRC racket
   (define (shift-to-front i list)
     (define (shift-list-i old new i n)
       (if (= i n)
@@ -3089,7 +3069,7 @@ Index starts at 0.
       (cons (car split) (recombine (car (cdr split)) (cdr (cdr split))))))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:shift-to-front>>
   (cdr (shift-to-front 3 (list 1 2 3 4 5 6)))
 #+END_SRC
@@ -3098,8 +3078,8 @@ A variant of map.
 Instead of applying each item to proc, we apply a number corresponding to the instance of map and the item.
 So, for example, (map-i proc (a b)) does (proc 0 a) and then (proc 1 b).
 
-#+name: def:map-i-to-n
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:map-i-to-n
+#+BEGIN_SRC racket
 (define (map-i-to-n proc items n)
   (define (map-apply-index proc i items n)
     (if (or (null? items) (= i n))
@@ -3128,8 +3108,8 @@ It's easy to see diagonals are preserved under this.
 The only issue is that this procedure is that it includes the empty list.
 So, filter this out.
 
-#+name: def:get-diags-lr
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:get-diags-lr
+#+BEGIN_SRC racket
   (define (get-diags-lr grid)
 
   <<def:filter>>
@@ -3150,7 +3130,7 @@ So, filter this out.
     (filter (lambda (x) (not (null? x))) (collect-diag-to nil grid)))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:get-diags-lr>>
   (get-diags-lr (list (list 1 2 3) (list 4 5 6) (list 7 8 9) (list 10 11 12)))
 #+END_SRC
@@ -3161,14 +3141,14 @@ Apply reverse.
 This gives us a mirror.
 Hence, lr becomes rl.
 
-#+name: def:get-diags-rl
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:get-diags-rl
+#+BEGIN_SRC racket
   (define (get-diags-rl grid)
   <<def:get-diags-lr>>
     (get-diags-lr (reverse grid)))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:enumerate-interval>>
   (map (lambda (x) (if (= 2 x) 0 x)) (enumerate-interval 1 10))
 #+END_SRC
@@ -3180,15 +3160,15 @@ get-diags gets us diagonials, grid is built with columsn, and transpose gets us 
 So, all that's needed is a  couple of functions to ensure each list in a list of lists has at most one instance of a nubmer.
 That's all these two functions do.
 
-#+name: def:count-ns-in-list
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:count-ns-in-list
+#+BEGIN_SRC racket
   (define (count-ns-in-list n l)
     <<def:filter>>
     (length (filter (lambda (x) (= x n)) l)))
 #+END_SRC
 
-#+name: def:unique-n?
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:unique-n?
+#+BEGIN_SRC racket
   (define (unique-n? n listOfLists)
     <<def:count-ns-in-list>>
     (if (null? listOfLists)
@@ -3196,8 +3176,8 @@ That's all these two functions do.
 	(and (< (count-ns-in-list n (car listOfLists)) 2) (unique-n? n (cdr listOfLists)))))
 #+END_SRC
 
-#+name: def:queens
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:queens
+#+BEGIN_SRC racket
     (define (queens board-size)
 
       (define empty-board nil)  ; empty-board is nil.
@@ -3238,7 +3218,7 @@ That's all these two functions do.
       (queens-cols board-size))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:queens>>
   (queens 8)
 #+END_SRC
@@ -3263,7 +3243,7 @@ So, moving on…
 
 Going by the suggestion, this should paint two copies side-by-side below the arg.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (up-split painter n)
     (if (= n 0)
 	painter
@@ -3275,7 +3255,7 @@ Going by the suggestion, this should paint two copies side-by-side below the arg
 
 For reference, here's right-split
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (right-split painter n)
     (if (= n 0)
 	painter
@@ -3285,7 +3265,7 @@ For reference, here's right-split
 
 Goal is 'split' such that:
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (define right-split (split beside below))
 (define up-split (split below beside))
 #+END_SRC
@@ -3293,7 +3273,7 @@ Goal is 'split' such that:
 So, proc which takes painter and n as argument.
 lambda makes this easy.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (split firstProc secondProc)
     (lambda (painter n)
       (if (= n 0)
@@ -3304,7 +3284,7 @@ lambda makes this easy.
 
 ** 2.46
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (define (make-vect x y)
   (cons x y))
 
@@ -3326,7 +3306,7 @@ lambda makes this easy.
 
 ** 2.47
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (define (make-frameL origin edge1 edge2)
   (list origin edge1 edge2))
 
@@ -3354,7 +3334,7 @@ lambda makes this easy.
 
 ** 2.48
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (make-segment origin start end)
     (cons start end))
 
@@ -3381,7 +3361,7 @@ I'm not interested enough to do the rest.
 
 wave seems… a lot of work for basically nothing.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (paintFrame frame)
     (let ((bottomLeft (frame-origin frame))
 	  (bottomRight (add-vec (frame-origin frame) (frame-edge1 frame)))
@@ -3398,7 +3378,7 @@ wave seems… a lot of work for basically nothing.
 
 ** 2.50
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (flip-hori painter)
     (transform-painter painter
 		       (make-vect 0.0 1.0)
@@ -3412,7 +3392,7 @@ New x points to (1, 1)
 And, y points to (0, 0).
 Basically, everything is now upside down.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (rotate180 painter) (rotate90 (rotate90 painter)))
 #+END_SRC
 
@@ -3438,15 +3418,15 @@ Maybe someday I'll come back to this and see if there's a way to get everything 
 
 ** 2.53
 
-#+name: def-memq
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def-memq
+#+BEGIN_SRC racket
 (define (memq item x)
   (cond ((null? x) false)
         ((eq? item (car x)) x)
         (else (memq item (cdr x)))))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:memq>>
 
   (list 'a 'b 'c) ; (a b c)
@@ -3460,15 +3440,15 @@ Maybe someday I'll come back to this and see if there's a way to get everything 
 
 ** 2.54
 
-#+name: def-my-equal?
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def-my-equal?
+#+BEGIN_SRC racket
   (define (my-equal? l1 l2)
     (if (or (null? l1) (null? l2))
 	true
 	(and (eq? (car l1) (car l2)) (my-equal? (cdr l1) (cdr l2)))))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:my-equal?>>
   (my-equal? '(a b) '(c d))
   (my-equal? '(a b) '(a b))
@@ -3482,7 +3462,7 @@ Though, something iterative would be better, as you can skip everything after fi
 
 ** 2.55
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (car ''abracadabra)
 (cddr ''abracadabra)
 
@@ -3503,7 +3483,7 @@ And, as the procedure is quoted and is just a list, then everything inside is qu
 
 This is easay to test:
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (quote abc)
 #+END_SRC
 
@@ -3511,8 +3491,8 @@ Yeah, seems about right.
 
 ** 2.56
 
-#+name: sc:def-my-deriv
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: sc:def-my-deriv
+#+BEGIN_SRC racket
       (define (variable? e)
 	(symbol? e))
 
@@ -3606,7 +3586,7 @@ Yeah, seems about right.
 	   (error "unknown expression type -- DERIV" exp))))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<sc:def:my-deriv>>
   (my-deriv (make-product 0 'x) 'x)
   (my-deriv '(+ x 3 4) 'x)
@@ -3627,7 +3607,7 @@ And, when using make-porduct, there's no way to 'officially' construct something
 
 Of course, we can extend.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (define (make-sum-wild a)
   (cond
     ; First condition, check if everything in the list is a number, if so sum
@@ -3645,7 +3625,7 @@ Of course, we can extend.
              (else (cons '+ (cons sumNum sumSym))))))))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
 (define (make-product-wild m)
   (cond ((memq 0 m) 0)
         ((accumulate (lambda (x y) (and (number? x) y)) true m) (accumulate * 1 m))
@@ -3689,16 +3669,16 @@ In this way, we could test for a list, and if not then take on the second argume
 
 ** 2.59
 
-#+name: def-element-of-set?
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def-element-of-set?
+#+BEGIN_SRC racket
 (define (element-of-set? x set)
   (cond ((null? set) false)
         ((equal? x (car set)) true)
         (else (element-of-set? x (cdr set)))))
 #+END_SRC
 
-#+name: def:union-set
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:union-set
+#+BEGIN_SRC racket
   (define (union-set set1 set2)
   <<def:element-of-set?>>
     (cond ((null? set1) set2)
@@ -3706,7 +3686,7 @@ In this way, we could test for a list, and if not then take on the second argume
 	  (else (union-set (cdr set1) (cons (car set1) set2)))))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:union-set>>
   (union-set (list 1 2 3) (list 3 4 5))
 #+END_SRC
@@ -3732,8 +3712,8 @@ But, I'm not sure when this is the case.
 
 ** 2.61
 
-#+name: def-adjoin-set-o
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def-adjoin-set-o
+#+BEGIN_SRC racket
 (define (adjoin-set-o e set)
   (cond ((null? set) (list e))
         ((= e (car set)) set)
@@ -3741,7 +3721,7 @@ But, I'm not sure when this is the case.
         (else (cons (car set) (adjoin-set-o e (cdr set))))))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:adjoin-set-o>>
   (adjoin-set-o 4 (list 1 2 3 5 6 7))
   (adjoin-set-o 0 (list 1 2 3 5 6 7))
@@ -3751,8 +3731,8 @@ But, I'm not sure when this is the case.
 
 ** 2.62
 
-#+name: def-union-set-o
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def-union-set-o
+#+BEGIN_SRC racket
 (define (union-set-o set1 set2)
   (cond ((null? set1) set2)
         ((null? set2) set1)
@@ -3761,7 +3741,7 @@ But, I'm not sure when this is the case.
         ((< (car set2) (car set1)) (cons (car set2) (union-set-o set1 (cdr set2))))))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:union-set-o>>
   (union-set-o (list 1 2 3) (list 4 5 6))
   (union-set-o (list 1 2 3) (list 1 2 3))
@@ -3771,8 +3751,8 @@ But, I'm not sure when this is the case.
 
 ** 2.63
 
-#+name: sc:tree
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: sc:tree
+#+BEGIN_SRC racket
   (define (entry tree) (car tree))
 
   (define (left-branch-tree tree) (cadr tree))
@@ -3783,8 +3763,8 @@ But, I'm not sure when this is the case.
     (list entry left right))
 #+END_SRC
 
-#+name: def-element-of-set?-tree
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def-element-of-set?-tree
+#+BEGIN_SRC racket
   (define (element-of-set?-tree x set)
     <<sc:tree>>
     (cond ((null? set) false)
@@ -3793,8 +3773,8 @@ But, I'm not sure when this is the case.
 	  (else (element-of-set?-tree x (right-branch-tree set)))))
 #+END_SRC
 
-#+name: def:adjoin-set
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:adjoin-set
+#+BEGIN_SRC racket
   (define (adjoin-set x set)
     <<sc:tree>>
     (cond ((null? set) (make-tree x nil nil))
@@ -3803,8 +3783,8 @@ But, I'm not sure when this is the case.
 	  ((> x (entry set)) (make-tree (entry set) (left-branch-tree set) (adjoin-set x (right-branch-tree set))))))
 #+END_SRC
 
-#+name: def:tree->list-1
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:tree->list-1
+#+BEGIN_SRC racket
   (define (tree->list-1 tree)
     <<sc:tree>>
     (if (null? tree)
@@ -3814,8 +3794,8 @@ But, I'm not sure when this is the case.
 		      (tree->list-1 (right-branch-tree tree))))))
 #+END_SRC
 
-#+name: def:tree->list-2
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:tree->list-2
+#+BEGIN_SRC racket
   (define (tree->list-2 tree)
     <<sc:tree>>
     (define (copy-to-list tree result-list)
@@ -3827,8 +3807,8 @@ But, I'm not sure when this is the case.
     (copy-to-list tree '()))
 #+END_SRC
 
-#+name: consts:2.16
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: consts:2.16
+#+BEGIN_SRC racket
   <<sc:tree>>
 
   (define 2.16a (make-tree 7 (make-tree 3 (make-tree 1 nil nil) (make-tree 5 nil nil)) (make-tree 9 nil (make-tree 11 nil nil))))
@@ -3836,7 +3816,7 @@ But, I'm not sure when this is the case.
   (define 2.16c (make-tree 5 (make-tree 3 (make-tree 1 nil nil) nil) (make-tree 9 (make-tree 7 nil nil) (make-tree 11 nil nil))))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (tree->list-1 2.16a)
   (tree->list-1 2.16b)
   (tree->list-1 2.16c)
@@ -3907,7 +3887,7 @@ This is just union for the ordered list representation.
 Finally, we rebuild the set.
 This is then n.
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (union-set-b set1 set2)
     <<def-union-set-o>>
     <<def:tree->list-2>>
@@ -3933,8 +3913,8 @@ Indeed, it's easy to convert all of the old ordered list sets into binary tree s
 
 ** 2.66
 
-#+name: def:lookup-b
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+NAME: def:lookup-b
+#+BEGIN_SRC racket
   (define (lookup-b e set)
     <<sc:tree>>
     (cond ((null? set) false)
@@ -3942,7 +3922,7 @@ Indeed, it's easy to convert all of the old ordered list sets into binary tree s
 	  (else (or (lookup-b e (left-branch-tree set)) (lookup-b e (right-branch-tree set))))))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   <<def:lookup-b>>
   <<consts:2.16>>
   (lookup-b 1 2.16a)
@@ -3955,8 +3935,9 @@ Can't do better than n as may need to check every node.
 
 ** Huffman prep
 
-#+name: sc:hf
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+
+#+NAME: sc:hf
+#+BEGIN_SRC racket
       (define (make-leaf-hf symbol weight)
 	(list 'leaf symbol weight))
 
@@ -3988,9 +3969,8 @@ Can't do better than n as may need to check every node.
 	  (+ (weight-hf left) (weight-hf right))))
 #+END_SRC
 
-#+name: def:choose-branch-hf
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
-
+#+NAME: def:choose-branch-hf
+#+BEGIN_SRC racket
   (define (choose-branch-hf bit branch) ; why is this 'branch'. doesn't 'node' capture that we're at something which forks a little better?
     <<sc:hf>>
     (cond ((= bit 0) (left-branch-tree-hf branch))
@@ -3998,7 +3978,7 @@ Can't do better than n as may need to check every node.
 	  (else (error "bad bit -- CHOOSE-BRANCH-HF" bit))))
 #+END_SRC
 
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+BEGIN_SRC racket
   (define (decode bits tree)
     (define (decode-1 bits current-branch)
       <<def:choose-branch-hf>>
