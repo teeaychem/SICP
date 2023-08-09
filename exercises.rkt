@@ -3843,3 +3843,57 @@ Indeed, it's easy to convert all of the old ordered list sets into binary tree s
 Straightfoward.
 Can't do better than n as may need to check every node.
 |#
+
+
+#|
+Huffman prep
+|#
+
+(define (make-leaf-hf symbol weight)
+  (list 'leaf symbol weight))
+
+(define (leaf?-hf object)
+  (eq? (car object) 'leaf))
+
+(define (symbol-leaf-hf x) (cadr x))
+
+(define (weight-leaf-hf x) (caddr x))
+
+(define (left-branch-tree-hf) (car tree))
+
+(define (right-branch-tree-hf) (cadr tree))
+
+(define (symbols-hf tree)
+  (if (leaf?-hf tree)
+      (list (symbol-leaf-hf tree)) ; leaf, so 2nd elem, but need to make into a list on one
+      (caddr tree))) ; tree so 3rd elem
+
+(define (weight-hf tree)
+  (if (leaf?-hf tree)
+      (weight-leaf-hf tree)
+      (cadddr tree)))
+
+
+(define (make-code-tree-hf left right)
+  (list left
+        right
+        (append (symbols-hf left) (symbols-hf right))
+        (+ (weight-hf left) (weight-hf right))))
+
+(define (choose-branch-hf bit branch) ; why is this 'branch'. doesn't 'node' capture that we're at something which forks a little better?
+  (cond ((= bit 0) (left-branch-tree-hf branch))
+        ((= bit 1) (right-branch-tree-hf branch))
+        (else (error "bad bit -- CHOOSE-BRANCH-HF" bit))))
+
+(define (decode bits tree)
+  (define (decode-1 bits current-branch)
+    (if (null? bits)
+        '()
+        (let ((next-branch
+               (choose-branch-hf (car bits) current-branch)))
+          (if (leaf? next-branch)
+              (cons (symbol-leaf-hf next-branch)
+                    (decode-1 (cdr bits) tree))
+              (decode-1 (cdr bits) next-branch))))) ; always remove a bit as we've either finished decoding or used the bit to move further into the tree.
+  (decode-1 bits tree)
+  )
