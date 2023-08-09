@@ -407,6 +407,7 @@ b
 )
 #+END_SRC
 
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
 (+ 4 5)
 (+ (dec 4) (inc 5))
 (+ 3 6)
@@ -414,12 +415,13 @@ b
 (+ 1 8)
 (+ 0 9)
 9
+#+END_SRC
 
 Recursve procedure but iterative process
 
 ** 1.10
 
-
+#+BEGIN_QUOTE
 (A 1 10)
 (A 0 (A 1 9))
 (A 0 (A 0 (A 1 8)))
@@ -440,8 +442,9 @@ Recursve procedure but iterative process
 (A 0 (A 0 256))
 (A 0 512)
 1024
+#+END_QUOTE
 
-
+#+BEGIN_QUOTE
 (A 2 4)
 (A 1 (A 2 3))
 (A 1 (A 1 (A 2 2)))
@@ -459,7 +462,7 @@ Recursve procedure but iterative process
 (A 1 (A 1 (A 0 8)))
 (A 1 (A 1 16))
 (A 1 (A 0 (A 1 15)))
-
+#+END_QUOTE
 
 Okay, this grows in a cool way.
 
