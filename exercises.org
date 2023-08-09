@@ -1,5 +1,5 @@
 #+STARTUP: overview
-#+PROPERTY: header-args :prologue "#lang sicp" :noweb eval :results output :tangle test.rkt
+#+PROPERTY: header-args :noweb eval :results output :tangle test.rkt :lang sicp
 #+TITLE: SICP Exercises
 
 * Some notes
@@ -1532,6 +1532,8 @@ Here, 1 could be anything – it's just a first guess.
 #+BEGIN_SRC racket
     (define (numer x) (car x))
 #+END_SRC
+
+#+RESULTS: def:numer
 
 #+NAME: def:demon
 #+BEGIN_SRC racket
@@ -3991,6 +3993,5 @@ Can't do better than n as may need to check every node.
 		(cons (symbol-leaf-hf next-branch)
 		      (decode-1 (cdr bits) tree))
 		(decode-1 (cdr bits) next-branch))))) ; always remove a bit as we've either finished decoding or used the bit to move further into the tree.
-    (decode-1 bits tree)
-    )
+    (decode-1 bits tree))
 #+END_SRC
