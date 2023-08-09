@@ -1,7 +1,41 @@
+#+name: consts
 #+name: sc-
 #+name: def-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
 #+END_SRC
+
+* Some notes
+
+** Referenced code-blocks
+
+Exercises in SICP often use code from earlier exercises.
+
+In order to avoid repeat code there are two options:
+
+1. Keep a large file of all previous code.
+2. Isolate previous code, but make a call to evaluate it when required.
+
+This document takes the latter option.
+However, this introcudes some small issues.
+
+First, we need to name and reference blocks of code.
+
+A nanmed block of code begins with: #+name:
+To help clarify what's being referenced, a few common prefixes are used:
+
+| def-    | definitions                   |
+| sc-     | selectors and/or constructors |
+| consts  | constants                     |
+
+A block of code is referenced by <<name>>
+
+The main issue is that a block of code may be evaluated twice if references are made naively, and #lang sicp isn't friendly to redefinition.
+
+So, to avoid this issue, references are inlined when possible.
+
+This is inefficient, and a little messy.
+
+But, I think it's an okay trade-off.
 
 * Chapter 1
 
@@ -11662,7 +11696,7 @@ So, (n f) is of the form λx f^m x.
 Hence, (f (n f) ((m f) x)) reduces to f^n (f^m x).
 And, this is what we want. f applied n + m times.
 
-* 2.1.4 Extended exercise
+** 2.1.4 Extended exercise
 
 Why not do intervals by a precise quantity tolerance pair?
 At least in the case of resistors, where things are specified this way?
@@ -11674,7 +11708,7 @@ Then, upper - mid.
 This gets half width.
 So, either way seems fine.
 
-** 2.7
+*** 2.7
 
 #+name: sc-interval
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
@@ -11685,7 +11719,7 @@ So, either way seems fine.
 
 So, this is as specified, but why rely on the user to fix the correct upper and lower bounds?
 
-** 2.8
+*** 2.8
 
 So, add-interval reduces to addition on the upper and lower bounds.
 In this way, sub-interval will do the same.
@@ -11731,7 +11765,7 @@ In the same way adding increases margin, subtancting decreases margin.
 I feel this isn't quite right.
 Instead, go with proposal above and take an procedure for combining two tolerances.
 
-** 2.9
+*** 2.9
 
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   (define (interval-width i)
@@ -11756,7 +11790,7 @@ And, we have (1 1).w = 0.5
 Division is… defined in terms of multiplication as the main operator.
 This isn't a proof, but suggests similar problems.
 
-** 2.10
+*** 2.10
 
 'spans 0' means 'has width 0'?
 I mean, and interval crossing over 0 should be no problem.
@@ -11782,7 +11816,7 @@ Anyway, mul-interval written so variant of div-interval doesn't prevent anything
 				     ))))
 #+END_SRC
 
-** 2.11
+*** 2.11
 
 I'm not quite seeing the point of this exercise.
 In any case, we can write out a table of all the possible positive/negative combinations.
@@ -11830,7 +11864,7 @@ I guess I'm missing something here…
 
 Ah, I guess I'm this potential user, huh.
 
-** 2.12
+*** 2.12
 
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
   (define (make-center-width c w)
@@ -11863,7 +11897,7 @@ As, imprecision has already entered by multiplying the center by the percentage 
 (i-percent (make-center-percent 10 1.01))
 #+END_SRC
 
-** 2.13
+*** 2.13
 
 Assuming small percentage tolerances and all numbers are positive.
 
@@ -11907,3 +11941,818 @@ This looks good to me…
 (quick-mul-tolerance (make-center-percent 10 0.001) (make-center-percent 10 0.006))
 (i-percent (mul-interval (make-center-percent 10 0.001) (make-center-percent 10 0.006)))
 #+END_SRC
+
+*** 2.14
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (par1 r1 r2)
+    (div-interval (mul-interval r1 r2)
+		  (add-interval r1 r2)))
+
+  (define (par2 r1 r2)
+    (let ((one (make-interval 1 1)))
+      (div-interval one
+		    (add-interval (div-interval one r1)
+				  (div-interval one r2)))))
+
+  (define ti1 (make-center-width 2 0.01))
+  (define ti2 (make-center-width 2 0.001))
+  (define ti3 (make-center-width 4 0.001))
+
+  ;; Two intervals are equal just in case they have the same upper and lower bounds.
+  (define (i-equal i1 i2)
+    (and (= (upper-bound i1) (upper-bound i2)) (= (lower-bound i1) (lower-bound i2))))
+
+  (par1 ti1 ti2)
+  (par2 ti1 ti2)
+  (i-equal (par1 ti1 ti2) (par2 ti1 ti2))
+
+  (i-percent (par1 ti1 ti2))
+  (i-percent (par2 ti1 ti2))
+#+END_SRC
+
+*** 2.15
+
+So, as intervals are just upper and lower bounds, the tolerance percentage is implicit.
+
+When adding, everything should be preserved.
+For, we sum the lower and upper bounds.
+So, the center point of the new point is just the sum of the center points of the initial points.
+
+Similar for subtraction.
+
+In this sense, Eva Lu Ator isn't quite right.
+The operations performed are important, not just the way the interval is written.
+
+Things are different in the case of product and division, though.
+Here we multiply bounds, and hence multiply tolerance.
+As seen earlier, we get (1 * tx) * (1 * ty) = 1 + tx + ty + txty.
+
+par2 has one less instance of multiplication than par1.
+And, as x * y > x + y, at least when everything is positive, at least some of the additional tolerance from product is going to be preserved.
+
+Going to need to define "better", tho.
+It's not clear tolerance as given really reflects anything under these transformations.
+
+*** 2.16
+
+Well, par1 and par2 are the same when i1 and i2 are rational numbers, at least.
+So, when addition, multiplication, etc. satisfy certain properties.
+It's not clear these same properties are satisfied when working with intervals.
+
+The answer here really depends on what is allowed with the package.
+If mul and div are fixed, there's no way out.
+Equivalent expressions using rationals won't translate to intervals.
+Assuming, that is, something is different.
+
+But really, the issue is this.
+Resistor values are only know up to some tolerance.
+These formulas are defined with respect to resistor values without accounting for tolerance.
+It's a mistake to think operations on fixed values apply equally to intervals or whatever.
+
+** 2.17
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (last-pair l)
+  (define (last-pear l e)
+    (if (null? l)
+        e
+        (last-pear (cdr l) (car l))
+        )
+    )
+      (last-pear l nil)
+  )
+
+(last-pair (list 23 72 149 34))
+(last-pair (list 23 72 149))
+(last-pair (list ))
+#+END_SRC
+
+
+** 2.18
+
+See reverse as a special case of appending in reverse.
+Then, reverse is just this with an empty list.
+
+#+name: def-reverse
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (reverse l)
+  (define (mirror-onto l1 l2)
+    (if (null? l1)
+        l2
+        (mirror-onto (cdr l1) (cons (car l1) l2))
+        )
+    )
+  (mirror-onto l nil)
+  )
+#+END_SRC
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+<<def-reverse>>
+(reverse (list 23 72 149 34))
+#+END_SRC
+
+#+RESULTS:
+: (34 149 72 23)
+
+With lists like this, there's a tradeoff between easy read and easy write.
+And, as set up, it's easy read.
+For, it's easy to go from the right element to the last.
+It's not easy write, though, as you need to traverse through every element until you get to the end.
+
+Though, you'd expect this to be the case in general.
+We need to keep track of things, and the easy-write probably changes more than the easy to read thing.
+
+
+** 2.19
+
+#+name: coin-lists
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define us-coins (list 50 25 10 5 1))
+  (define uk-coins (list 100 50 20 10 5 2 1 0.5))
+#+END_SRC
+
+#+RESULTS: coin-lists
+: (1 5 10 25 50)
+
+#+name: def-cc-list
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (first-denomination coin-list) (car coin-list))
+  (define (except-first-denomination coin-list) (cdr coin-list))
+  (define (no-more? coin-list) (null? coin-list))
+
+  (define (cc-list amount coin-values)
+    (cond ((= amount 0) 1)
+	  ((or (< amount 0) (no-more? coin-values)) 0)
+	  (else
+	   (+ (cc-list amount
+		       (except-first-denomination coin-values))
+	      (cc-list (- amount
+			  (first-denomination coin-values)) coin-values)
+	      ))))
+#+END_SRC
+
+#+RESULTS: def-cc-list
+
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<coin-lists>>
+  <<def-cc-list>>
+  (cc-list 100 us-coins)
+  (cc-list 100 (reverse us-coins))
+#+END_SRC
+
+#+RESULTS:
+: 292
+: 292
+
+The order of the coin list doesn't matter.
+For, we always try to make the value using with and without the current 'first' coin.
+So, if, say, 50 is up first, the first call will split into using 50 and ignoring 50.
+While, if 50 is up somewhere in the middle, this split will happen multiple times, according to the splits that have already happened.
+
+** 2.20
+
+#+name: def-same-parity
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (same-parity e . l)
+  (define (parity-list ie il)
+    (if (null? il)
+        nil
+        (let ((eParity (remainder ie 2))
+              (newElem (car il)))
+          (if (= (remainder newElem 2) eParity)
+            (cons newElem (parity-list ie (cdr il)))
+            (parity-list ie (cdr il))
+            )
+          )
+        )
+    )
+  (cons e (parity-list e l))
+  )
+#+END_SRC
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-same-parity>>
+  (same-parity 1 2 3 4 5 6 7)
+  (same-parity 2 3 4 5 6 7)
+  (same-parity -2 3 4 5 -6 7)
+#+END_SRC
+
+#+RESULTS:
+: (1 3 5 7)
+: (2 4 6)
+: (-2 4 -6)
+
+I understand this way of writing procedures is useful.
+Still, the application here seems strange.
+same-parity feels like a regular procedure, which  takes some int and a list as an argument and returns a list.
+Though, maybe I could think about this from a difference perspective.
+At issue is the list is not explicit, but the same is true of +.
+And in some sense the list is explicit, it's just that the first element is a procedure to apply.
+And, kind of everything is a list in this way.
+So, there's no need to make a list which contains a procedure and a list when we can just extend the list we'd be adding with the procedure.
+Ok.
+
+** 2.21
+
+#+name: def-my-map
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (my-map proc items)
+    (if (null? items)
+	nil
+	(cons (proc (car items))
+	      (my-map proc (cdr items)))))
+#+END_SRC
+
+#+RESULTS: def-my-map
+
+#+name: def-square-list-full
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (square-list-full items)
+    (if (null? items)
+	nil
+	(cons (* (car items) (car items)) (square-list-full (cdr items)))))
+#+END_SRC
+
+#+RESULTS:
+
+#+name: def-square-list-my-map
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-my-map>>
+  (define (square-list-my-map items)
+    (my-map (lambda (x) (* x x)) items)
+    )
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define testSqList (list 1 2 3 4))
+
+  <<def-square-list-full>>
+  <<def-square-list-my-map>>
+
+  (square-list-full testSqList)
+  (square-list-my-map testSqList)
+#+END_SRC
+
+#+RESULTS:
+: (1 4 9 16)
+: (1 4 9 16)
+
+Yes, could have used (square x) in both, and yes in full this makes a difference as (car items) is only done once.
+
+** 2.22
+
+So, we've got an inner iterative function.
+Takes as argument a in-list and out-list
+Idea is to transfer in-list to out-list.
+But, lists  work in a specific order.
+We have (element rest of list)
+So, we read from a list top to bottom.
+But, built a list bottom to top.
+In this respect, Louis' 'top' element from in-list is added as the 'bottom' element of out-list.
+
+In the second case we're not building a list.
+
+** 2.23
+
+#+name: def-for-each
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (for-each proc l)
+  (cond ((null? (cdr l)) (proc (car l)))
+        (else
+         (proc (car l)) (for-each proc (cdr l)))
+      )
+  )
+#+END_SRC
+
+Ideally I'd use a pass procedure on the null? test here.
+Then, we could check if the argument is nil, rather than looking a step ahead.
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-for-each>>
+  (for-each (lambda (x) (display x) (newline))(list 57 321 88))
+#+END_SRC
+
+#+RESULTS:
+: 57
+: 321
+: 88
+
+Switched (newline) to second, to keep display style.
+
+As an aside, search seems difficult with lists.
+Efficient search, that is.
+For, it's easy to work through a list and check for equality.
+But, it's hard to do a standard recurse onto sub-lists, as there's no quick way to make a sub-list.
+That is, with this abstraction.
+Though, moving to pointers things are very easy, especially if the length of the list is stored.
+
+** 2.24
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(list 1 (list 2 (list 3 4)))
+#+END_SRC
+
+This is basically a tree which immediately terminates when branching to the left.
+
+
+** 2.25
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(car (cdr (car (cdr (cdr (list 1 3 (list 5 7) 9))))))
+(car (car (list (list 7))))
+(car (cdr (car (cdr (car (cdr (car (cdr (car (cdr (car (cdr (list 1 (list 2 (list 3 (list 4 (list 5 (list 6 7))))))))))))))))))
+#+END_SRC
+
+This last one is interesting.
+(1 (2 …))
+If do cdr then get (2 …).
+Now, this is not simply a list with 2 as the first element.
+For, then the initial argument would be (1 2 …)
+So, we have a list with (2 …) as the first element.
+
+** 2.26
+
+#+name: def-append
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (append list1 list2)
+  (if (null? list1)
+      list2
+      (cons (car list1) (append (cdr list1) list2))
+      )
+  )
+#+END_SRC
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-append>>
+  (define lx (list 1 2 3))
+  (define ly (list 4 5 6))
+
+  (append lx ly) ; A list of 1 2 3 4 5 6
+  (cons lx ly) ; A list of (list of 1 2 3) 4 5 6
+  (list lx ly) ; A list of (list of 1 2 3) (list of 4 5 6)
+#+END_SRC
+
+#+RESULTS:
+: (1 2 3 4 5 6)
+: ((1 2 3) 4 5 6)
+: ((1 2 3) (4 5 6))
+
+** 2.27
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (reverse l)
+    (define (mirror-onto l1 l2)
+      (if (null? l1)
+	  l2
+	  (mirror-onto (cdr l1) (cons (car l1) l2))))
+    (mirror-onto l nil))
+
+  (reverse (list 23 72 149 34))
+#+END_SRC
+
+#+RESULTS:
+: (34 149 72 23)
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (deep-reverse l)
+  (define (mirror-onto l1 l2)
+    (if (null? l1)
+        l2
+        (mirror-onto (cdr l1) (cons (deep-reverse (car l1)) l2))
+        )
+    )
+  (if (pair? l)
+      (mirror-onto l nil)
+      l
+   ))
+
+(define lx2 (list (list 1 2) (list 3 4)))
+(define lx22 (list 2 (list (list 1 2) (list 3 4)) (list (list 1 2) (list 3 4 5))))
+lx2
+
+(deep-reverse 3)
+(deep-reverse (list 1 2))
+(deep-reverse lx2)
+(deep-reverse lx22)
+#+END_SRC
+
+#+RESULTS:
+: ((1 2) (3 4))
+: 3
+: (2 1)
+: ((4 3) (2 1))
+: (((5 4 3) (2 1)) ((4 3) (2 1)) 2)
+
+** 2.28
+
+#+name: def-fringe
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (fringe tree)
+  (cond ((and (not (pair? tree)) (not (null? tree))) (list tree))
+        ((not (pair? tree)) nil)
+        (else
+         (append (fringe (car tree)) (fringe (cdr tree)))
+         )
+        )
+  )
+#+END_SRC
+
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (fringe tree)
+    (cond ((null? tree) nil)
+	  ((not (pair? tree)) (list tree))
+	  (else
+	   (append (fringe (car tree)) (fringe (cdr tree)))
+	   )))
+#+END_SRC
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-fringe>>
+  (define tx (list (list 1 2) (list 3 4)))
+  (define tx2 (list (list (list 1 2) (list 4)) (list (list 1 2) (list 3 4))))
+  (define tx3 (list (list 3 (list 1 2) (list 4)) (list (list 1 2) (list 3 4))))
+  (fringe tx3)
+  (fringe (list tx tx))
+#+END_SRC
+
+#+RESULTS:
+: (3 1 2 4 1 2 3 4)
+: (1 2 3 4 1 2 3 4)
+
+It's simply to test to see if we have a leaf.
+Though, there's an issue of nil, which always ends a list, so is always an implicit leaf, so to speak.
+So, we traverse left and then right.
+There are two base cases.
+First, not pair and a non-nil.
+In this case, a leaf.
+Second, as the first condition failed, it's either an branch or nil.
+If not branch, then for sure nil.
+
+Building up, we append lists.
+
+As an aside, append here is key to ensure we flatter everything, rather than repeating the strcture of the tree.
+Setting aside scaling, this is the only difference between scale-tree and fringe, along with making sure the base case returns a list so append always works.
+
+Un-named version is a rewrite with hindsignt.
+Base case conditions are in line with scale-tree
+
+** 2.29
+
+#+name: sc-mobile
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (make-mobile left right) (list left right))
+
+  (define (make-branch length structure) (list length structure))
+
+  (define (left-branch mobile) (car mobile))
+
+  (define (right-branch mobile) (car (cdr mobile)))
+
+  (define (branch-length branch) (car branch))
+
+  (define (branch-structure branch) (car (cdr branch)))
+#+END_SRC
+
+#+RESULTS: sc-mobile
+
+I guess there's a better way of doing this.
+As, sum-up here is just +, but applied to a list.
+(cons + list) doesn't work, though.
+
+#+name: def-sum-up
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (sum-up list)
+    (if (null? list)
+	0
+	(+ (car list) (sum-up (cdr list)))))
+#+END_SRC
+
+#+RESULTS: def-sum-up
+
+To test whether we're going to a mobile from another mobile,
+we look at the right element.
+If this is a pair, then we've got another mobile.
+Else, it's an int representing some weight.
+
+#+name: sc-mobile-more
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<sc-mobile>>
+  (define (to-mobile? branch)
+    (pair? (branch-structure branch)))
+
+  (define (get-weight branch)
+    (branch-structure branch))
+
+  (define (total-weight mobile)
+    (let ((twL (if (to-mobile? (left-branch mobile)) (total-weight (branch-structure (left-branch mobile))) (get-weight (left-branch mobile))))
+	  (twR (if (to-mobile? (right-branch mobile)) (total-weight (branch-structure (right-branch mobile))) (get-weight (right-branch mobile)))))
+      (+ twL twR)
+      )
+    )
+#+END_SRC
+
+#+RESULTS: sc-mobile-more
+
+#+name: consts-m1-m2
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<sc-mobile-more>>
+  (define lb1 (make-branch 1 10))
+  (define rb1 (make-branch 1 10))
+  (define m1 (make-mobile lb1 rb1))
+  (define rb2 (make-branch 1 m1))
+  (define m2 (make-mobile lb1 rb2))
+  (define lb2 (make-branch 1 m1))
+  (define m3 (make-mobile lb2 rb2))
+  (total-weight m1)
+  (total-weight m2)
+#+END_SRC
+
+#+RESULTS:
+: 20
+: 30
+
+A 'relaxed' version of total-weight, which may be applied to mobiles or weights.
+
+#+name: def-total-weight-relaxed
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (total-weight-relaxed weight-or-mobile)
+    <<sc-mobile-more>>
+    (if (pair? weight-or-mobile)
+	(total-weight weight-or-mobile)
+	weight-or-mobile))
+#+END_SRC
+
+#+RESULTS: def-total-weight-relaxed
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-total-weight-relaxed>>
+  <<consts-m1-m2>>
+  (total-weight-relaxed 10)
+  (total-weight-relaxed m2)
+#+END_SRC
+
+#+RESULTS:
+: 20
+: 30
+: 10
+: 30
+
+#+name: def-hang-weight
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (hang-weight branch)
+    <<sc-mobile>>
+    <<def-total-weight-relaxed>>
+    (* (branch-length branch) (total-weight-relaxed (branch-structure branch))))
+#+END_SRC
+
+ #+RESULTS:
+
+#+name: def-isBalanced?
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (isBalanced? mobile)
+    <<sc-mobile-more>>
+    <<def-hang-weight>>
+    (display mobile)
+    (newline)
+    (and
+     (= (hang-weight (left-branch mobile)) (hang-weight (right-branch mobile)))
+     (if (to-mobile? (left-branch mobile)) (isBalanced? (branch-structure (left-branch mobile))) #t)
+     (if (to-mobile? (right-branch mobile)) (isBalanced? (branch-structure (right-branch mobile))) #t)))
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-isBalanced?>>
+  <<consts-m1-m2>>
+  (isBalanced? m3)
+#+END_SRC
+
+#+RESULTS:
+: 20
+: 30
+: ((1 ((1 10) (1 10))) (1 ((1 10) (1 10))))
+: ((1 10) (1 10))
+: ((1 10) (1 10))
+: #t
+
+In short, we need a conjunction of balanced applied to main and all sub-mobiles.
+So, we check weight * length for each branch of the mobile.
+Then, we get to work on sub-mobiles.
+There's no guarantee of sub-mobules, so we only check when sure.
+And, otherwise return #t does the value of the conjunction is determined by all the other components.
+The only thing to note with the recusrive case is that we need to move to the structure of the branch, rather than the branch itself.
+
+I'd need to change right-branch and brach-structure procedures.
+For, these assume we're working with a list.
+With a list, the right element is always either a list or nil.
+So, some extra work is needed to get any value.
+In particular, we're always working with a pair.
+So, to get the right hand value, we need to cdr then car.
+But, if cons is used, then we're just working with two values.
+Hence, we'd car and be done.
+
+** 2.30
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (scale-tree tree factor)
+  (cond ((null? tree) nil)
+        ((not (pair? tree)) (* tree factor))
+        (else (cons (scale-tree (car tree) factor)
+                    (scale-tree (cdr tree) factor)))
+        )
+  )
+
+(scale-tree (list 1 (list 2 (list 3 4 5))) 4)
+#+END_SRC
+
+#+RESULTS:
+: (4 (8 (12 16 20)))
+
+Cons works fine here, as we're breaking a list down into it's basic elements, then building back up.
+Things would be different if flattening the list, etc.
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (square-tree-basic tree)
+    (cond ((null? tree) nil)
+	  ((not (pair? tree)) (* tree tree))
+	  (else (cons (square-tree-basic (car tree))
+		      (square-tree-basic (cdr tree))))
+	  )
+    )
+
+  (square-tree-basic (list 1 (list 2 (list 3 4) 5) (list 6 7)))
+
+  (define (square-tree-map tree)
+    <<def-my-map>>
+    (my-map (lambda (sub-tree)
+	      (if (pair? sub-tree)
+		  (square-tree-map sub-tree)
+		  (* sub-tree sub-tree)))
+    tree))
+
+  (square-tree-map (list 1 (list 2 (list 3 4) 5) (list 6 7)))
+#+END_SRC
+
+#+RESULTS:
+: (1 (4 (9 16) 25) (36 49))
+: (1 (4 (9 16) 25) (36 49))
+
+Right, map here just goes through each element in the list and applies the procedure.
+So, what this does is abstracts from the way the list works, as emphasised in the book.
+It's important to keep in mind this is the limit of what's happening.
+The code should look mostly the same, given that little is being done to reconstruct the tree via lists.
+
+** 2.31
+
+#+name: def-tree-map
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (tree-map proc tree)
+    <<def-my-map>>
+    (my-map (lambda (sub-tree)
+	      (if (pair? sub-tree)
+		  (tree-map proc sub-tree)
+		  (proc sub-tree)))
+    tree))
+#+END_SRC
+
+#+RESULTS: def-tree-map
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (square-tree-again tree)
+    <<def-tree-map>>
+    <<def-square>>
+    (tree-map square tree))
+
+  (square-tree-again (list 1 (list 2 (list 3 4) 5) (list 6 7)))
+#+END_SRC
+
+#+RESULTS:
+: (1 (4 (9 16) 25) (36 49))
+
+** 2.32
+
+#+name: def-subsets
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (subsets s)
+    <<def-my-map>>
+    (if (null? s)
+	(list nil)
+	(let ((rest (subsets (cdr s))))
+	  (append rest (my-map (lambda (x) (cons (car s) x)) rest))))
+    )
+#+END_SRC
+
+#+RESULTS: def-subsets
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+<<def-subsets>>
+(subsets (list 1 2 3))
+#+END_SRC
+
+#+RESULTS:
+: (() (3) (2) (2 3) (1) (1 3) (1 2) (1 2 3))
+
+So, we're splitting on the first element of the list.
+Then, applying subsets to all other elements of the list.
+We then keep a copy of every subset from the other elements of the list.
+So, the only thing to do is ensure we also have a copy of the those subsets with the element we excluded.
+This is what the lambda expresion does.
+
+So, for example, (a b)
+rest is just b.
+subsets applied to b goes once more, to the value b and nil.
+Now, on the way back, we have nil turned into an empty list, and b joined with the empty list.
+So, we have (() (b)).
+Now, we store a copy of this, and also consider a included.
+So, this is ((a) (a b)).
+Combined, we have (() (b) (a) (a b)).
+
+** 2.33
+
+#+name: def-accumulate
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (accumulate op initial sequence)
+  (if (null? sequence)
+      initial
+      (op (car sequence)
+          (accumulate op initial (cdr sequence)))
+      )
+  )
+#+END_SRC
+
+#+RESULTS: def-accumulate
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (map-again p sequence)
+    <<def-accumulate>>
+      (accumulate (lambda (x y) (cons (p x) y))  nil sequence))
+
+  <<def-square>>
+  (map-again square (list 1 2 3 4 5))
+#+END_SRC
+
+#+RESULTS:
+: (1 4 9 16 25)
+
+Okay.
+The point here is op is a two place argument.
+The first argument to op is the current element of the sequence, and accumulate works through these one-by-one.
+Then second argument to op is the result of accumulating.
+So, for example, rather than cons, we could have summed.
+
+E.g., map-sum maps the procedure and then sums the list.
+
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (map-sum p sequence)
+    <<def-accumulate>>
+    (accumulate (lambda (x y) (+ (p x) y)) 0 sequence))
+
+  <<def-square>>
+  (map-sum square (list 1 2 3 4 5))
+#+END_SRC
+
+#+RESULTS:
+: 55
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (append-again seq1 seq2)
+    <<def-accumulate>>
+    (accumulate cons seq2 seq1)
+    )
+
+  (append-again (list 1 2) (list 3 4))
+#+END_SRC
+
+#+RESULTS:
+: (1 2 3 4)
+
+We're going through every element in list1 and cons to list2.
+Here, though, you need some idea of the way lists and accumulate work.
+For, if we worked through the list on call rather than close, this would reverse list1.
+I like abstraction, but here I'm not sure what the point is, given we need the details to understand why the abstraction works.
+
+#+name: def-length
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (length sequence)
+    <<def-accumulate>>
+    (accumulate (lambda (x y) (+ (if (null? x) 0 1) y)) 0 sequence))
+#+END_SRC
+
+#+RESULTS: def-length
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-length>>
+  (length (list 1 2 3))
+  (length (list ))
+#+END_SRC
+
+#+RESULTS:
+: 3
+: 0
