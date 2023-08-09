@@ -1,3 +1,5 @@
+#+name: sc-
+#+name: def-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
 #+END_SRC
 
@@ -10610,7 +10612,6 @@ The evaluated value is used twice, but the evaluation only happens once.
 #+RESULTS:
 :  fooled  fooled  fooled  fooled  fooled  fooled  found  found 
 
-
 ** 1.28
 
 Modifying expmod to signal whether it discovers a non-trivial square root of 1.
@@ -10808,8 +10809,7 @@ Either I've done something wrong, on this takes a lot to get close to pi.
   (iter a 1))
 #+END_SRC
 
-
-** Ex. 1.32
+** 1.32
 
 
 
@@ -10853,7 +10853,6 @@ Replace accumalate with accumalate-iter to vary recu/iter.
 ;; (sum-iter cube 0 inc 10)
 ;; (sum-accumulate-first cube 0 inc 10)
 #+END_SRC
-
 
 ** 1.33
 
@@ -11088,7 +11087,6 @@ So, here's something excessive.
 
 e = 2.7182818284590452353602874713526624977572470936999595749669676277…
 
-
 ** 1.39
 
 
@@ -11261,7 +11259,6 @@ Still, it's not very interesting.
 The final function isn't too interesting either.
 Once the required number of times to average damp is figured out, the next task is to repeatedly average damp the function, and then apply the fixed point solver to this.
 
-
 ** 1.46
 
 In outline, a conditional:
@@ -11337,3 +11334,576 @@ A couple of funcs from 1.3.3 (p. 69) for testing
 #+RESULTS:
 : 0.7390893414033927
 : 1.2587228743052672
+
+
+* Chapter 2
+
+** 2.1
+
+#+name: def-numer
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+    (define (numer x) (car x))
+#+END_SRC
+
+#+name: def-demon
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (demon x) (cdr x))
+#+END_SRC
+
+Not particularly elegant.
+Though, cheeky λ to avoid calculating (* n d) twice.
+Note, doing (define (mult) (* n d)) wouldn't be any help, as this would just call the multiplcation.
+
+#+name: def-make-rat-basic
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (make-rat-basic n d)
+    (let ((sign  ((lambda (x) (/ x (abs x))) (* n d))))
+      (cons (* sign (abs n)) (abs d))
+      )
+    )
+#+END_SRC
+
+It's not possible to always reference a let constant from another let constant.
+This kind of makes sense to me.
+At some point, need to make the reference happen.
+This way, reference isn't assumed to be sequential, nor does one need to track dependencies.
+
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (make-rat-basic-x n d)
+  (let ((mult (* n d))
+        (sign (/ mult (abs mult)))
+        )
+    (cons (* sign (abs n)) (abs d))
+    )
+  )
+#+END_SRC
+
+make-rat as defined in the book already does this.
+But, it's due to a bug in gcd.
+For, gcd(2, -3) = 1.
+Yet, (gcd 2 -3) = -1.
+And, in general, given (gcd a b), if a is positive and b is negative, then the result is negative.
+Otherwise, the result has the sign of a.
+
+#+name: def-make-rat
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (make-rat n d)
+  (let ((g (gcd n d)))
+    (cons (/ n g) (/ d g))
+    )
+  )
+#+END_SRC
+
+In the book, newline is first, but newline last fits with previous displays.
+
+#+name: def-print-rat
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-numer>>
+  <<def-demon>>
+  (define (print-rat x)
+    (display (numer x))
+    (display "/")
+    (display (demon x))
+    (newline)
+    )
+#+END_SRC
+
+#+RESULTS: def-print-rat
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-print-rat>>
+
+  <<def-make-rat-basic>>
+
+  (print-rat (make-rat-basic -2 -3))
+  (print-rat (make-rat-basic -2 3))
+  (print-rat (make-rat-basic 2 3))
+  (print-rat (make-rat-basic -2 3))
+
+  <<def-make-rat>>
+
+  (print-rat (make-rat -2 -3))
+  (print-rat (make-rat 2 -3))
+  (print-rat (make-rat 2 3))
+  (print-rat (make-rat -2 3))
+#+END_SRC
+
+#+RESULTS:
+: 2/3
+: -2/3
+: 2/3
+: -2/3
+: -2/-3
+: 2/-3
+: 2/3
+: -2/3
+
+** 2.2
+
+#+name: sc-point
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (make-point x y) (cons x y))
+
+  (define (x-point point) (car point))
+
+  (define (y-point point) (cdr point))
+#+END_SRC
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<sc-point>>
+  (x-point (make-point 1 2))
+  (y-point (make-point 1 2))
+#+END_SRC
+
+#+RESULTS:
+: 1
+: 2
+
+#+name: sc-segment
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<sc-point>>
+  (define (make-segment start-point end-point) (cons start-point end-point))
+
+  (define (start-segment segment) (car segment))
+
+  (define (end-segment segment) (cdr segment))
+
+  (define (midpoint-segment segment)
+    (make-segment
+     (/ (+ (x-point (start-segment segment)) (x-point (end-segment segment))) 2)
+     (/ (+ (y-point (start-segment segment)) (y-point (end-segment segment))) 2)
+     ))
+#+END_SRC
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<sc-segment>>
+  (midpoint-segment (make-segment (make-point 2 2) (make-point 4 4)))
+  (midpoint-segment (make-segment (make-point -4 -8) (make-point 4 4)))
+#+END_SRC
+
+#+RESULTS:
+: (3 . 3)
+: (0 . -2)
+
+Though, I think this should be a little more general.
+With a coordinate space, there's no limit on the dimension.
+So, rather than having distinct x and y selectors, there should be a general selection which takes the dimension as an argument.
+Then, it's easy to expand everything, given some way to test wether the dimension is stored.
+Though, at this point in the book the problem is lists.
+We only have pairs.
+
+** 2.3
+
+For a rectangle, there's a few ways to do this.
+Though, point for origin and rationals for legnth and width seems most straightforward.
+
+A rectange is stored as ((origin-x origin-y) (width height))
+
+#+name: sc-rectangle
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (make-rectangle origin width height)
+  (cons origin (cons width height)))
+
+(define (rectangle-origin rectangle)
+  (car rectangle))
+
+(define (rectangle-width rectangle)
+  (car (cdr rectangle)))
+
+(define (rectangle-height rectangle)
+  (cdr (cdr rectangle)))
+#+END_SRC
+
+#+RESULTS: sc-rectangle
+
+Not sure what is meant by perimeter here.
+Length of the perimeter is… not very interesting.
+Points to construct the perimeter is a little better.
+So, that's what the following procedure does.
+Points are enumerated clockwise starting with 1 as top-left going to 3 as bottom-left.
+
+#+name: def-rectangle-perimeter
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<sc-rectangle>>
+  <<sc-point>>
+  (define (rectangle-perimeter rectangle point)
+    (if (= point 0)
+	(rectangle-origin rectangle)
+	(let ((xPoint (x-point (rectangle-origin rectangle)))
+	      (yPoint (y-point (rectangle-origin rectangle))))
+	  (cond
+	    ((= point 1) (make-point (+ xPoint (rectangle-width rectangle)) yPoint))
+	    ((= point 2) (make-point (+ xPoint (rectangle-width rectangle)) (+ yPoint (rectangle-height rectangle))))
+	    ((= point 3) (make-point xPoint (+ yPoint (rectangle-height rectangle))))
+	    )
+	  )
+	)
+    )
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<sc-rectangle>>
+  (define (rectangle-area rectangle)
+    (* (rectangle-width rectangle) (rectangle-height rectangle)))
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-rectangle-perimeter>>
+  (define test-rect (make-rectangle (make-point 5 10) 15 10))
+  (rectangle-origin test-rect)
+  (rectangle-width test-rect)
+  (rectangle-height test-rect)
+  (rectangle-perimeter test-rect 2)
+#+END_SRC
+
+#+RESULTS:
+: (5 . 10)
+: 15
+: 10
+: (20 . 20)
+
+The representation of the rectangle doesn't matter, so long as there's selectors for origin, width, and height.
+
+And, I can't think of an interesting alterantive representation.
+Could take the center point.
+The only thing here is origin is given by center.x - width/2, etc.
+
+Could also take two points.
+Say, top left and bottom right.
+Then, origin is top left, and width is obtained from top right.x - bottom left.x in the positive case.
+
+** 2.4
+
+(car (cons x y)) = λm (m x y) (λ (p q) p)
+                 = (λ (p q) p) x y
+                 = x
+
+for cdr
+
+(define (cdr z)
+(z (lambda (p q) q)))
+
+So:
+
+(cdr (cons x y)) = λm (m x y) (λ (p q) p)
+                 = (λ (p q) q) x y
+                 = y
+
+
+** 2.5
+
+To pair the numbers use any exponentiation procedure which takes base and exponent arguments.
+
+To break apart the number, keep dividing by either 2 or 3 until no further integer division is possible.
+
+I'd guess there's some trick with log here, but I don't see it quickly.
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (break-down pair n)
+    (define (break-down-i pair n m)
+      (if (not (= 0 (remainder pair n)))
+	  m
+	  (break-down-i (/ pair n) n (+ m 1))))
+    (break-down-i pair n 0)
+    )
+
+  <<def-expItr>>
+  (define (pair-numbers a b)
+    (* (expItr 2 a) (expItr 3 b)))
+
+  (define (pair-number-a pair) (break-down pair 2))
+  (define (pair-number-b pair) (break-down pair 3))
+
+  ; Basic test
+  (pair-number-a (pair-numbers 32 94))
+  (pair-number-b (pair-numbers 32 94))
+
+  ; Some edge cases.
+  (pair-number-a (pair-numbers 1 1))
+  (pair-number-b (pair-numbers 1 0))
+#+END_SRC
+
+#+RESULTS:
+: 32
+: 94
+: 1
+: 0
+
+Note, only asked to do with for non-negative integers.
+
+** 2.6
+
+So…
+
+0 = λf λx x
+1 = λf λx f x
+2 = λf λx ff x
+
+(define one (lambda (f) (lambda (x) (f (x)))))
+(define two (lambda (f) (lambda (x) (f (f (x))))))
+
+Okay, not allowed to apply repeat to add-1.
+
+Still, this is just a variation on add-1.
+
+(define (add n m)
+(lambda (f) (lambda (x) (f (n f) ((m f) x)))))
+
+Instead of x, we have ((m f) x).
+m is of the form λf λx f^m x.
+So, ((m f) x) is of the form f^m x.
+n is of the form λf λx f^n x
+So, (n f) is of the form λx f^m x.
+Hence, (f (n f) ((m f) x)) reduces to f^n (f^m x).
+And, this is what we want. f applied n + m times.
+
+* 2.1.4 Extended exercise
+
+Why not do intervals by a precise quantity tolerance pair?
+At least in the case of resistors, where things are specified this way?
+
+Though, I can see in general specifying lower and upper bounds is easier.
+Unless, upper + lower / 2.
+This gets 'precise quantity'.
+Then, upper - mid.
+This gets half width.
+So, either way seems fine.
+
+** 2.7
+
+#+name: sc-interval
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (make-interval a b) (cons a b))
+(define (lower-bound i) (car i))
+(define (upper-bound i) (cdr i))
+#+END_SRC
+
+So, this is as specified, but why rely on the user to fix the correct upper and lower bounds?
+
+** 2.8
+
+So, add-interval reduces to addition on the upper and lower bounds.
+In this way, sub-interval will do the same.
+Though, add a check to ensure upper is upper and lower is lower.
+
+#+name: def-add-interval
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (add-interval x y)
+    <<sc-interval>>
+    (make-interval (+ (lower-bound x) (lower-bound y))
+		   (+ (upper-bound x) (upper-bound y))))
+#+END_SRC
+
+#+name: def-sub-interval
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (sub-interval x y)
+    <<sc-interval>>
+    (let (
+	  (lIS (- (lower-bound x) (lower-bound y)))
+	  (hIS (- (upper-bound x) (upper-bound y)))
+	  )
+      (if (> hIS lIS)
+	  (make-interval hIS lIS)
+	  (make-interval lIS hIS)
+	  )
+      ))
+#+END_SRC
+
+#+RESULTS: def-sub-interval
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-add-interval>>
+  <<def-sub-interval>>
+  (add-interval (make-interval 0 1) (make-interval 9 10))
+  (sub-interval (make-interval 0 2) (make-interval 9 10))
+#+END_SRC
+
+#+RESULTS:
+: (9 . 11)
+: (-8 . -9)
+
+In the same way adding increases margin, subtancting decreases margin.
+I feel this isn't quite right.
+Instead, go with proposal above and take an procedure for combining two tolerances.
+
+** 2.9
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (interval-width i)
+    (/ (- (upper-bound i) (lower-bound i)) 2))
+#+END_SRC
+
+In the case of addition.
+x.w + y.w = (x.u - x.l)/2 + (y.u - y.l)/2
+          = ((x.u - x.l) + (y.u - y.l))/2
+          = ((x.u + y.u) + (x.l - y.l))/2
+          = (x + y).w
+
+The reasoning is the same for subtraction.
+
+For multiplication, consider some intervals using 0 and 1.
+(1 0) * (1 0) = (0 0)
+And, we have (1 0).w = 0.5, while (0 0).w = 0.
+In contrast:
+(1 1) * (1 1) = (1 1)
+And, we have (1 1).w = 0.5
+
+Division is… defined in terms of multiplication as the main operator.
+This isn't a proof, but suggests similar problems.
+
+** 2.10
+
+'spans 0' means 'has width 0'?
+I mean, and interval crossing over 0 should be no problem.
+Anyway, mul-interval written so variant of div-interval doesn't prevent anything else running.
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (mul-interval x y)
+    (let (
+	  (p1 (* (lower-bound x) (lower-bound y)))
+	  (p2 (* (lower-bound x) (upper-bound y)))
+	  (p3 (* (upper-bound x) (lower-bound y)))
+	  (p4 (* (upper-bound x) (upper-bound y)))
+	  )
+      (make-interval (min p1 p2 p3 p4)
+		     (max p1 p2 p3 p4))))
+
+  (define (div-interval x y)
+    (if (= 0 (interval-width y))
+	(error)
+	(mul-interval x
+		      (make-interval (/ 1.0 (upper-bound y))
+				     (/ 1.0 (lower-bound y))
+				     ))))
+#+END_SRC
+
+** 2.11
+
+I'm not quite seeing the point of this exercise.
+In any case, we can write out a table of all the possible positive/negative combinations.
+Then, we can work out whether there's a guaranteed value for the upper and lower bounds.
+With perhaps some errors, I have this:
+
+ u_x | u_y | l_x | l_y | ub | lb
+  +  |  +  |  +  |  +  | P4 | P1
+  +  |  +  |  +  |  -  | P4 | P3
+  +  |  +  |  -  |  +  | P4 | P2
+  +  |  +  |  -  |  -  |
+  +  |  -  |  +  |  +  | P3 | P4
+  +  |  -  |  +  |  -  | P2 | P3
+  +  |  -  |  -  |  +  |
+  +  |  -  |  -  |  -  | P1 | P3
+  -  |  +  |  +  |  +  | P2 | P3
+  -  |  +  |  +  |  -  |
+  -  |  +  |  -  |  +  | P1 | P4
+  -  |  +  |  -  |  -  | P1 | P2
+  -  |  -  |  +  |  +  |
+  -  |  -  |  +  |  -  | P3 | P1
+  -  |  -  |  -  |  +  | P4 | P1
+  -  |  -  |  -  |  -  | P1 | P4
+
+Where:
+
+P1 l_x l_y
+P2 l_x u_y
+P3 u_x l_y
+P4 u_x u_y
+
+Here, then, there's the 'else' case, which covers the four instances where we need to calculate more than two combinations.
+In all the other cases, we need to calculate the listed two cases.
+
+But, I guess I've got this a little wrong.
+For, we can break this down into sets of calculations.
+I.e. { P1, P4 } covers both the last and the first case.
+Then, for the upper and lower bound we only need to figure out which is larger than the other.
+This is still only two instances of multiplications.
+
+But, on my count there are six distinct sets.
+So, this means we only need to consider seven cases.
+
+I guess I'm missing something here…
+
+Ah, I guess I'm this potential user, huh.
+
+** 2.12
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (make-center-width c w)
+    (make-interval (- c w) (+ c w))
+    )
+
+  (define (make-center-percent c p)
+    (let ((nudge (* (abs c) p)))
+      (make-interval (- c nudge) (+ c nudge))
+      )
+    )
+
+  (define (i-center i)
+    (/ (+ (lower-bound i) (upper-bound i)) 2)
+    )
+#+END_SRC
+
+This isn't super precise with small percentages.
+But, there's no way around this without changing the bound constructor.
+As, imprecision has already entered by multiplying the center by the percentage to get the bounds.
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (i-percent i)
+  (- (/ (upper-bound i) (i-center i)) 1)
+  )
+#+END_SRC
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(i-center (make-center-percent 10 0.001))
+(i-percent (make-center-percent 10 1.01))
+#+END_SRC
+
+** 2.13
+
+Assuming small percentage tolerances and all numbers are positive.
+
+Formula for the approximate percentage tolerance of the product of two intervals
+in terms of the tolerances of the factors.
+
+So, for the product we take min/max of different upper/lower x/y combinations.
+In general, then, product is of the form:
+
+(x ± t_x) * (y ± t_y) = (xy ± yt_x ± xt_y ± t_xt_y)
+
+Hm, well, to find the tolerance pertentage, divide upper by center then subtract 1.
+Ignoring the part where we substract one, we have:
+u / ((u + l) / 2) = 2u/(u * l)
+
+If assuming everything is positive, then upper and lower bounds are direct.
+
+So, we have
+
+2(ux + tx)(uy + ty) / ((ux + tx)(uy + ty) + (lx + tx)(ly + ty))
+
+Where tx is really uxtx, etc.
+That is, ux + tx = ux(1 + tx).
+
+Different way of looking at things.
+If we start by keeping tolerance in play, then the upper bound for x, with tolerance is u_x(1 * tx).
+So, then, the upper bound for product, with tolerance is
+u_x * u_y * (1 * tx) * (1 * ty)
+So, then, (1 * tx) * (1 * ty) = 1 + tx + ty + txty.
+In this case, then, why not take the tolerance as tx + ty + txty?
+This seems sufficiently simple, but gives the exactl tolerance…
+Of course, tx + ty should get quite close when tx and ty are very small, as txty is going to be very very small.
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (quick-mul-tolerance i1 i2) (+ (i-percent i1) (i-percent i2)))
+#+END_SRC
+
+This looks good to me…
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(quick-mul-tolerance (make-center-percent 10 0.001) (make-center-percent 10 0.006))
+(i-percent (mul-interval (make-center-percent 10 0.001) (make-center-percent 10 0.006)))
+#+END_SRC
