@@ -1,10 +1,14 @@
-#+name: consts-
-#+name: sc-
-#+name: def-
-#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
-#+END_SRC
+#+OPTIONS: toc:2
 
 * Some notes
+
+** code-block syntax
+
+#+begin_quote
+#+name:
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+#+END_SRC
+#+end_quote
 
 ** Referenced code-blocks
 
@@ -36,6 +40,7 @@ So, to avoid this issue, references are inlined when possible.
 This is inefficient, and a little messy.
 
 But, I think it's an okay trade-off.
+
 
 
 * Chapter 1
