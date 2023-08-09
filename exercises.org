@@ -235,8 +235,7 @@ Can see this with rTest
 
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output
 (define (rTest x)
-	(new-if (> 1 x) 0 (rTest (- x 1)))
-	)
+	(new-if (> 1 x) 0 (rTest (- x 1))))
 (rTest 2)
 #+END_SRC
 
@@ -13406,3 +13405,810 @@ That's all these two functions do.
 
 #+RESULTS:
 : (((1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8)) ((1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8)) ((1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8)) ((1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8)) ((1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8)) ((1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8)) ((1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8)) ((1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8)) ((0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8)) ((1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8)) ((1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8)) ((1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8)) ((1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8)) ((0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8)) ((1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8)) ((1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8)) ((1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8)) ((1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8)) ((1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8)) ((1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8)) ((1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8)) ((1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8)) ((1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8)) ((1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8)) ((0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8)) ((1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8)) ((1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8)) ((1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8)) ((1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8)) ((1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8)) ((1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8)) ((1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8)) ((1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8)) ((1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8)) ((1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8)) ((1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8)) ((1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8)) ((1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8)) ((1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8)) ((1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8)) ((1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8)) ((1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8)) ((1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8)) ((1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8)) ((1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8)) ((1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8)) ((1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0)) ((1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0)) ((1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0)))
+
+** 2.43
+
+So, there's (queens-cols (- k 1)) and the number of times it's evaluated.
+All this does is generate everything for the k - 1 case.
+All here is a big all.
+In the original proc, this is only evaluated once.
+So, we make a lot of recursive calls, for sure, but these all stem from evaluating a single instance of queens-cols and going from there.
+
+When things are flipped around, the proc is evluated for every instance in new-row.
+
+Hence, if a single run takes T, then this is going to be even more than T * board-size.
+Does it get close to T! ?
+
+In any case, this is mostly about the way scheme evaluates.
+So, moving on…
+
+** 2.44
+
+Going by the suggestion, this should paint two copies side-by-side below the arg.
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (up-split painter n)
+    (if (= n 0)
+	painter
+	(let ((smaller (up-split painter (- n 1))))
+	  (below painter (beside smaller smaller)))))
+#+END_SRC
+
+
+** 2.45
+
+For reference, here's right-split
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (right-split painter n)
+    (if (= n 0)
+	painter
+	(let ((smaller (right-split painter (- n 1))))
+	  (beside painter (below smaller small))
+	  )))
+#+END_SRC
+
+Goal is 'split' such that:
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define right-split (split beside below))
+(define up-split (split below beside))
+#+END_SRC
+
+So, proc which takes painter and n as argument.
+lambda makes this easy.
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (split firstProc secondProc)
+    (lambda (painter n)
+      (if (= n 0)
+	  painter
+	  (let ((smaller ((split firstProc secondProc) painter (- n 1))))
+	    (firstProc painter (secondProc smaller small))))))
+#+END_SRC
+
+** 2.46
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (make-vect x y)
+  (cons x y))
+
+(define (xcor-vect v)
+  (car v))
+
+(define (ycor-vect v)
+  (cdr v))
+
+(define (add-vect v1 v2)
+  (make-vect (+ (xcor-vect v1) (xcor-vect v2)) (+ (ycor-vect v1) (ycor-vect v2))))
+
+(define (sub-vect v1 v2)
+  (make-vect (- (xcor-vect v1) (xcor-vect v2)) (- (ycor-vect v1) (ycor-vect v2))))
+
+(define (scale-vect s v1)
+  (make-vect (* s (xcor-vect v1)) (* s (ycor-vect v1))))
+#+END_SRC
+
+
+** 2.47
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (make-frameL origin edge1 edge2)
+  (list origin edge1 edge2))
+
+(define (frameL-origin frame)
+  (car frame))
+
+(define (frameL-edge1 frame)
+  (cadr frame))
+
+(define (frameL-edge2 frame)
+  (caddr frame))
+
+(define (make-frameC origin edge1 edge2)
+  (cons origin (cons edge1 edge2)))
+
+(define (frameC-origin frame)
+  (car frame))
+
+(define (frameC-edge1 frame)
+  (cadr frame))
+
+(define (frameC-edge2 frame)
+  (cddr frame))
+#+END_SRC
+
+** 2.48
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (make-segment origin start end)
+    (cons start end))
+
+  (define (start-segment seg)
+    (car seg))
+
+  (define (end-segment seg)
+    (cdr seg))
+#+END_SRC
+
+There's nothing else here, right?
+vec running from ogirin to the start-point is just start-point coordinates.
+Same for end.
+
+Unless the suggestion is to add start to origin, but I don't see good motivation for this.
+
+On the other hand, I'm not sure why so many excercises are just cons car cdr…
+
+** 2.49
+
+So, fix the relevant coordinates, and then pass a list of segments to segmemts->painter.
+
+I'm not interested enough to do the rest.
+
+wave seems… a lot of work for basically nothing.
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (paintFrame frame)
+    (let ((bottomLeft (frame-origin frame))
+	  (bottomRight (add-vec (frame-origin frame) (frame-edge1 frame)))
+	  (topRight (add-vec bottomRight (frame-edge2 frame)))
+	  (topLeft (add-vec (frame-origin frame) (frame-edge2 frame))))
+      (segmemts->painter
+       (list
+	(make-segment bottomLeft bottomRight)
+	(make-segment bottomRight topRight)
+	(make-segment topRight topLeft)
+	(make-segment topLeft bottomLeft)
+	))
+      frame))
+#+END_SRC
+
+** 2.50
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (flip-hori painter)
+    (transform-painter painter
+		       (make-vect 0.0 1.0)
+		       (make-vect 1.0 1.0)
+		       (make-vect 0.0 0.0)))
+#+END_SRC
+
+
+So, origin is now (0, 1).
+New x points to (1, 1)
+And, y points to (0, 0).
+Basically, everything is now upside down.
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (rotate180 painter) (rotate90 (rotate90 painter)))
+#+END_SRC
+
+I mean, really.
+270 works the same way.
+
+The point here is to minimize where things can go wrong.
+Applying a rotation twice is straightforward.
+So, then, leave 90 as the only complex operation.
+
+Or, create a general function that works with any degree.
+
+** 2.51
+
+So, one option is to squish and shift origin.
+The other is to squish, rotate 270, and mirror along the y-axis.
+
+** 2.52
+
+I'm good, for now.
+
+Maybe someday I'll come back to this and see if there's a way to get everything to display…
+
+** 2.53
+
+#+name: def-memq
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (memq item x)
+  (cond ((null? x) false)
+        ((eq? item (car x)) x)
+        (else (memq item (cdr x)))))
+#+END_SRC
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-memq>>
+
+  (list 'a 'b 'c) ; (a b c)
+  (list (list 'george)) ; ((george))
+  (cdr '((x1 x2) (y1 y2))) ; ((y1 y2)) - we're getting the list, just without the first element.
+  (cadr '((x1 x2) (y1 y2))) ; (y1 y2)
+  (pair? (car '(a short list))) ; #f - just 'a. though… (pair? (cddr '(a short list))) is #t, as list.
+  (memq 'red '((red shoes) (blue socks))) ; #f, as red isn't in the main list.
+  (memq 'red '(red shoes blue socks)) ; the entire list, as red is the first thing.
+#+END_SRC
+
+#+RESULTS:
+: (a b c)
+: ((george))
+: ((y1 y2))
+: (y1 y2)
+: #f
+: #f
+: (red shoes blue socks)
+
+** 2.54
+
+#+name: def-my-equal?
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (my-equal? l1 l2)
+    (if (or (null? l1) (null? l2))
+	true
+	(and (eq? (car l1) (car l2)) (my-equal? (cdr l1) (cdr l2)))))
+#+END_SRC
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-my-equal?>>
+  (my-equal? '(a b) '(c d))
+  (my-equal? '(a b) '(a b))
+#+END_SRC
+
+#+RESULTS:
+: #f
+: #t
+
+I think this is what's being requested.
+This is similar to how I did valid? for 8-queens.
+For a similar or implementation DeMorgan.
+Base case is false, and build up with or.
+Though, something iterative would be better, as you can skip everything after finding a matching pair.
+
+
+** 2.55
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(car ''abracadabra)
+(cddr ''abracadabra)
+
+;; (car 'abracadabra)
+;; (cdr 'abracadabra)
+#+END_SRC
+
+I mean, I'm not sure we've been told enough here.
+If we do car we get quote, and if we do cdr we get 'abracadabra.
+But, ' doesn'6 make a list.
+(car 'abracadabra) fails.
+
+Well, idea is ' is just a procedure.
+So, 'abc is really (' a b c) or something of the sort.
+And, as the procedure is quoted and is just a list, then everything inside is quoted.
+
+(cddr ''abracadabra) is just the empty list.
+
+This is easay to test:
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(quote abc)
+#+END_SRC
+
+Yeah, seems about right.
+
+** 2.56
+
+#+name: sc-def-my-deriv
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+      (define (variable? e)
+	(symbol? e))
+
+
+      (define (same-variable? v1 v2)
+	(and (variable? v1) (variable? v2) (equal? v1 v2))) ; Huh, so this includes checks for variables.
+
+
+    (define (sum? e)
+      (and (pair? e) (eq? (car e) '+)))
+
+
+  (define (augend e)
+    (if (null? (cdddr e))
+	(caddr e)
+	(cons '+ (cddr e))))
+
+
+  (define (addend e)
+    (cadr e))
+
+
+  (define (make-sum a1 a2)
+    (cond ((=number? a1 0) a2)
+	  ((=number? a2 0) a1)
+	  ((and (number? a1) (number? a2)) (+ a1 a2))
+	  (else (list '+ a1 a2)))
+    )
+
+
+  (define (product? e)
+    (and (pair? e) (eq? (car e) '*)))
+
+
+  (define (multiplier e)
+    (if (and (pair? e) (pair? (cdr e))) ; okay, these checks are skipped.
+	(cadr e)                        ; in part I understand. As pair? is a predicate.
+	(error "not really a mult")))   ; And, pair? is still nice so long as we evaluate as needed and and is defined to use this.
+
+
+  (define (multiplicand e)
+    (if (null? (cdddr e))
+	(caddr e)
+	(cons '* (cddr e))))
+
+
+  (define (make-product m1 m2)
+    (cond ((or (=number? m1 0) (=number? m2 0)) 0)
+	  ((=number? m1 1) m2)
+	  ((=number? m2 1) m1)
+	  ((and (number? m1) (number? m2)) (* m1 m2))
+	  (else (list '* m1 m2))))
+
+
+  (define (=number? exp num)
+    (and (number? exp) (= exp num)))
+
+  (define (exponentiation? e)
+    (and (pair? e) (eq? (car e) '^)))
+
+
+  (define (make-exponent b e)
+    (cond ((=number? e 0) 1)
+	  ((=number? e 1) b)
+	  (else (list '^ b e)))
+    )
+
+  (define (exponent e)
+    (caddr e))
+
+  
+  (define (base e)
+    (cadr e))
+
+
+  (define (my-deriv exp var)
+    (cond ((number? exp) 0)
+	  ((variable? exp)
+	   (if (same-variable? exp var) 1 0))
+	  ((sum? exp)
+	   (make-sum (my-deriv (addend exp) var)
+		     (my-deriv (augend exp) var)))
+	  ((product? exp) (make-sum
+			   (make-product (multiplier exp)
+					 (my-deriv (multiplicand exp) var))
+			   (make-product (my-deriv (multiplier exp) var)
+					 (multiplicand exp))))
+	  ((exponentiation? exp) (make-product
+				  (make-product
+				   (exponent exp)
+				   (make-exponent var (- (exponent exp) 1)))
+				  (my-deriv (base exp) var)
+				  ))
+	  (else
+	   (error "unknown expression type -- DERIV" exp))))
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<sc-def-my-deriv>>
+  (my-deriv (make-product 0 'x) 'x)
+  (my-deriv '(+ x 3 4) 'x)
+  (my-deriv '(* x y z 5) 'x)
+  (my-deriv '(^ x 2) 'x)
+  (my-deriv '(^ x 3) 'x)
+  (my-deriv '(+ 5 (^ x 3)) 'x)
+  (my-deriv '(* x y (+ x 3)) 'x)
+#+END_SRC
+
+#+RESULTS:
+: 0
+: 1
+: (* y z 5)
+: (* 2 x)
+: (* 3 (^ x 2))
+: (* 3 (^ x 2))
+: (+ (* x y) (* y (+ x 3)))
+
+
+** 2.57
+
+Modified above.
+
+Though, I don't like this.
+For, these expressions as written aren't using make-product, etc.
+And, when using make-porduct, there's no way to 'officially' construct something of this kind.
+
+Of course, we can extend.
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (make-sum-wild a)
+  (cond
+    ; First condition, check if everything in the list is a number, if so sum
+    ((accumulate (lambda (x y) (and (number? x) y)) true a) (accumulate + 0 a))
+    (else
+     ; Else, we have some symbols.
+     ; So, sum what we can, and collect all the variables.
+     (let ((sumNum (accumulate + 0 (filter number? a)))
+           (sumSym (filter (lambda (x) (not (number? x))) a)))
+       ; Then, make a list.
+       ; As we know sumSym is non-empty and the rest are literals, easiest to cons
+       ; But, check to see whether there's any sense making the list
+       (cond ((and (= sumNum 0) (= 1 (length sumSym))) (car sumSym))
+             ((= sumNum 0) (cons '+ sumSym))
+             (else (cons '+ (cons sumNum sumSym))))))))
+#+END_SRC
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (make-product-wild m)
+  (cond ((memq 0 m) 0)
+        ((accumulate (lambda (x y) (and (number? x) y)) true m) (accumulate * 1 m))
+        (else
+         (let ((multNum (accumulate * 1 (filter number? m)))
+               (multSym (filter (lambda (x) (not (number? x))) m)))
+           (cond ((and (= multNum 1) (= 1 (length multSym))) multSym)
+                 ((= 1 multNum) (cons '* multSym))
+                 (else (cons '* (cons multNum multSym)))
+               )))))
+#+END_SRC
+
+These work kind of nice, at least outside of deriv.
+The problem is, these reduce too effectively.
+And, deriv expects at least something binary.
+
+So, I could reverse a little.
+These setters could be written to match up with deriv and the way it works internally.
+But, ugh.
+At this point we have to modify deriv.
+As, there's no way to allow the user to give a list, and for deriv to provide two arguments.
+
+
+** 2.58
+
+With infix and explicit parentheses, this amounts to reverting the representation of sum and product to work with two arguments and then updating where the symbol is stored.
+
+After the mess of the previous question, I have no interest in the second part of this.
+The simplest approach would be to create a process which rewrites the expression with correct parentheses.
+Then, only need to pass the argument through this proc.
+
+Else, as seen above, deriv no longer works.
+
+Oh, does this mean the question is done?
+
+The answer is no.
+For, there's no way to build a constructor that allows the user to write expressions of this form while preserving the internals of deriv.
+
+Ah, though maybe there is.
+For example, we could write a proc which takes a single argumnet.
+Then, depending on the value, does something or takes another argument.
+In this way, we could test for a list, and if not then take on the second argument.
+
+
+** 2.59
+
+#+name: def-element-of-set?
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (element-of-set? x set)
+  (cond ((null? set) false)
+        ((equal? x (car set)) true)
+        (else (element-of-set? x (cdr set)))))
+#+END_SRC
+
+#+RESULTS: def-element-of-set?
+
+#+name: def-union-set
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (union-set set1 set2)
+  <<def-element-of-set?>>
+    (cond ((null? set1) set2)
+	  ((element-of-set? (car set1) set2) (union-set (cdr set1) set2))
+	  (else (union-set (cdr set1) (cons (car set1) set2)))
+	))
+#+END_SRC
+
+#+RESULTS: def-union-set
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-union-set>>
+  (union-set (list 1 2 3) (list 3 4 5))
+#+END_SRC
+
+#+RESULTS:
+: (2 1 3 4 5)
+
+** 2.60
+
+Nothing needs to change with element-of-set? and intersection-set.
+element-of-set? works through a list and checks to see if x is equal to anything on the list.
+Nothing changes if duplicates are allowed.
+Likewise, intersection-set remains the same. Work through each element in set1 and check whether it's in set2.
+
+union-set can remain the same, or can be simplified.
+All we really need to do is (append set1 set2).
+Though, avoiding this helps with efficiency.
+
+Speaking of, if we're measuring runtimes by the size of the set, then any particular instance will be at least as slow.
+Though, there's no substantial change.
+In particular, intersection will keep the runtime down, and union too if the original is kept.
+
+I can't think of an interesting application.
+If writing is cheap and reading is expensive, and you're not transforming sets much, then repetitions works better.
+But, I'm not sure when this is the case.
+
+** 2.61
+
+#+name: def-adjoin-set-o
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (adjoin-set-o e set)
+  (cond ((null? set) (list e))
+        ((= e (car set)) set)
+        ((< e (car set)) (cons e set))
+        (else (cons (car set) (adjoin-set-o e (cdr set))))
+        ))
+#+END_SRC
+
+#+RESULTS: def-adjoin-set-o
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-adjoin-set-o>>
+  (adjoin-set-o 4 (list 1 2 3 5 6 7))
+  (adjoin-set-o 0 (list 1 2 3 5 6 7))
+  (adjoin-set-o 8 (list 1 2 3 5 6 7))
+  (adjoin-set-o 8 (list 1 9 3 5 6 7))
+#+END_SRC
+
+#+RESULTS:
+: (1 2 3 4 5 6 7)
+: (0 1 2 3 5 6 7)
+: (1 2 3 5 6 7 8)
+: (1 8 9 3 5 6 7)
+
+** 2.62
+
+#+name: def-union-set-o
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (union-set-o set1 set2)
+  (cond ((null? set1) set2)
+        ((null? set2) set1)
+        ((= (car set1) (car set2)) (union-set-o (cdr set1) set2))
+        ((< (car set1) (car set2)) (cons (car set1) (union-set-o (cdr set1) set2)))
+        ((< (car set2) (car set1)) (cons (car set2) (union-set-o set1 (cdr set2))))))
+#+END_SRC
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-union-set-o>>
+  (union-set-o (list 1 2 3) (list 4 5 6))
+  (union-set-o (list 1 2 3) (list 1 2 3))
+  (union-set-o (list 4 5 6) (list 1 2 3))
+  (union-set-o (list 1 4) (list 2 3))
+#+END_SRC
+
+#+RESULTS:
+: (1 2 3 4 5 6)
+: (1 2 3)
+: (1 2 3 4 5 6)
+: (1 2 3 4)
+
+** 2.63
+
+#+name: sc-tree
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (entry tree) (car tree))
+
+  (define (left-branch-tree tree) (cadr tree))
+
+  (define (right-branch-tree tree) (caddr tree))
+
+  (define (make-tree entry left right)
+    (list entry left right))
+#+END_SRC
+
+#+RESULTS: sc-tree
+
+#+name: def-element-of-set?-tree
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (element-of-set?-tree x set)
+    <<sc-tree>>
+    (cond ((null? set) false)
+	  ((= x (entry set)) true)
+	  ((< x (entry set)) (element-of-set?-tree x (left-branch-tree set)))
+	  (else (element-of-set?-tree x (right-branch-tree set)))))
+#+END_SRC
+
+#+RESULTS:
+
+#+name: def-adjoin-set
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (adjoin-set x set)
+    <<sc-tree>>
+    (cond ((null? set) (make-tree x nil nil))
+	  ((= x (entry set)) set)
+	  ((< x (entry set)) (make-tree (entry set) (adjoin-set x (left-branch-tree set)) (right-branch-tree set)))
+	  ((> x (entry set)) (make-tree (entry set) (left-branch-tree set) (adjoin-set x (right-branch-tree set))))))
+#+END_SRC
+
+#+RESULTS: adjoin-set
+
+#+name: def-tree->list-1
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (tree->list-1 tree)
+    <<sc-tree>>
+    (if (null? tree)
+	'()
+	(append (tree->list-1 (left-branch-tree tree))
+		(cons (entry tree)
+		      (tree->list-1 (right-branch-tree tree))))))
+#+END_SRC
+
+#+RESULTS: def-tree->list-1
+
+#+name: def-tree->list-2
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (tree->list-2 tree)
+    <<sc-tree>>
+    (define (copy-to-list tree result-list)
+      (if (null? tree)
+	  result-list
+	  (copy-to-list (left-branch-tree tree)
+			(cons (entry tree)
+			      (copy-to-list (right-branch-tree tree) result-list)))))
+    (copy-to-list tree '()))
+#+END_SRC
+
+#+RESULTS: def-tree->list-2
+
+#+RESULTS:
+
+#+name: consts-2.16
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<sc-tree>>
+
+  (define 2.16a (make-tree 7 (make-tree 3 (make-tree 1 nil nil) (make-tree 5 nil nil)) (make-tree 9 nil (make-tree 11 nil nil))))
+  (define 2.16b (make-tree 3 (make-tree 1 nil nil) (make-tree 7 (make-tree 5 nil nil) (make-tree 9 nil (make-tree 11 nil nil)))))
+  (define 2.16c (make-tree 5 (make-tree 3 (make-tree 1 nil nil) nil) (make-tree 9 (make-tree 7 nil nil) (make-tree 11 nil nil))))
+#+END_SRC
+
+#+RESULTS: consts-2.16
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (tree->list-1 2.16a)
+  (tree->list-1 2.16b)
+  (tree->list-1 2.16c)
+
+  (tree->list-2 2.16a)
+  (tree->list-2 2.16b)
+  (tree->list-2 2.16c)
+#+END_SRC
+
+#+RESULTS:
+: (1 3 5 7 9 11)
+: (1 3 5 7 9 11)
+: (1 3 5 7 9 11)
+: (1 3 5 7 9 11)
+: (1 3 5 7 9 11)
+: (1 3 5 7 9 11)
+
+
+I think it's clear these are equivalent by inspection.
+Though, trees of Diag. 2.16 written up.
+
+And, tree->list-2 is more efficient.
+The key difference is the way recursion is structured.
+
+tree->list-1 does recursion on both branches at the same time.
+This leads to needing to combine two lists.
+No problem with pointers, but here this means a lot of car and cdr.
+
+tree->list-2 does recursion on the right braches and then on the left.
+So, on the close of a recursion call the only task is to add whatever the current entry is.
+Everything to the right is already reduced to a list.
+
+
+** 2.64
+
+partial-tree takes two arguments:
+
+1. elts a list of elements
+2. n an integer such that m ≤ (length elts)
+
+The result is a balanced binary tree containing the first n elements of elts.
+For exposition, we assume n = (length elts).
+
+This is recursive.
+And, the very short version is partial-tree splits elts into half, save for the middle element.
+partial-tree is then applied to the left and right 'havles' and the result of partial-tree forms the left and right branches associated with the current element.
+This recusrive application stops when there are no more elements in elts.
+
+We can be sure this creates a balanced tree as by assumption elts is ordered.
+If n is odd, there there's a unique middle element for the root.
+And, if n is even then we can choose either (floor (/ n 2)) or (ceil (/ n 2)) as we can't do any better than a slightly lopsided tree.
+
+Visually, the process is something like this, from left to right (where the last step incorporates a couple of recursive calls.)
+
+                   3               3
+                 /   \            / \
+(1 2 3 4 5)   (1 2)  (4 5)       2   4
+                                /     \
+                               1       5
+
+Growth should be n.
+For, each recursive call is tasked with half the work, intuitively.
+However, we still need to do the work on both halves.
+
+
+** 2.65
+
+For union, the easiest thing to do is adjoin.
+The problem is, there's no guarantee this makes a balanced tree.
+but, adjoin should be (log n), hence this would be (n log n).
+
+I don't think anything quite so fancy is expected.
+
+First, we can flatten both sets.
+This can be done in Theta(n) using tree->list-2.
+Then, as the lists are ordered, it's easy to combine these.
+This is just union for the ordered list representation.
+Finally, we rebuild the set.
+This is then n.
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (union-set-b set1 set2)
+    <<def-union-set-o>>
+    <<def-tree->list-2>>
+    (let ((unionOL (union-set-o (tree->list-2 set1) (tree->list-2 set2))))
+      (partial-tree unionOL (length unionOL))))
+#+END_SRC
+
+#+RESULTS:
+: /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-FXoiQY/org-babel-fr1Rhe.rkt:27:5: partial-tree: unbound identifier
+:   in: partial-tree
+:   location...:
+:    /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-FXoiQY/org-babel-fr1Rhe.rkt:27:5
+
+Intersection is then analogous.
+
+Note, creating a tree by adjoining each element wound't be as effective.
+This would be n log n in the worst case, as the final adjoinment might need to go through the entire tree.
+But, this isn't what we're doing.
+When we have an ordered set, there's no need to search through a tree.
+
+From a slightly broader perspective, then, we have a new structure which allows for some operations to be faster.
+And, for some difficult operations with the new structure, we have a way to transform the new structure into an older structure where the operations are fairly simple.
+And, this is done in a fairly effective way.
+
+This does take some work, and Theta may be hiding some real-world overhead of transforming between structures.
+But, this is very nice.
+And, a great way to make an incremental improvement.
+Indeed, it's easy to convert all of the old ordered list sets into binary tree sets.
+
+** 2.66
+
+#+name: def-lookup-b
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (lookup-b e set)
+    <<sc-tree>>
+    (cond ((null? set) false)
+	  ((= (entry set) e) true)
+	  (else (or (lookup-b e (left-branch-tree set)) (lookup-b e (right-branch-tree set))))))
+#+END_SRC
+
+#+RESULTS: def-lookup-b
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-lookup-b>>
+  <<consts-2.16>>
+  (lookup-b 1 2.16a)
+  (lookup-b 2 2.16b)
+  (lookup-b 9 2.16c)
+#+END_SRC
+
+#+RESULTS:
+: #t
+: #f
+: #t
+
+Straightfoward.
+Can't do better than n as may need to check every node.
