@@ -1,4 +1,4 @@
-#+name: consts
+#+name: consts-
 #+name: sc-
 #+name: def-
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
@@ -36,6 +36,7 @@ So, to avoid this issue, references are inlined when possible.
 This is inefficient, and a little messy.
 
 But, I think it's an okay trade-off.
+
 
 * Chapter 1
 
@@ -11628,7 +11629,6 @@ So:
                  = (λ (p q) q) x y
                  = y
 
-
 ** 2.5
 
 To pair the numbers use any exponentiation procedure which takes base and exponent arguments.
@@ -12028,7 +12028,6 @@ It's a mistake to think operations on fixed values apply equally to intervals or
 (last-pair (list ))
 #+END_SRC
 
-
 ** 2.18
 
 See reverse as a special case of appending in reverse.
@@ -12062,7 +12061,6 @@ It's not easy write, though, as you need to traverse through every element until
 
 Though, you'd expect this to be the case in general.
 We need to keep track of things, and the easy-write probably changes more than the easy to read thing.
-
 
 ** 2.19
 
@@ -12258,7 +12256,6 @@ Though, moving to pointers things are very easy, especially if the length of the
 
 This is basically a tree which immediately terminates when branching to the left.
 
-
 ** 2.25
 
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
@@ -12351,15 +12348,15 @@ lx2
 
 #+name: def-fringe
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
-(define (fringe tree)
-  (cond ((and (not (pair? tree)) (not (null? tree))) (list tree))
-        ((not (pair? tree)) nil)
-        (else
-         (append (fringe (car tree)) (fringe (cdr tree)))
-         )
-        )
-  )
+  (define (fringe tree)
+    (cond ((and (not (pair? tree)) (not (null? tree))) (list tree))
+	  ((not (pair? tree)) nil)
+	  (else
+	   (append (fringe (car tree)) (fringe (cdr tree)))
+	   )))
 #+END_SRC
+
+#+RESULTS: def-fringe
 
 
 #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
@@ -12468,6 +12465,10 @@ Else, it's an int representing some weight.
   (define m2 (make-mobile lb1 rb2))
   (define lb2 (make-branch 1 m1))
   (define m3 (make-mobile lb2 rb2))
+#+END_SRC
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<consts-m1-m2>>
   (total-weight m1)
   (total-weight m2)
 #+END_SRC
@@ -12756,3 +12757,652 @@ I like abstraction, but here I'm not sure what the point is, given we need the d
 #+RESULTS:
 : 3
 : 0
+
+** 2.34
+
+#+name: def-horner-eval
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (horner-eval x coefficient-sequence)
+    <<def-accumulate>>
+    (accumulate (lambda (this-coeff higher-terms) (+ this-coeff (* higher-terms x)))
+		0
+		coefficient-sequence)
+    )
+#+END_SRC
+
+#+RESULTS: def-horner-eval
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-horner-eval>>
+  (horner-eval 2 (list 1 3 0 5 0 1))
+#+END_SRC
+
+#+RESULTS:
+: 79
+
+Right, I figured out the goal was to modify addition.
+But, the choice of a and b was guess work.
+I originially had (+ (* a x) b).
+Thinking that a would be a_n at first.
+But, it's not really higher-terms, it's higher-terms already done, right?
+
+It's, what's already been done with the higher-terms, or something like this.
+
+Right, this is clear when looking at the definition of accumulate.
+We have op applied to the current first thing in the sequence and the rest.
+So, by higher-terms this is the op-defined as applied to all the higher-terms from the current term.
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (horner-test x coefficient-sequence)
+    <<def-accumulate>>
+    (accumulate (lambda (this-coeff higher-terms) (display higher-terms) (newline) this-coeff higher-terms)
+		0
+		coefficient-sequence))
+
+  (horner-test 2 (list 1 3 0 5 0 1))
+#+END_SRC
+
+#+RESULTS:
+: 0
+: 0
+: 0
+: 0
+: 0
+: 0
+: 0
+
+This 'test' is kind of useless, as higher-terms is the result of evaluating higher terms, not the other terms to evaluate.
+
+At this point in the book we're not only learning about the way abstractions are useful.
+But, we're also learning about the way remembering what the abstractions really do is also useful.
+
+** 2.35
+
+#+name: def-
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (count-leaves-acc tree)
+    <<def-accumulate>>
+    <<def-fringe>>
+    (accumulate + 0 (map (lambda (x) 1 ) (fringe tree)))
+    )
+
+  <<consts-m1-m2>>
+  (count-leaves-acc m2)
+#+END_SRC
+
+#+RESULTS: def-
+: 7
+
+As I missing something here?
+With an accumulator we need a list.
+So, somehow we need to collapse the tree into a list.
+fringe does this.
+Then, somehow accumulate the elements of the list to get the number of leaves.
+Well, here then just set every leaf value to 1.
+
+** 2.36
+
+Here, a way to make a list of the first elements of the lists.
+Then, the rest of the lists.
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(list (list 1 2 3) (list 4 5 6) (list 7 8 9 ) (list 10 1 1 12))
+#+END_SRC
+
+#+name: def-accumulate-n
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (accumulate-n op init seqs)
+    <<def-accumulate>>
+    <<def-my-map>>
+    (if (null? (car seqs))
+	nil
+	(cons (accumulate op init (my-map car seqs))
+			  (accumulate-n op init (my-map cdr seqs)))))
+#+END_SRC
+
+#+RESULTS: def-accumulate-n
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-accumulate-n>>
+    (accumulate-n + 0 (list (list 1 2 3) (list 4 5 6) (list 7 8 9 ) (list 10 11 12)))
+#+END_SRC
+
+#+RESULTS:
+: (22 26 30)
+
+Alright, this exercise was really cool!
+
+** 2.37
+
+#+name: consts-test-matrix
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define test-matrix (list (list 1 2 3 4) (list 4 5 6 6) (list 6 7 8 9)))
+#+END_SRC
+
+#+name: def-dot-product
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (dot-product v w)
+    <<def-accumulate>>
+    (accumulate + 0 (map * v w)))
+#+END_SRC
+
+#+RESULTS: def-dot-product
+
+Hold on, we defined map to take a proc and a list.
+Yet, here, map takes a proc and two lists.
+So, here we're using the base map mentioned in Footnote 12.
+This takes a procedure of n arguments and n lists.
+Then, applies the procedure to the ith element in each of the lists.
+
+Oh, right, *this* is in footnote 17.
+
+#+name: def-matrix-*-vector
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (matrix-*-vector m v)
+    <<def-dot-product>>
+    (map (lambda (row) (dot-product row v)) m))
+#+END_SRC
+
+#+RESULTS: def-matrix-*-vector
+
+#+name: def-transpose
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (transpose m)
+    <<def-accumulate-n>>
+    (accumulate-n cons nil m))
+#+END_SRC
+
+#+RESULTS: def-transpose
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-transpose>>
+  (transpose (list (list 1 2) (list 3 4) (list 5 6)))
+#+END_SRC
+
+#+RESULTS:
+: ((1 3 5) (2 4 6))
+
+#+name: def-matrix-*-matrix
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (matrix-*-matrix m n)
+    <<def-transpose>>
+    <<def-matrix-*-vector>>
+    (let ((cols (transpose n)))
+      (map (lambda (x) (matrix-*-vector cols x)) m)))
+#+END_SRC
+
+#+RESULTS: def-matrix-*-matrix
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-matrix-*-matrix>>
+  (matrix-*-matrix (list (list 2 3 4)
+			 (list 1 0 0))
+		   (list (list 0 1000)
+			 (list 1 100)
+			 (list 0 10)))
+#+END_SRC
+
+#+RESULTS:
+: ((3 2340) (0 1000))
+
+** 2.38
+
+#+name: def-fold-left
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (fold-left op initial sequence)
+  (define (iter result rest)
+    (if (null? rest)
+        result
+        (iter (op result (car rest))
+              (cdr rest))))
+  (iter initial sequence)
+  )
+#+END_SRC
+
+#+RESULTS: def-fold-left
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-accumulate>>
+  <<def-fold-left>>
+
+  (accumulate / 1 (list 1 2 3)) ;  1 / (2 / 3)
+  (fold-left / 1 (list 1 2 3))  ; (1 / 2) / 3
+  (accumulate list nil (list 1 2 3)) ; With cons, the same list.
+				     ; With list, (list … (list nil))
+				     ; So, (1 (2 (3 ())))
+  (fold-left list nil (list 1 2 3)) ; With cons, (((nil 1) 2) 3)
+				    ; With list, (list (list nil 1) 2)
+#+END_SRC
+
+#+RESULTS:
+: 3/2
+: 1/6
+: (1 (2 (3 ())))
+: (((() 1) 2) 3)
+
+I mean, op should be such that (op x y) = (op y x)
+Right, commutative.
+
+Hence, +, *, etc should work fine
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-accumulate>>
+  <<def-fold-left>>
+  (= (accumulate * 1 (list 1 2 3)) (fold-left * 1 (list 1 2 3)))
+  (= (accumulate + 0 (list 2 3 5 9)) (fold-left + 0 (list 2 3 5 9)))
+#+END_SRC
+
+#+RESULTS:
+: #t
+: #t
+
+Things like list fail as (list 2 3) = (2 3) != (3 2) = (list 3 2).
+Same for /, ^, etc.
+
+** Ex. 2.39
+
+#+name: def-filter
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (filter predicate sequence)
+  (cond ((null? sequence) nil)
+        ((predicate (car sequence))
+        (cons (car sequence)
+              (filter predicate (cdr sequence))))
+        (else (filter predicate (cdr sequence)))))
+#+END_SRC
+
+#+RESULTS: def-filter
+
+TODO
+
+reverse-fr isn't it.
+But, I'm drawing blanks.
+
+The issue is, append-elem is a 'worse' version of append.
+In that, with appened-elem we make all the same recursive calls, and all but the last are kind of pointless.
+While, in the case of append these can be used for other elements.
+
+I'm really drwawing blanks on a way to do this without refering to the procedure by name.
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (append-elem e list)
+    (if (null? list)
+	(cons e nil)
+	(cons (car list) (append-elem e (cdr list)))
+	)
+    )
+
+  (define (reverse-fr sequence)
+    <<def-accumulate>>
+    <<def-append-elem>>
+    (accumulate (lambda (x y) (append-elem x y)) nil sequence))
+
+  (reverse-fr (list 1 2 3))
+#+END_SRC
+
+#+RESULTS:
+: (3 2 1)
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (reverse-fl sequence)
+    <<def-fold-left>>
+    (fold-left (lambda (x y) (cons y x)) nil sequence))
+
+  (reverse-fl (list 1 2 3))
+#+END_SRC
+
+#+RESULTS:
+: (3 2 1)
+
+#+name: def-flatmap
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (flatmap proc seq)
+    <<def-accumulate>>
+    (accumulate append nil (map proc seq)))
+#+END_SRC
+
+#+RESULTS: def-flatmap
+
+#+name: def-enumerate-interval
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (enumerate-interval low high)
+  (if (> low high)
+      nil
+      (cons low (enumerate-interval (+ low 1) high))))
+#+END_SRC
+
+#+RESULTS: def-enumerate-interval
+
+#+name: def-prime-sum?
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (prime-sum? pair)
+    <<def-prime?>>
+    (prime? (+ (car pair) (cadr pair))))
+#+END_SRC
+
+#+name: def-make-pair-sum
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (make-pair-sum pair)
+    (list (car pair) (cadr pair) (+ (car pair) (cadr pair))))
+#+END_SRC
+
+#+name: def-prime-sum-pairs
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (prime-sum-pairs n)
+    <<def-filter>>
+    <<def-enumerate-interval>>
+    <<def-flatmap>>
+    <<def-make-pair-sum>>
+    <<def-prime-sum?>>
+    (map make-pair-sum
+	 (filter prime-sum?
+		 (flatmap
+		  (lambda (i)
+		    (map (lambda (j) (list i j))
+			 (enumerate-interval 1 (- i 1))))
+		  (enumerate-interval 1 n)))))
+#+END_SRC
+
+#+RESULTS: def-prime-sum-pairs
+
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-enumerate-interval>>
+  <<def-flatmap>>
+  <<def-prime-sum-pairs>>
+
+  (prime-sum-pairs 10)
+  (enumerate-interval 1 10)
+  (flatmap
+   (lambda (i) (map (lambda (j) (list i j)) (enumerate-interval 1 (- i 1))))
+   (enumerate-interval 1 10))
+  (flatmap (lambda (x) (list x x)) (enumerate-interval 1 10))
+#+END_SRC
+
+#+RESULTS:
+: ((2 1 3) (3 2 5) (4 1 5) (4 3 7) (5 2 7) (6 1 7) (6 5 11) (7 4 11) (7 6 13) (8 3 11) (8 5 13) (9 2 11) (9 4 13) (9 8 17) (10 1 11) (10 3 13) (10 7 17) (10 9 19))
+: (1 2 3 4 5 6 7 8 9 10)
+: ((2 1) (3 1) (3 2) (4 1) (4 2) (4 3) (5 1) (5 2) (5 3) (5 4) (6 1) (6 2) (6 3) (6 4) (6 5) (7 1) (7 2) (7 3) (7 4) (7 5) (7 6) (8 1) (8 2) (8 3) (8 4) (8 5) (8 6) (8 7) (9 1) (9 2) (9 3) (9 4) (9 5) (9 6) (9 7) (9 8) (10 1) (10 2) (10 3) (10 4) (10 5) (10 6) (10 7) (10 8) (10 9))
+: (1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9 10 10)
+
+flatmap
+
+We take a procedure and a list.
+The list can be of plain elements.
+However, the procedure must return pairs.
+So, in this case, after applying the procedure with map, we have a list of lists.
+Or, at least, each elemnt mapped over is replaced by a list.
+Flatmap then flattens this, so the original list is expanded with additional elements, but these aren't themselves inside a list.
+
+
+** 2.40
+
+#+name: def-unique-pairs
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (unique-pairs n)
+    <<def-flatmap>>
+    <<def-enumerate-interval>>
+    (flatmap (lambda (i) (map (lambda (j) (list i j)) (enumerate-interval 1 (- i 1)))) (enumerate-interval 1 n))
+    )
+#+END_SRC
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-unique-pairs>>
+  (unique-pairs 10)
+
+
+  (define (prime-sum-pairs-up n)
+    <<def-make-pair-sum>>
+    <<def-filter>>
+    <<def-prime-sum?>>
+    (map make-pair-sum
+	 (filter prime-sum?
+		 (unique-pairs n)))
+    )
+
+  (prime-sum-pairs-up 10)
+#+END_SRC
+
+#+RESULTS:
+: ((2 1) (3 1) (3 2) (4 1) (4 2) (4 3) (5 1) (5 2) (5 3) (5 4) (6 1) (6 2) (6 3) (6 4) (6 5) (7 1) (7 2) (7 3) (7 4) (7 5) (7 6) (8 1) (8 2) (8 3) (8 4) (8 5) (8 6) (8 7) (9 1) (9 2) (9 3) (9 4) (9 5) (9 6) (9 7) (9 8) (10 1) (10 2) (10 3) (10 4) (10 5) (10 6) (10 7) (10 8) (10 9))
+: ((2 1 3) (3 2 5) (4 1 5) (4 3 7) (5 2 7) (6 1 7) (6 5 11) (7 4 11) (7 6 13) (8 3 11) (8 5 13) (9 2 11) (9 4 13) (9 8 17) (10 1 11) (10 3 13) (10 7 17) (10 9 19))
+
+But, this was just cutting apart the definition of prime-sum-pairs…
+
+Or was this the point? To make sure the reader understands what's going on…
+
+** 2.41
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (unique-triples n)
+    <<def-flatmap>>
+    <<def-unique-pairs>>
+    <<def-enumerate-interval>>
+
+    (flatmap (lambda (i) (map (lambda (j) (cons i j)) (unique-pairs (- i 1)))) (enumerate-interval 1 n))
+    )
+
+
+  (define (unique-triples-to-n-sum-to-s n sum)
+    <<def-filter>>
+    <<def-accumulate>>
+    (filter (lambda (x) (= sum (accumulate + 0 x))) (unique-triples n))
+    )
+
+  (unique-triples-to-n-sum-to-s 10 10)
+#+END_SRC
+
+#+RESULTS:
+: ((5 3 2) (5 4 1) (6 3 1) (7 2 1))
+
+
+** 2.42 (Queens)
+
+Function which takes an index and a list.
+Returns a ist where the first element is what was at the index, and the second elemnt is the list without the element at the index.
+
+That is, the list with the ith element now the 0th element.
+
+Originally this was thought of as the ith element removed and the rest of the list, but shifting to front is a more natural perspective.
+
+Index starts at 0.
+
+#+name: def-shift-to-front
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (shift-to-front i list)
+    (define (shift-list-i old new i n)
+      (if (= i n)
+	  (cons (car old) (cons (cdr old) new))
+	  (shift-list-i (cons (car new) old) (cdr new) i (+ n 1))))
+    (define (recombine old new)
+      (if (null? old)
+	  new
+	  (recombine (cdr old) (cons (car old) new)))
+      )
+    (let ((split (shift-list-i nil list i -1)))
+      (cons (car split) (recombine (car (cdr split)) (cdr (cdr split))))
+      ))
+#+END_SRC
+
+#+RESULTS: def-shift-to-front
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-shift-to-front>>
+  (cdr (shift-to-front 3 (list 1 2 3 4 5 6)))
+#+END_SRC
+
+#+RESULTS:
+: (1 2 3 5 6)
+
+
+A variant of map.
+Instead of applying each item to proc, we apply a number corresponding to the instance of map and the item.
+So, for example, (map-i proc (a b)) does (proc 0 a) and then (proc 1 b).
+
+#+name: def-map-i-to-n
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+(define (map-i-to-n proc items n)
+  (define (map-apply-index proc i items n)
+    (if (or (null? items) (= i n))
+        nil
+        (cons (proc i (car items))
+              (map-apply-index proc (+ i 1) (cdr items) n))))
+  (map-apply-index proc 0 items n))
+#+END_SRC
+
+#+RESULTS: def-map-i-to-n
+
+So, now it's easy to apply shift-to-front diagonally
+
+E.g. (map-i shift-to-front grid) or to be explicit (map-i (lambda (i x) (shift-to-front i x)) grid)
+The latter form is kind of helpful, as it's easy to discard i and only apply x.
+
+Getting all the diagonals of a grid is a little difficult.
+We use map-i-to-n to dynamically shift and limit the mapping.
+
+The problem is whenever we do this, the grid is sure to become a rectangle.
+And, while it's easy to make a function which works with a grid or wide rectange, extending this to a tall rectange isn't easy.
+
+(Basically, (map-i-to-n shift-to-front tallGrid (length tallGrid)) only considers a grid.)
+
+So, we avoid this issue by tranpsoing the grid if needed, to ensure it's always a grid or a wide rectangle.
+It's easy to see diagonals are preserved under this.
+
+The only issue is that this procedure is that it includes the empty list.
+So, filter this out.
+
+#+name: def-get-diags-lr
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (get-diags-lr grid)
+
+  <<def-filter>>
+
+    (define (collect-diag-to diagList grid)
+
+      <<def-shift-to-front>>
+      <<def-transpose>>
+      <<def-map-i-to-n>>
+
+      (if (null? grid)
+	  diagList
+	  (let ((tallGrid (cond ((null? grid) grid)
+				((< (length (car grid)) (length grid)) (transpose grid))
+				(else grid))))
+	    (let ((shifted-list (map-i-to-n shift-to-front tallGrid (length tallGrid))))
+	      (collect-diag-to (append diagList (cons (map car shifted-list) nil)) (map cdr shifted-list))))))
+    (filter (lambda (x) (not (null? x))) (collect-diag-to nil grid)))
+#+END_SRC
+
+#+RESULTS: def-get-diags-lr
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-get-diags-lr>>
+  (get-diags-lr (list (list 1 2 3) (list 4 5 6) (list 7 8 9) (list 10 11 12)))
+#+END_SRC
+
+#+RESULTS:
+: ((1 5 9) (4 8 12) (7 11) (2 6) (3) (10))
+
+get-diags-lr only gets diags going left to right.
+But, given the representation of a grid here, there's an easy fix.
+Apply reverse.
+This gives us a mirror.
+Hence, lr becomes rl.
+
+#+name: def-get-diags-rl
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (get-diags-rl grid)
+  <<def-get-diags-lr>>
+    (get-diags-lr (reverse grid)))
+#+END_SRC
+
+#+RESULTS: def-get-diags-rl
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-enumerate-interval>>
+  (map (lambda (x) (if (= 2 x) 0 x)) (enumerate-interval 1 10))
+#+END_SRC
+
+#+RESULTS:
+: (1 0 3 4 5 6 7 8 9 10)
+
+We'll represent queens as 0s.
+To test whether a board is safe, we check to see there are no two queens in a row column or diagonial.
+get-diags gets us diagonials, grid is built with columsn, and transpose gets us rows.
+
+So, all that's needed is a  couple of functions to ensure each list in a list of lists has at most one instance of a nubmer.
+That's all these two functions do.
+
+#+name: def-count-ns-in-list
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (count-ns-in-list n l)
+    <<def-filter>>
+    (length (filter (lambda (x) (= x n)) l)))
+#+END_SRC
+
+#+RESULTS: def-count-ns-in-list
+
+#+name: def-unique-n?
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (unique-n? n listOfLists)
+    <<def-count-ns-in-list>>
+    (if (null? listOfLists)
+	#t
+	(and (< (count-ns-in-list n (car listOfLists)) 2) (unique-n? n (cdr listOfLists))))
+    )
+#+END_SRC
+
+#+RESULTS: def-unique-n?
+
+#+name: def-queens
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  (define (queens board-size)
+
+    (define empty-board nil)  ; empty-board is nil.
+			      ; adjoin-position will add a row.
+
+    (define (safe? k positions)
+
+      <<def-unique-n?>>
+      <<def-transpose>>
+      <<def-get-diags-lr>>
+      <<def-get-diags-rl>>
+
+      (and (unique-n? 0 (transpose positions)) (unique-n? 0 (get-diags-lr positions)) (unique-n? 0 (get-diags-rl positions))))
+
+    (define (adjoin-position new-row k rest-of-queens)
+
+      <<def-enumerate-interval>>
+
+      (cons (map (lambda (x) (if (= new-row x) 0 x)) (enumerate-interval 1 board-size)) rest-of-queens)
+      ; Place the queen at the new-row position.
+      )
+    (define (queens-cols k)
+
+    <<def-filter>>
+    <<def-flatmap>>
+    <<def-enumerate-interval>>
+
+      (if (= k 0)
+	  (list empty-board)
+	  (filter
+	   (lambda (positions) (safe? k positions))
+	   (flatmap
+	    (lambda (rest-of-queens)
+	      (map (lambda (new-row)
+		     (adjoin-position new-row k rest-of-queens))
+		   (enumerate-interval 1 board-size)))
+	    (queens-cols (- k 1))))))
+    (queens-cols board-size)
+    )
+#+END_SRC
+
+#+RESULTS: def-queens
+
+#+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+  <<def-queens>>
+  (queens 8)
+#+END_SRC
+
+#+RESULTS:
+: (((1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8)) ((1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8)) ((1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8)) ((1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8)) ((1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8)) ((1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8)) ((1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8)) ((1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8)) ((0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8)) ((1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8)) ((1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8)) ((1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8)) ((1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8)) ((0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8)) ((1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8)) ((1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8)) ((1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8)) ((1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8)) ((1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8)) ((1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8)) ((1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8)) ((1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8)) ((1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8)) ((1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8)) ((0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8)) ((1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8)) ((1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8)) ((1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8)) ((1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8)) ((1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8)) ((1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8)) ((1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8)) ((1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8)) ((1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8)) ((1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8)) ((1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8)) ((1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8)) ((1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8)) ((1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8)) ((1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8)) ((1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8)) ((1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 0 8)) ((1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8)) ((1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 0 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 0 8)) ((1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 0 8)) ((1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8)) ((1 2 3 4 0 6 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 3 4 5 6 7 0) (1 0 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8)) ((1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0) (1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8)) ((1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0)) ((1 2 3 4 5 0 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 6 7 0)) ((1 2 3 0 5 6 7 8) (1 2 3 4 5 6 0 8) (1 2 3 4 0 6 7 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (0 2 3 4 5 6 7 8) (1 2 0 4 5 6 7 8) (1 2 3 4 5 6 7 0)) ((1 2 3 4 0 6 7 8) (1 2 3 4 5 6 0 8) (1 0 3 4 5 6 7 8) (1 2 3 4 5 0 7 8) (1 2 0 4 5 6 7 8) (0 2 3 4 5 6 7 8) (1 2 3 0 5 6 7 8) (1 2 3 4 5 6 7 0)))
