@@ -4,11 +4,14 @@
 
 ** code-block syntax
 
-#+begin_quote
+Code blocks are as follows:
+
 : #+name:
 : #+BEGIN_SRC racket :prologue "#lang sicp" :results output :noweb yes
+: wwwww
 : #+END_SRC
-#+end_quote
+
+name is optional.
 
 ** Referenced code-blocks
 
