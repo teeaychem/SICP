@@ -4138,6 +4138,8 @@ At the end, we replace false with the desired error message.
       (else (successive-merge (adjoin-set (make-code-tree (car set) (cadr set)) (cddr set))))))
 #+END_SRC
 
+Testing successive-merge
+
 #+BEGIN_SRC racket
   (define sfp (list (list 'A 4) (list 'B 2) (list 'C 1) (list 'D 1)))
 
@@ -4151,7 +4153,10 @@ At the end, we replace false with the desired error message.
   (encode '(A D A B B C A) (successive-merge (make-leaf-set sfp)))
 #+END_SRC
 
-#+RESULTS:
-: ((leaf A 4) ((leaf B 2) ((leaf D 1) (leaf C 1) (D C) 2) (B D C) 4) (A B D C) 8)
-: ()
-: (0 1 1 0 0 1 0 1 0 1 1 1 0)
+#+NAME: def:generate-huffman-tree-hf
+#+BEGIN_SRC racket
+  (define (generate-huffman-tree pairs)
+    <<def:make-leaf-set-hf>>
+    <<successive-merge-hf>>
+    (successive-merge (make-leaf-set pairs)))
+#+END_SRC
