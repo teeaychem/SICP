@@ -114,9 +114,6 @@ But, I think it's an okay trade-off.
 (/ (+ 5 4 (- 2 (- 3 (+ 6 (/ 4 5))))) (* 3 (- 6 2) (- 2 7)))
 #+END_SRC
 
-#+RESULTS:
-: -37/150
-
 ** 1.3
 
 Sum of squares function.
@@ -1230,13 +1227,15 @@ And, we know φ^2 = φ + 1.
 To figure out how to express φ as a fixed point of x, we'll work through x = φ until we have a non-trivial transformation of x on the rhs.
 So:
 
-x = φ
-x^2 = φ^2 \ Algebra
-x^2 = φ + 1 \ Given
-x^2 = x + 1 \ Initial equality.
-x = (x + 1)/x \ Algebra
-x = (x/x + 1/x) \ Algebra
-x = (1 + 1/x) \ Algebra
+#+BEGIN_SRC racket
+  x = φ
+  x^2 = φ^2 \ Algebra
+  x^2 = φ + 1 \ Given
+  x^2 = x + 1 \ Initial equality.
+  x = (x + 1)/x \ Algebra
+  x = (x/x + 1/x) \ Algebra
+  x = (1 + 1/x) \ Algebra
+#+END_SRC
 
 #+NAME: def:fixed-point
 #+BEGIN_SRC racket
@@ -1514,14 +1513,42 @@ Here, 1 could be anything – it's just a first guess.
 
 #+NAME: def:iiSqrt
 #+BEGIN_SRC racket
-  <<def:square>>
-  <<def:average>>
-  <<def:iterative-improve>>
-    (define (iiSqrt x)
-      (let ((good? (lambda (guess) (< (abs (- (square guess) x)) 0.001)))
-	    (improve (lambda (guess) (average guess (/ x guess)))))
-	((iterative-improve good?ketketketketketketketketketketketketketketketketketketketketketketketketketketketketketketketketketket
+  (define (iiSqrt x)
+    <<def:square>>
+    <<def:average>>
+    <<def:iterative-improve>>
+    (let (
+	  (good? (lambda (guess) (< (abs (- (square guess) x)) 0.001)))
+	  (improve (lambda (guess) (average guess (/ x guess)))))
+      ((iterative-improve good? improve) 1)
+      ))
+#+END_SRC
 
+Some tests
+
+#+BEGIN_SRC racket
+  <<def:iiSqrt>>
+  (iiSqrt 4.0)
+  (iiSqrt 16.0)
+  (iiSqrt 125.0)
+#+END_SRC
+
+#+NAME: def:iiFixed-Point
+#+BEGIN_SRC racket
+  (define (iiFixed-Point f)
+    <<def:iterative-improve>>
+    (let ((good? (lambda (guess) (< (abs (- (f guess) guess)) 0.00001)))
+	  (improve (lambda (guess) (f guess))))
+      ((iterative-improve good? improve) 1)))
+#+END_SRC
+
+A couple of funcs from 1.3.3 (p. 69) for testing
+
+#+BEGIN_SRC racket
+  <<def:iiFixed-Point>>
+  (iiFixed-Point cos)
+  (iiFixed-Point (lambda (y) (+ (sin y) (cos y))))
+#+END_SRC
 
 
 * Chapter 2
@@ -1532,8 +1559,6 @@ Here, 1 could be anything – it's just a first guess.
 #+BEGIN_SRC racket
     (define (numer x) (car x))
 #+END_SRC
-
-#+RESULTS: def:numer
 
 #+NAME: def:demon
 #+BEGIN_SRC racket
@@ -2634,11 +2659,11 @@ Combined, we have (() (b) (a) (a b)).
 
 #+NAME: def:accumulate
 #+BEGIN_SRC racket
-(define (accumulate op initial sequence)
-  (if (null? sequence)
-      initial
-      (op (car sequence)
-          (accumulate op initial (cdr sequence)))))
+  (define (accumulate op initial sequence)
+    (if (null? sequence)
+	initial
+	(op (car sequence)
+	    (accumulate op initial (cdr sequence)))))
 #+END_SRC
 
 #+BEGIN_SRC racket
@@ -4000,14 +4025,12 @@ Can't do better than n as may need to check every node.
 #+NAME: def:adjoin-set-hf
 #+BEGIN_SRC racket
   (define (adjoin-set e set)
-  <<sc:hf>>
+    <<sc:hf>>
     (cond ((null? set) (list e))
 	  ((< (weight e) (weight (car set))) (cons e set))
 	  (else (cons (car set)
 		      (adjoin-set e (cdr set))))))
 #+END_SRC
-
-#+RESULTS: def:adjoin-set-hf
 
 #+NAME: def:make-leaf-set-hf
 #+BEGIN_SRC racket
@@ -4023,10 +4046,6 @@ Can't do better than n as may need to check every node.
 #+END_SRC
 
 Here, we can see pair should be a list, rather than a pair.
-
-#+RESULTS: def:make-leaf-set-hf
-
-#+RESULTS:
 
 With decode a bit is always removed as we've either finished decoding or used the bit to move further into the tree.
 
@@ -4045,8 +4064,6 @@ With decode a bit is always removed as we've either finished decoding or used th
 
   (define sample-message '(0 1 1 0 0 1 0 1 0 1 1 1 0))
 #+END_SRC
-
-#+RESULTS: consts:2.67
 
 #+BEGIN_SRC racket
   <<consts:2.67>>
@@ -4124,7 +4141,6 @@ At the end, we replace false with the desired error message.
   (encode '(A D A B B C A) sample-tree)
 #+END_SRC
 
-
 ** 2.69
 
 #+NAME: successive-merge-hf
@@ -4160,3 +4176,76 @@ Testing successive-merge
     <<successive-merge-hf>>
     (successive-merge (make-leaf-set pairs)))
 #+END_SRC
+
+** 2.70
+
+#+NAME: consts:2.70
+#+BEGIN_SRC racket
+  (define 80alphUO (list (list 'A 2)
+			 (list 'BOOM 1)
+			 (list 'GET 2)
+			 (list 'JOB 2)
+			 (list 'NA 16)
+			 (list 'SHA 3)
+			 (list 'YIP 9)
+			 (list 'WAH 1)))
+
+  <<def:accumulate>>
+  <<sc:hf>>
+  <<def:adjoin-set-hf>>
+  (define 80alphOL (accumulate
+		    (lambda (e s) (adjoin-set (make-leaf (car e) (cadr e)) s))
+		    (list )
+		    80alphUO))
+  (define 80alphO
+    (accumulate (lambda (e s) (cons (list (cadr e) (caddr e)) s)) nil 80alphOL))
+#+END_SRC
+
+So, I got a little sidetracked trying to order the list by a direct call to adjoin-set.
+The issue is, adjoin-set only works with leaves.
+Hence, to make this work, need to transform elements to leaves.
+Then, of course, it's easy to revert the elemnts back once in ordered state.
+
+Still, much easier to define an instance of ordered insert on symbol frequency pairs.
+Or, just, y'know, generate the tree from an unordered list.
+As, make-leaf-set ensures everything is ordered.
+
+#+BEGIN_SRC racket
+  <<consts:2.70>>
+  <<def:generate-huffman-tree-hf>>
+  (generate-huffman-tree 80alphUO)
+
+  (length (generate-huffman-tree 80alphUO))
+#+END_SRC
+
+We need 4 bits for each symbol (I think, as height of the tree should correspond to the number of choices that need to be made).
+So, to encode the song we need number of symbols * 4 bits.
+Though, spaces are an issue, unless it's assumed there is a space after every symbol…
+
+With fixed-length coding we'd need 3 bits.
+
+The issue here is the first symbol.
+As this is 0 (or 1), we 'loose' the rest of the bits.
+As, every other symbol needs to begin with 1.
+
+** 2.71
+
+I think n bits.
+The issue here is that the combined weight of the previous two merges is always going to be less than the weight of the next sym-freq pair.
+Hence, the tree is created one branch at a time.
+
+Stated a little more intuitively, the idea of Huffman encoding is to trade any remaining bits used to store information so long as we do not expect to use those bits to access information more often that the information we're currently accessing.
+
+And, this sequence is such that we always expect to use the current piece of information at least as much as any following piece of information.
+
+So, we get a tree which has no balance.
+
+** 2.72
+
+TODO
+
+I'd like to consider the general case.
+
+And, also, work through a few more basic problems first.
+
+** 2.73
