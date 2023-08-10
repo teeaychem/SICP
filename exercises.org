@@ -3940,46 +3940,47 @@ Can't do better than n as may need to check every node.
 
 #+NAME: sc:hf
 #+BEGIN_SRC racket
-      (define (make-leaf-hf symbol weight)
-	(list 'leaf symbol weight))
+  (define (make-leaf symbol weight)
+    (list 'leaf symbol weight))
 
-      (define (leaf?-hf object)
-	(eq? (car object) 'leaf))
+  (define (leaf? object)
+    (eq? (car object) 'leaf))
 
-      (define (symbol-leaf-hf x) (cadr x))
+  (define (symbol-leaf x) (cadr x))
 
-      (define (weight-leaf-hf x) (caddr x))
+  (define (weight-leaf x) (caddr x))
 
-      (define (left-branch-tree-hf tree) (car tree))
+  (define (left-branch-tree tree) (car tree))
 
-      (define (right-branch-tree-hf tree) (cadr tree))
+  (define (right-branch-tree tree) (cadr tree))
 
-      (define (symbols-hf tree)
-	(if (leaf?-hf tree)
-	    (list (symbol-leaf-hf tree)) ; leaf, so 2nd elem, but make into a list on one
-	    (caddr tree))) ; tree so 3rd elem
+  (define (symbols tree)
+    (if (leaf? tree)
+	(list (symbol-leaf tree)) ; leaf, so 2nd elem, but make into a list on one
+	(caddr tree))) ; tree so 3rd elem
 
-    (define (weight-hf tree)
-      (if (leaf?-hf tree)
-	  (weight-leaf-hf tree)
+  (define (weight tree)
+      (if (leaf? tree)
+	  (weight-leaf tree)
 	  (cadddr tree)))
 
-  (define (make-code-tree-hf left right)
+  (define (make-code-tree left right)
     (list left
 	  right
-	  (append (symbols-hf left) (symbols-hf right))
-	  (+ (weight-hf left) (weight-hf right))))
+	  (append (symbols left) (symbols right))
+	  (+ (weight left) (weight right))))
 #+END_SRC
 
 #+NAME: def:choose-branch-hf
 #+BEGIN_SRC racket
-  (define (choose-branch-hf bit branch) ; why is this 'branch'. doesn't 'node' capture that we're at something which forks a little better?
+  (define (choose-branch bit branch)
     <<sc:hf>>
-    (cond ((= bit 0) (left-branch-tree-hf branch))
-	  ((= bit 1) (right-branch-tree-hf branch))
-	  (else (error "bad bit -- CHOOSE-BRANCH-HF" bit))))
+    (cond ((= bit 0) (left-branch-tree branch))
+	  ((= bit 1) (right-branch-tree branch))
+	  (else (error "bad bit -- CHOOSE-BRANCH" bit))))
 #+END_SRC
 
+#+NAME: def:decode-hf
 #+BEGIN_SRC racket
   (define (decode bits tree)
     (define (decode-1 bits current-branch)
@@ -3988,10 +3989,120 @@ Can't do better than n as may need to check every node.
       (if (null? bits)
 	  '()
 	  (let ((next-branch
-		 (choose-branch-hf (car bits) current-branch)))
-	    (if (leaf?-hf next-branch)
-		(cons (symbol-leaf-hf next-branch)
+		 (choose-branch (car bits) current-branch)))
+	    (if (leaf? next-branch)
+		(cons (symbol-leaf next-branch)
 		      (decode-1 (cdr bits) tree))
-		(decode-1 (cdr bits) next-branch))))) ; always remove a bit as we've either finished decoding or used the bit to move further into the tree.
+		(decode-1 (cdr bits) next-branch)))))
     (decode-1 bits tree))
 #+END_SRC
+
+With decode a bit is always removed as we've either finished decoding or used the bit to move further into the tree.
+
+** 2.67
+
+#+NAME: consts:2.67
+#+BEGIN_SRC racket
+  <<sc:hf>>
+
+  (define sample-tree
+    (make-code-tree (make-leaf 'A 4)
+		    (make-code-tree
+		     (make-leaf 'B 2)
+		     (make-code-tree (make-leaf 'D 1)
+				     (make-leaf 'C 1)))))
+
+  (define sample-message '(0 1 1 0 0 1 0 1 0 1 1 1 0))
+#+END_SRC
+
+#+RESULTS: consts:2.67
+
+#+BEGIN_SRC racket
+  <<consts:2.67>>
+  <<def:decode-hf>>
+
+  (decode sample-message sample-tree)
+#+END_SRC
+
+** 2.68
+
+encode-symbol has a helper function which does most of the work.
+
+In short, work through the tree until you get to a leaf.
+If the symbol of the leaf matches the symbol taken as argumnet, we want to return the path we took to get here.
+Otherwise, we want to do nothing.
+
+If returning path, we start with nil.
+To ignore results, return false.
+
+If we're not at a leaf, we explore both left and right branches – the symbol could be anywhere in the tree!
+
+If either branch is not false, then add the option we took to get this result.
+If both branches are false, return false – the sym hasn't been found.
+
+At the end, we replace false with the desired error message.
+
+
+#+NAME: def:encode-symbol
+#+BEGIN_SRC racket
+  (define (encode-symbol sym tree)
+    (define (encode-symbol-f sym tree)
+      <<sc:hf>>
+      (cond ((leaf? tree)
+	     (if (equal? (symbols tree) (list sym))
+		 nil
+		 #f))
+	    (else
+	     (let ((leftResult (encode-symbol-f sym (left-branch-tree tree)))
+		   (rightResult (encode-symbol-f sym (right-branch-tree tree))))
+	       (cond ((not (equal? leftResult #f)) (cons 0 leftResult))
+		     ((not (equal? rightResult #f)) (cons 1 rightResult))
+		     (else #f)
+		     )))))
+    (let ((encode (encode-symbol-f sym tree)))
+      (if (equal? encode #f)
+	  (error "symbol not in tree -- ENCODE-SYMBOL" sym)
+	  encode
+	  )))
+#+END_SRC
+
+#+RESULTS: def:encode-symbol
+
+A D A B B C A
+
+#+BEGIN_SRC racket
+  <<consts:2.67>>
+  <<def:encode-symbol>>
+
+  (encode-symbol 'A sample-tree)
+  (encode-symbol 'B sample-tree)
+  (encode-symbol 'X sample-tree)
+#+END_SRC
+
+#+RESULTS:
+: symbol not in tree -- ENCODE-SYMBOL X
+:   context...:
+:    body of "/var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-bcEgxU/org-babel-GaiF56.rkt"
+: (0)
+: (1 0)
+
+
+#+NAME: def:encode-hf
+#+BEGIN_SRC racket
+  (define (encode message tree)
+    <<def:append>>
+    <<def:encode-symbol>>
+    (if (null? message)
+	'()
+	(append (encode-symbol (car message) tree)
+		(encode (cdr message) tree))))
+#+END_SRC
+
+#+BEGIN_SRC racket
+  <<def:encode-hf>>
+  <<consts:2.67>>
+  (encode '(A D A B B C A) sample-tree)
+#+END_SRC
+
+#+RESULTS:
+: (0 1 1 0 0 1 0 1 0 1 1 1 0)
