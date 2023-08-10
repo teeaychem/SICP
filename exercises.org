@@ -3716,11 +3716,11 @@ But, I'm not sure when this is the case.
 
 #+NAME: def-adjoin-set-o
 #+BEGIN_SRC racket
-(define (adjoin-set-o e set)
-  (cond ((null? set) (list e))
-        ((= e (car set)) set)
-        ((< e (car set)) (cons e set))
-        (else (cons (car set) (adjoin-set-o e (cdr set))))))
+  (define (adjoin-set-o e set)
+    (cond ((null? set) (list e))
+	  ((= e (car set)) set)
+	  ((< e (car set)) (cons e set))
+	  (else (cons (car set) (adjoin-set-o e (cdr set))))))
 #+END_SRC
 
 #+BEGIN_SRC racket
@@ -3997,6 +3997,37 @@ Can't do better than n as may need to check every node.
     (decode-1 bits tree))
 #+END_SRC
 
+#+NAME: def:adjoin-set-hf
+#+BEGIN_SRC racket
+  (define (adjoin-set e set)
+  <<sc:hf>>
+    (cond ((null? set) (list e))
+	  ((< (weight e) (weight (car set))) (cons e set))
+	  (else (cons (car set)
+		      (adjoin-set e (cdr set))))))
+#+END_SRC
+
+#+RESULTS: def:adjoin-set-hf
+
+#+NAME: def:make-leaf-set-hf
+#+BEGIN_SRC racket
+  (define (make-leaf-set pairs)
+    <<def:adjoin-set-hf>>
+    <<sc:hf>>
+    (if (null? pairs)
+	'()
+	(let ((pair (car pairs)))
+	  (adjoin-set (make-leaf (car pair)
+				 (cadr pair))
+				 (make-leaf-set (cdr pairs))))))
+#+END_SRC
+
+Here, we can see pair should be a list, rather than a pair.
+
+#+RESULTS: def:make-leaf-set-hf
+
+#+RESULTS:
+
 With decode a bit is always removed as we've either finished decoding or used the bit to move further into the tree.
 
 ** 2.67
@@ -4066,9 +4097,6 @@ At the end, we replace false with the desired error message.
 	  )))
 #+END_SRC
 
-#+RESULTS: def:encode-symbol
-
-A D A B B C A
 
 #+BEGIN_SRC racket
   <<consts:2.67>>
@@ -4078,14 +4106,6 @@ A D A B B C A
   (encode-symbol 'B sample-tree)
   (encode-symbol 'X sample-tree)
 #+END_SRC
-
-#+RESULTS:
-: symbol not in tree -- ENCODE-SYMBOL X
-:   context...:
-:    body of "/var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-bcEgxU/org-babel-GaiF56.rkt"
-: (0)
-: (1 0)
-
 
 #+NAME: def:encode-hf
 #+BEGIN_SRC racket
@@ -4104,5 +4124,34 @@ A D A B B C A
   (encode '(A D A B B C A) sample-tree)
 #+END_SRC
 
+
+** 2.69
+
+#+NAME: successive-merge-hf
+#+BEGIN_SRC racket
+  (define (successive-merge set)
+    <<def:adjoin-set-hf>>
+    <<sc:hf>>
+    (cond
+      ((= (length set) 0) '())
+      ((= (length set) 1) (car set))
+      (else (successive-merge (adjoin-set (make-code-tree (car set) (cadr set)) (cddr set))))))
+#+END_SRC
+
+#+BEGIN_SRC racket
+  (define sfp (list (list 'A 4) (list 'B 2) (list 'C 1) (list 'D 1)))
+
+  <<def:make-leaf-set-hf>>
+  <<successive-merge-hf>>
+  <<def:encode-hf>>
+
+  (successive-merge (make-leaf-set sfp))
+  (successive-merge (make-leaf-set (list )))
+
+  (encode '(A D A B B C A) (successive-merge (make-leaf-set sfp)))
+#+END_SRC
+
 #+RESULTS:
+: ((leaf A 4) ((leaf B 2) ((leaf D 1) (leaf C 1) (D C) 2) (B D C) 4) (A B D C) 8)
+: ()
 : (0 1 1 0 0 1 0 1 0 1 1 1 0)
