@@ -1,5 +1,5 @@
 #+STARTUP: overview
-#+PROPERTY: header-args :noweb eval :results output :tangle test.rkt :lang sicp
+#+PROPERTY: header-args :noweb eval :results output :tangle tangle.rkt :prologue "#lang sicp"
 #+TITLE: SICP Exercises
 
 * Some notes
@@ -36,6 +36,10 @@ name is optional etc.
 At the start of this file I have:
 
 : #+PROPERTY: header-args :prologue "#lang sicp" :noweb yes :results output
+
+Using :lang scip also works, but the tangled result is the same as prologue
+
+: #+PROPERTY: header-args :lang sicp :noweb yes :results output
 
 ** Referenced code-blocks
 
@@ -3049,7 +3053,7 @@ Flatmap then flattens this, so the original list is expanded with additional ele
 
 But, this was just cutting apart the definition of prime-sum-pairs…
 
-Or was this the point? To make sure the reader understands what's going on…
+Or was this the point?
 
 ** 2.41
 
@@ -4240,12 +4244,39 @@ And, this sequence is such that we always expect to use the current piece of inf
 
 So, we get a tree which has no balance.
 
-** 2.72
+** TODO 2.72
 
-TODO
 
 I'd like to consider the general case.
 
 And, also, work through a few more basic problems first.
 
 ** 2.73
+
+*** a.
+
+For this rewrite of deriv we allow adding arbitrary operations by add and get.
+However, get is defined to take an operator.
+And, then get returns a procedure corresponding to the operator.
+
+It is not possible to assimilate the predicates namer? and same-variable? in this way as these function as tests on whether the expression contains an operator.
+Note, in particular, this test is implicit to same-variable?, which ensures the two expressions are varaiables, and then tests for equality.
+
+Put slightly differently, an expression contains an operator if and only if it is neither a number nor a variable.
+As the call to get requires an operator, we must perform some tests to ensure the expression is neither a number nor a variable before the call to get can do some work. This is what the two predicates do.
+
+
+
+*** b.
+
+
+
+*** c.
+
+
+*** d.
+
+We'd need to update the operators used within deriv, as now +, *, etc. all require disambiguation.
+Something like number should work for this, as +, *, etc. as used are only defined with respect to numbers.
+I guess this includes rationals, and possibly more?
+
