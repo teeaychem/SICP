@@ -2,6 +2,10 @@
 
 Exercises and notes from working through [Structure and Interpretation of Computer Programs](http://groups.csail.mit.edu/mac/classes/6.001/abelson-sussman-lectures/) (SCIP) using [Racket](https://docs.racket-lang.org/drracket/index.html) with [#lang sicp](https://docs.racket-lang.org/sicp-manual/SICP_Language.html).
 
+Work is typed up in a .org file which github renders quite nicely.
+
+You can check exercises.org above, or click [here](/exercises.org)
+
 ## A little more…
 
 I'm using a print edition of SCIP, but an online version is available here: [http://sarabander.github.io/sicp/](http://sarabander.github.io/sicp/).
