@@ -4270,3 +4270,59 @@ We'd need to update the operators used within deriv, as now +, *, etc. all requi
 Something like number should work for this, as +, *, etc. as used are only defined with respect to numbers.
 I guess this includes rationals, and possibly more?
 
+** 2.74
+
+I don't think there's need to write anything specific for this exercise.
+So, high level answers follow.
+
+In general, we follow data-directed dispatch.
+Where dispatch follows the division.
+
+Note, there should be a unique name for each division recgonised by central.
+
+In this way, each division can set common functions relative to their division and only need to know:
+
+1. Which common functions to write.
+2. The name of their division.
+
+*** a.
+
+Personnel files are single files containing a set of records keyed to employee names, relative to each division.
+So, get-record will use the division's procedure for opening their personnel file and searching through the set to find the employee name and record.
+
+Ideally, central will specify a general form for the record to take.
+If so, each division can transform however their record is stored into something of the same form as obtained from other divisions.
+
+Depending on what else is going on, one may wish to implement a procedure for obtaining the raw record and also make any transformation procedures public.
+
+With no further modifications, central would need to supply a division to dispatch on and an employee name.
+Though, employee names could be tagged with the division to which they belong.
+Though, if names are unique and requests for records are infrequent, it may make sense to search through each division.
+
+*** b.
+
+Ah, get-salary is a special case of the above.
+We'd require each division to implement a salary option.
+The way records are structured is up to each division.
+
+*** c.
+
+For find-employee-record we're given a name and all the files of a division.
+The first, and only significant, task is to obtain the personnel records file.
+As each division has one of these, it seems easiest to require each division to set to a generic return-records procedure.
+Or, a generic find-employee-record.
+
+A beneift of the former is a way for central to combine generic arguments.
+
+Without central knowing the way each division stores their files, nothing more can be done.
+E.g. one division may store their files as a list, while another may have a Huffman tree based on files access frequency.
+
+*** d.
+
+I'm not sure what 'the new personnel information' refers to.
+This isn't new information about employees, and the only other information considered is old to each division.
+
+Central needs to write generic functions, along with put and get procedures.
+And, let each division know about all of this!
+
+** 2.75
