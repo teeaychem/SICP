@@ -4,7 +4,7 @@ Exercises and notes from working through [Structure and Interpretation of Comput
 
 Work is typed up in a .org file which github renders quite nicely.
 
-You can check exercises.org above, or click [here](/exercises.org)
+So, you can check exercises.org above, or click [here](/exercises.org)!
 
 ## A little more…
 
