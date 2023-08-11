@@ -4326,3 +4326,77 @@ Central needs to write generic functions, along with put and get procedures.
 And, let each division know about all of this!
 
 ** 2.75
+
+In mess-age passing style make-from-real-imag is as follows:
+
+#+BEGIN_SRC racket
+  (define (make-from-real-imag x y)
+    (define (dispatch op)
+      (cond ((eq? op 'real-part) x)
+	    ((eq? op 'imag-part) y)
+	    ((eq? op 'magnitude)
+	     (sqrt (+ (square x) (square y))))
+	    ((eq? op 'angle) (atan y x))
+	    (else
+	     (error "Unknown op -- MAKE-FROM-REAL-IMAG" op))))
+    dispatch
+    )
+#+END_SRC
+
+make-from-real-imag takes two arguments, the real and imaginary part of the complex number, respectively.
+In return, a procedure is given which takes the name of a procudeure and then performs the procedure on the arguments initially given.
+
+Working with magnitudes and angles, we have a very similar procedure.
+Though, here mangitudes and angles are stored, and real and imaginary parts are calculated.
+
+#+BEGIN_SRC racket
+  (define (make-from-mag-ang mag ang)
+    (define (dispatch op)
+      (cond ((eq? op 'real-part) (* mag (cos ang))
+	    ((eq? op 'imag-part) (* mag (sin ang))
+	    ((eq? op 'magnitude) mag)
+	    ((eq? op 'angle) ang)
+	    (else
+	     (error "Unknown op -- MAKE-FROM-MAG-ANG" op))))
+    dispatch
+    )
+#+END_SRC
+
+** 2.76
+
+**** Generic operations with explict dispatch
+
+For generic operations with explicit dispatch, adding a new type amounts to tagging objects with the relevant type.
+This is very much the same as data-directed style.
+However, if we expect existing procedures to extend to the new type, we need to update the procedure definitions with conditions for the type.
+
+And, any new operation needs to be defined.
+
+**** Data-directed style
+
+For a new type we should provide a way of tagging objects as the relevant type, define isolated procedures on the relevant objets and then =put= these procedures on the table.
+
+As with generic operations with explict dispatch, we need to explictly extend existing procedures to the new types.
+However, this doesn't necessarily involve writing anything new.
+For, with =put= we can associate an existing procedure with the new type, so long as the procedure works as intended on the typed object.
+
+Ideally, though, we would design a package with constructors, selectors, and all other procedures for the relevant type.
+
+In contrast to message-passing style, we don't introduce 'new' objects.
+However, we do introduce a way of disamguating the way we interact with familar lisp lists based on types.
+
+**** Message-passing style
+
+For a new type we need to specify a constructor, and internal to this we have the relevant selectors.
+
+For new procedures, it depends.
+Procedures like =make-from-real-imag= and =make-from-mag-ang= return an object, and for procedures on the object, we should specify messages to recieve.
+
+For other procedures I'm not sure.
+And, to be honest I'm not sure with the two procedures either.
+
+For, from a general perspective, each operator can be seen as an object.
+In this sense, something which takes two objects could recieve a message, such as =make-from-real-imag= or =+= and then work out what to do.
+On the other hand, we're still building everything from the foundations of lisp, so you should decide whether the procedure is creating an object that should recieve messages.
+And, if so write out ways to handle those messages.
+
