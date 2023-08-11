@@ -16,11 +16,7 @@ The relevant part of my emacs config looks like:
 :  'org-babel-load-languages
 :  '((racket . t)))
 
-(I.e. nothing too fancy.)
-
-You don't need to do any of this to use the code though.
-Copy and paste, then search for anything undefined.
-If you don't find a procedure, it's probably not detailed in the book.
+You can run procedures through org mode, or by copying selections from code blocks to a .rkt file.
 
 ** code-block syntax
 
@@ -132,8 +128,9 @@ If b, then compare a and c.
 #+END_SRC
 
 #+BEGIN_SRC racket
-  <<def:square>>
-  (define (sumSquare a b) (+ (square a) (square b)))
+  (define (sumSquare a b)
+    <<def:square>>
+    (+ (square a) (square b)))
 
   (define (twoBig a b c)
     (if
@@ -314,9 +311,9 @@ goodCubeGuess? could also be adjusted, as with previous exercise.
 
 #+NAME: def:cubeRt
 #+BEGIN_SRC racket
-  <<def:cube>>
   (define (cubeRt x)
     (define (cubeInt guess) ; Using block structure and lexical scoping
+      <<def:cube>>
       (define (goodCubeGuess? guess) (< (abs (- (cube guess) x)) 0.001)) ; Note x from cubeRt.
       (define (cubeImprove guess) (/ (+ (/ x (* guess guess)) (* 2 guess)) 3)) ; And again
       (if (goodCubeGuess? guess)
@@ -594,21 +591,21 @@ Main fuction, following the hint
 
 #+NAME: def:try
 #+BEGIN_SRC racket
-  <<def:even?>>
   (define (try a b n) ; a is current value, n is number of exponents remaining
-    (cond
-      ((= n 0) a)
-      ((even? n)  (try a (* b b) (/ n 2))) ; So long as n is even, reduce remaing by half by squaring current.
-      ; This is b^n = (b^2)^(n/2)
-      ; As input, do a^n
-      ; As output, a = a^2, still need a^(n/2)
-      (else (try (* a b) b (- n 1)))))
+     <<def:even?>>
+     (cond
+       ((= n 0) a)
+       ((even? n)  (try a (* b b) (/ n 2))) ; So long as n is even, reduce remaing by half by squaring current.
+       ; This is b^n = (b^2)^(n/2)
+       ; As input, do a^n
+       ; As output, a = a^2, still need a^(n/2)
+       (else (try (* a b) b (- n 1)))))
 #+END_SRC
 
 #+NAME: def:expItr
 #+BEGIN_SRC racket
-  <<def:try>>
   (define (expItr b n)
+    <<def:try>>
     (try 1 b n)) ; Hide a as a helper variable.
 #+END_SRC
 
@@ -674,8 +671,6 @@ Always go to n = 1, so add m to store variable.
 
 #+NAME: def:dhMultIter
 #+BEGIN_SRC racket
-  <<def:multPositiveTranslate>>
-
   (define (dhMultIterHelp a m n)
       (cond
 	((= n 0) a)
@@ -686,6 +681,7 @@ Always go to n = 1, so add m to store variable.
       (dhMultIterHelp 0 m n))
 
     (define (dhMultIter m n)
+      <<def:multPositiveTranslate>>
       (multPositiveTranslate dhMultIterPos m n))
 #+END_SRC
 
@@ -791,12 +787,12 @@ As d is a divisor of n, so n/d is an int, and clearly d * n/d = n.
 
 #+NAME: def:smallest-divisor
 #+BEGIN_SRC racket
-  <<def:divides?>>
-  <<def:square>>
   (define (smallest-divisor n)
     (find-divisor n 2))
 
   (define (find-divisor n test-divisor)
+    <<def:divides?>>
+    <<def:square>>
     (cond ((> (square test-divisor) n) n)
 	  ((divides? test-divisor n) test-divisor)
 	  (else (find-divisor n (+ test-divisor 1)))))
@@ -815,19 +811,19 @@ As d is a divisor of n, so n/d is an int, and clearly d * n/d = n.
 
 #+NAME: def:prime?
 #+BEGIN_SRC racket
-  <<def:smallest-divisor>>
   (define (prime? n)
+    <<def:smallest-divisor>>
     (= n (smallest-divisor n)))
 #+END_SRC
 
 
 #+NAME: def:search-for-primes
 #+BEGIN_SRC racket
-  <<def:prime?>>
   (define (timed-prime-test n)
     (start-prime-test n (runtime)))
 
   (define (start-prime-test n start-time)
+    <<def:prime?>>
     (if (prime? n)
 	(report-prime n (- (runtime) start-time))))
 
@@ -940,14 +936,14 @@ The evaluated value is used twice, but the evaluation only happens once.
 
 #+NAME: def:carmichael-fool
 #+BEGIN_SRC racket
-  <<def:expItr>>
   (define (carmichael-fool n)
     (hidden-fool (- n 1) n))
 
   (define (hidden-fool b n)
-      (cond ((= b 0) (display " fooled "))
-	    ((= (remainder (expItr b n) n) (remainder b n)) (hidden-fool (- b 1) n))
-	    (else (display " found "))))
+    <<def:expItr>>
+    (cond ((= b 0) (display " fooled "))
+	  ((= (remainder (expItr b n) n) (remainder b n)) (hidden-fool (- b 1) n))
+	  (else (display " found "))))
 #+END_SRC
 
 
@@ -974,8 +970,8 @@ So, when working through half of the numbers, we need to already be sure the num
 Added some formatting, though ofc I should have a single call for n/prime display.
 
 #+BEGIN_SRC racket
-  <<def:square>>
   (define (MR-expmod base exp m) ; base = a, exp = n
+    <<def:square>>
     (cond ((= exp 0) 1)
 	  ((even? exp)
 	   (remainder (square (MR-check-sqaure (MR-expmod base (/ exp 2) m) m)) m))
@@ -983,6 +979,7 @@ Added some formatting, though ofc I should have a single call for n/prime displa
 	  ))
 
   (define (MR-check-sqaure a m)
+    <<def:square>>
     (cond
       ((or (= a 1) (= a (- m 1))) a) ; In this case, a is trivial, so continue
       ((= (remainder (square a) m) 1) 0) ; We know a != 1 nor (m - 1), so check a % n = 1. Not prime if satisfied.
@@ -1031,11 +1028,9 @@ Added some formatting, though ofc I should have a single call for n/prime displa
 #+END_SRC
 
 #+BEGIN_SRC racket
-  <<def:cube>>
-  <<def:sum>>
-  <<def:inc>>
-
   (define (simpson f a b n)
+    <<def:sum>>
+    <<def:inc>>
     (define (sM k x)
       (cond
 	((or (= k 0) (= k n)) x)
@@ -1045,6 +1040,8 @@ Added some formatting, though ofc I should have a single call for n/prime displa
     (define (h) (/ (- b a) n))
     (define (fakh k) (sM k (f (+ a (* k (h))))))
     (* (/ (h) 3) (sum fakh 0 inc n)))
+
+  <<def:cube>>
 
   (simpson cube 0 1 1000.0)
   (simpson cube 0 1 10000.0)
@@ -1090,20 +1087,21 @@ This is just substituting * for +…
 And factorial works with identiy and inc.
 
 #+BEGIN_SRC racket
-  <<def:product>>
-  (define (factorial n) (product identity 1 inc n))
+  (define (factorial n)
+    <<def:product>>
+    (product identity 1 inc n))
 #+END_SRC
 
 
 #+BEGIN_SRC racket
-  <<def:square>>
-  <<def:product>>
   (define (piHelpB d)
+    <<def:square>>
     (/ (* (- d 1) (+ d 1)) (square d)))
 
   (define (incTwo n) (+ n 2))
 
   (define (piClose n)
+    <<def:product>>
     (* 4.0 (product piHelpB 3 incTwo (+ n 3))))
 
   (piClose 500)
@@ -1154,8 +1152,8 @@ Made both versions, then read part b…
 E.g.…
 
 #+BEGIN_SRC racket
-  <<def:accumulate-first>>
   (define (sum-accumulate-first term a next b)
+    <<def:accumulate-first>>
     (accumulate-first + 0 term a next b))
 #+END_SRC
 
@@ -1185,9 +1183,9 @@ If the filter is satisfied, then combine (term a), otherwise combine via the nul
 *** a.
 
 #+BEGIN_SRC racket
-  <<def:filtered-accumulate-first>>
-  <<def:prime?>>
   (define (sum-square-prime a b)
+    <<def:filtered-accumulate-first>>
+    <<def:prime?>>
     (filtered-accumulate-first prime? + 0 square a inc b))
 
   (sum-square-prime 1 10)
@@ -1196,8 +1194,8 @@ If the filter is satisfied, then combine (term a), otherwise combine via the nul
 *** b.
 
 #+BEGIN_SRC racket
-  <<def:filtered-accumulate-first>>
   (define (sum-relatively-prime n)
+    <<def:filtered-accumulate-first>>
     (define (predicate? a)
       (= (gcd a n) 1))
     (filtered-accumulate-first predicate? * 0 identity 0 inc n))
@@ -1354,15 +1352,13 @@ At start, calculate x^2 to save some resources.
 Then, work through offset cont-frac k times.
 
 #+BEGIN_SRC racket
-  <<def:square>>
   (define (tan-cf x k)
-
+    <<def:square>>
     (define (cont-frac-i x2 d k step)
       (if (= step k)
 	  (/ x2 d)
 	  (/ x2 (- d (cont-frac-i x2 (+ d 2) k (+ step 1))))))
-      (let (
-	    (x2 (square x)))
+      (let ((x2 (square x)))
 	(/ x (- 1 (cont-frac-i x2 3 k 1)))))
 
     (tan-cf 1.0 10.0)
@@ -1381,8 +1377,8 @@ Then, work through offset cont-frac k times.
 
 #+NAME: def:newton-transform
 #+BEGIN_SRC racket
-  <<def:deriv>>
   (define (newton-transform g)
+    <<def:deriv>>
     (lambda (x) (- x (/ (g x) ((deriv g) x)))))
 #+END_SRC
 
@@ -1394,10 +1390,10 @@ Then, work through offset cont-frac k times.
 #+END_SRC
 
 #+BEGIN_SRC racket
-  <<def:square>>
-  <<def:cube>>
   (define (cubic a b c)
     (define (cubic-all x a b c)
+      <<def:square>>
+      <<def:cube>>
       (+ (cube x) (* a (square x)) (* b x) c))
     (lambda (x) (cubic-all x a b c)))
   ;; (lambda (x)
@@ -1611,9 +1607,9 @@ In the book, newline is first, but newline last fits with previous displays.
 
 #+NAME: def:print-rat
 #+BEGIN_SRC racket
-  <<def:numer>>
-  <<def:demon>>
   (define (print-rat x)
+    <<def:numer>>
+    <<def:demon>>
     (display (numer x))
     (display "/")
     (display (demon x))
@@ -1712,9 +1708,9 @@ Points are enumerated clockwise starting with 1 as top-left going to 3 as bottom
 
 #+NAME: def-rectangle-perimeter
 #+BEGIN_SRC racket
-  <<sc:rectangle>>
-  <<sc:point>>
   (define (rectangle-perimeter rectangle point)
+    <<sc:rectangle>>
+    <<sc:point>>
     (if (= point 0)
 	(rectangle-origin rectangle)
 	(let ((xPoint (x-point (rectangle-origin rectangle)))
@@ -1726,8 +1722,8 @@ Points are enumerated clockwise starting with 1 as top-left going to 3 as bottom
 #+END_SRC
 
 #+BEGIN_SRC racket
-  <<sc:rectangle>>
   (define (rectangle-area rectangle)
+    <<sc:rectangle>>
     (* (rectangle-width rectangle) (rectangle-height rectangle)))
 #+END_SRC
 
@@ -1783,8 +1779,8 @@ I'd guess there's some trick with log here, but I don't see it quickly.
 	  (break-down-i (/ pair n) n (+ m 1))))
     (break-down-i pair n 0))
 
-  <<def:expItr>>
   (define (pair-numbers a b)
+    <<def:expItr>>
     (* (expItr 2 a) (expItr 3 b)))
 
   (define (pair-number-a pair) (break-down pair 2))
@@ -2259,8 +2255,8 @@ Ok.
 
 #+NAME: def:square-list-my-map
 #+BEGIN_SRC racket
-  <<def:my-map>>
   (define (square-list-my-map items)
+    <<def:my-map>>
     (my-map (lambda (x) (* x x)) items))
 #+END_SRC
 
@@ -3209,44 +3205,38 @@ That's all these two functions do.
 
 #+NAME: def:queens
 #+BEGIN_SRC racket
-    (define (queens board-size)
+  (define (queens board-size)
 
-      (define empty-board nil)  ; empty-board is nil.
-				; adjoin-position will add a row.
+    (define empty-board nil)  ; empty-board is nil.
+			      ; adjoin-position will add a row.
 
-      (define (safe? k positions)
+    (define (safe? k positions)
+      <<def:unique-n?>>
+      <<def:transpose>>
+      <<def:get-diags-lr>>
+      <<def:get-diags-rl>>
+      (and (unique-n? 0 (transpose positions)) (unique-n? 0 (get-diags-lr positions)) (unique-n? 0 (get-diags-rl positions))))
 
-	<<def:unique-n?>>
-	<<def:transpose>>
-	<<def:get-diags-lr>>
-	<<def:get-diags-rl>>
-
-	(and (unique-n? 0 (transpose positions)) (unique-n? 0 (get-diags-lr positions)) (unique-n? 0 (get-diags-rl positions))))
-
-      (define (adjoin-position new-row k rest-of-queens)
-
-	<<def:enumerate-interval>>
-
-	(cons (map (lambda (x) (if (= new-row x) 0 x)) (enumerate-interval 1 board-size)) rest-of-queens)
-	; Place the queen at the new-row position.
-	)
-      (define (queens-cols k)
-
+    (define (adjoin-position new-row k rest-of-queens)
+      <<def:enumerate-interval>>
+      (cons (map (lambda (x) (if (= new-row x) 0 x)) (enumerate-interval 1 board-size)) rest-of-queens)
+      ; Place the queen at the new-row position.
+      )
+    (define (queens-cols k)
       <<def:filter>>
       <<def:flatmap>>
       <<def:enumerate-interval>>
-
-	(if (= k 0)
-	    (list empty-board)
-	    (filter
-	     (lambda (positions) (safe? k positions))
-	     (flatmap
-	      (lambda (rest-of-queens)
-		(map (lambda (new-row)
-		       (adjoin-position new-row k rest-of-queens))
-		     (enumerate-interval 1 board-size)))
-	      (queens-cols (- k 1))))))
-      (queens-cols board-size))
+      (if (= k 0)
+	  (list empty-board)
+	  (filter
+	   (lambda (positions) (safe? k positions))
+	   (flatmap
+	    (lambda (rest-of-queens)
+	      (map (lambda (new-row)
+		     (adjoin-position new-row k rest-of-queens))
+		   (enumerate-interval 1 board-size)))
+	    (queens-cols (- k 1))))))
+    (queens-cols board-size))
 #+END_SRC
 
 #+BEGIN_SRC racket
