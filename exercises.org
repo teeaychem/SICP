@@ -4761,3 +4761,93 @@ I'll pass on this.
 I get the feeling these are exercises designed so something which involves writing code can be assigned in a class.
 Perhaps there's something interesting!
 But, I think the cost of finding out is too high…
+
+
+** 2.81
+
+#+BEGIN_SRC racket :tangle no
+  (define (apply-generic op . args)
+    (let ((type-args (map type-tag args)))
+      (let ((proc (get op type-tags)))
+	(if proc
+	    (apply proc (map contents args))
+	    (if (= (length args) 2)
+		(let ((type1 (car type-tags))
+		      (type2 (cadr type-tags))
+		      (a1 (car args))
+		      (a2 (cadr args)))
+		  (let ((t1->t2 (get coercion type1 type2))
+			(t2->t1 (get coercion type2 type1)))
+		    (cond (t1->t2 (apply-generic op (t1->t2 a1) a2))
+			  (t2->t1 (apply-generic op a1 (t2->t1 a2)))
+			  (else
+			   (error "No method for these types" (list op type-tags))))))
+		(error "No method for these types" (list op type-tags)))))))
+#+END_SRC
+
+Louis observes =apply-generic= may try to coerce the arguemnts to each others type even if they already have the same type.
+
+This certainly happens if there's no procedure for the types in question.
+As, coercion is attempted without any further check.
+
+And, as coercion is only attempted if no procedure is found, this is the only way it happens.
+
+So, why not turn the =if= into a =cond= and first check to see whether all the types are the same?
+
+Setting this aside!
+
+*** a.
+
+If we call =exp= with two complex numbers as arguments then we get an error.
+=proc= will not be found, and coercion from complex to complex will be attempted.
+But, =exp= only has an entry on scheme-numbers, and coercion is only attempted relative to the other argument (of a pair).
+
+*** b.
+
+I think =apply-generic= works as is.
+
+
+*** c.
+
+Ah, this is what I was thinking before.
+
+Here's a helper function I think I may have written before to check whether every item in a list is the same as a given element.
+
+#+NAME: def:list-of-elem
+#+BEGIN_SRC racket
+  (define (list-of-elem elm l)
+    <<def:accumulate>>
+    (accumulate (lambda (x y) (and (equal? x elm) y)) #t l))
+
+  (list-of-elem 0 (list 0 0 0))
+#+END_SRC
+
+We use =list-of-elem= see whether all the types given are equal.
+As =list-of-elem= takes an arbitrary list, this is done /before/ we limit ourselves to binary operators.
+
+#+BEGIN_SRC racket :tangle no
+  (define (apply-generic op . args)
+    <<def:list-of-elem>>
+    (let ((type-args (map type-tag args)))
+      (let ((proc (get op type-tags)))
+	(if proc
+	    (apply proc (map contents args))
+	    (cond ((= (length args) 0)
+		   (error "No arguments given to an operator of arity > 0"))
+		  ((list-of-elem (car type-tags) type-tags)
+		   (error "No method for this type (for all arguments)" (list op (car type-tags))))
+		  ((= (length args) 2)
+		   (let ((type1 (car type-tags))
+			 (type2 (cadr type-tags))
+			 (a1 (car args))
+			 (a2 (cadr args)))
+		     (let ((t1->t2 (get coercion type1 type2))
+			   (t2->t1 (get coercion type2 type1)))
+		       (cond (t1->t2 (apply-generic op (t1->t2 a1) a2))
+			     (t2->t1 (apply-generic op a1 (t2->t1 a2)))
+			     (else
+			      (error "No method for these types" (list op type-tags)))))))
+		  (else	(error "No method for these types" (list op type-tags))))))))
+#+END_SRC
+
+
