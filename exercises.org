@@ -1,4 +1,4 @@
-#+STARTUP: overview
+#+STARTUP: Overview
 #+PROPERTY: header-args :noweb eval :results output :tangle tangle.rkt :prologue "#lang sicp"
 #+TITLE: SICP Exercises
 
@@ -4435,8 +4435,7 @@ In mess-age passing style make-from-real-imag is as follows:
 	    ((eq? op 'angle) (atan y x))
 	    (else
 	     (error "Unknown op -- MAKE-FROM-REAL-IMAG" op))))
-    dispatch
-    )
+    dispatch)
 #+END_SRC
 
 make-from-real-imag takes two arguments, the real and imaginary part of the complex number, respectively.
@@ -4454,8 +4453,7 @@ Though, here mangitudes and angles are stored, and real and imaginary parts are 
 	    ((eq? op 'angle) ang)
 	    (else
 	     (error "Unknown op -- MAKE-FROM-MAG-ANG" op))))
-    dispatch
-    )
+    dispatch)
 #+END_SRC
 
 ** 2.76
@@ -4498,5 +4496,162 @@ And, if so write out ways to handle those messages.
 
 ** 2.77
 
+
 The important thing to keep in mind win the data-directed style is that as soon as we remove types, everything is basic lisp.
 So, as long as =real-part=, etc. work on complex numbers, there's no issue associating =real-part= with the =complex= type.
+
+#+BEGIN_SRC racket :tangle no
+  (define (apply-generic op . args)
+    (let ((type-tags (map type-tag args)))
+      (let ((proc (get op type-tags)))
+	(if proc
+	    (apply proc (map contents args))
+	    (error
+	     "No method for these types -- APPLY-GENERIC"
+	     (list op type-tags))))))
+#+END_SRC
+
+The represenation of 3 + 4i in rectungular form in Figure 2.24, written in standard form is:
+
+#+BEGIN_SRC racket  :tangle no
+  ('complex ('rectangular (3 4)))
+#+END_SRC
+
+We have evaluated:
+
+#+BEGIN_SRC racket  :tangle no
+  (put 'magnitude '(complex) magnitude)
+#+END_SRC
+
+However, this means there's room for some ambiguity.
+The expression we're asked to evaluate is =(magnitude z)=, but should this be read =('magnitude z)=?
+This is resolved when recalling on p. 184 we have:
+
+#+BEGIN_SRC racket  :tangle no
+  (define (magnitude z) (apply-generic 'magnitude z))
+#+END_SRC
+
+Our task is to evaluate =(magnitude z)=.
+In turn, this amounts to evaluating =(apply-generic 'magnitude z)=.
+Putting in the value for =z=, we have:
+
+#+BEGIN_SRC racket  :tangle no
+  (apply-generic 'magnitude ('complex ('rectangular (3 4))))
+#+END_SRC
+
+Expanded:
+
+#+BEGIN_SRC racket  :tangle no
+  (let ((type-tags (map type-tag ('complex ('rectangular (3 4))))))
+    (let ((proc (get 'magnitude type-tags)))
+	  (if proc
+	      (apply proc (map contents ('complex ('rectangular (3 4)))))
+	      (error
+	       "No method for these types -- APPLY-GENERIC"
+	       (list 'magnitude type-tags))))))
+#+END_SRC
+
+Recall, the definition of =type-tag= is:
+
+#+BEGIN_SRC racket  :tangle no
+  (define (type-tag datum)
+    (if (pair? datum)
+	(car datum)
+	(error " Bad tagged datum -- TYPE-TAG" datum)))
+#+END_SRC
+
+So, applying the first =map= we obtain:
+
+#+BEGIN_SRC racket  :tangle no
+  (let ((type-tags 'complex))
+    (let ((proc (get 'magnitude 'complex)))
+	  (if proc
+	      (apply proc (map contents ('complex ('rectangular (3 4)))))
+	      (error
+	       "No method for these types -- APPLY-GENERIC"
+	       (list 'magnitude 'complex))))))
+#+END_SRC
+
+At this point, Alyssa's procedure is used for the second =let=!
+
+#+BEGIN_SRC racket  :tangle no
+  (let ((type-tags 'complex))
+    (let ((proc magnitude))
+	  (if proc
+	      (apply proc (map contents ('complex ('rectangular (3 4)))))
+	      (error
+	       "No method for these types -- APPLY-GENERIC"
+	       (list 'magnitude 'complex))))))
+#+END_SRC
+
+As we have a =proc=, we need =contents= for the second =map=.
+Here it is:
+
+#+BEGIN_SRC racket  :tangle no
+  (define (contents datum)
+    (if (pair? datum)
+	(cdr datum)
+	(error " Bad tagged datum -- TYPE-TAG" datum)))
+#+END_SRC
+
+So, we get:
+
+#+BEGIN_SRC racket  :tangle no
+  (let ((type-tags 'complex))
+    (let ((proc magnitude))
+	  (if proc
+	      (apply proc ('rectangular (3 4)))
+	      (error
+	       "No method for these types -- APPLY-GENERIC"
+	       (list 'magnitude 'complex)))))
+#+END_SRC
+
+So, now our task is to evaluate =(apply proc ('rectangular (3 4)))=.
+Where =proc= is =magnitude=.
+It's the same problem as above, where evaluating =magnitude= makes results in a call to =apply-generic=.
+Alyssa's procedure works because ='complex= is just a wrapper for ='rectangular= and ='polar=.
+So, by making a second call to =magnitude= we're effectively ignoring the ='complex= type.
+Though, this is only with respect to the version of =magnitude= installed by the complex package.
+
+So, the process starts again!
+This time, though, the type is ='rectangular=.
+So, the version of =magnitiude= installed by the rectangular package is used.
+
+#+BEGIN_SRC racket  :tangle no
+  (let ((type-tags ('rectangular)))
+    (let ((proc magnitude))
+      (if proc
+	  (apply proc (3 4))
+	  (error
+	   "No method for these types -- APPLY-GENERIC"
+	   (list 'magnitude type-tags)))))
+#+END_SRC
+
+So, we get to:
+
+#+BEGIN_SRC racket  :tangle no
+  (magnitude (3 4))
+#+END_SRC
+
+#+BEGIN_SRC racket  :tangle no
+  (sqrt (+ (square (real-part (3 4)))
+	   (square (imag-part (3 4)))))
+#+END_SRC
+
+Here, these functions are internal to the package.
+So, we get:
+
+#+BEGIN_SRC racket  :tangle no
+  (sqrt (+ (square (car (3 4)))
+	   (square (cdr (3 4)))))
+#+END_SRC
+
+I.e.
+
+#+BEGIN_SRC racket  :tangle no
+  (sqrt (+ (square 3)
+	   (square 4)))
+#+END_SRC
+
+In total, then, we make two calls to =apply-generic=.
+
