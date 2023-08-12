@@ -4655,3 +4655,60 @@ I.e.
 
 In total, then, we make two calls to =apply-generic=.
 
+** 2.78
+
+The initial definitions of =type-tag=, =contents=, and =attach-tag= are as follows:
+
+#+BEGIN_SRC racket :tangle no
+  (define (type-tag datum)
+    (if (pair? datum)
+	(car datum)
+	(error " Bad tagged datum -- TYPE-TAG" datum)))
+#+END_SRC
+
+#+BEGIN_SRC racket :tangle no
+  (define (contents datum)
+    (if (pair? datum)
+	(cdr datum)
+	(error "Bad tagged datum -- CONTENTS " datum)))
+#+END_SRC
+
+#+BEGIN_SRC racket :tangle no
+  (define (attach-tag type-tag contents)
+    (cons type-tag contents))
+#+END_SRC
+
+To extend these so the generic system takes advantage of Scheme's interval type system using =symbol?= and =number?= we make use of some =cond= instances.
+
+#+BEGIN_SRC racket :tangle no
+  (define (type-tag datum)
+    (cond ((pair? datum) (car datum))
+	  ((number? datum) ('number))
+	  ((symbol? datum) ('symbol))
+	  (else error " Bad tagged datum -- TYPE-TAG" datum)))
+#+END_SRC
+
+
+#+BEGIN_SRC racket :tangle no
+  (define (contents datum)
+    (cond ((pair? datum) (cdr datum))
+	  ((number? datum) datum)
+	  ((symbol? datum) datum)
+	(error "Bad tagged datum -- CONTENTS " datum)))
+#+END_SRC
+
+=attach-tag= is a little puzzling.
+As specified, =attach-tag= takes a tag argument and contents.
+So, there's no room for making use of Scheme's internal type system.
+A type must be given!
+
+However, if we reverse the order of arguments, then we can make the type optional.
+
+#+BEGIN_SRC racket :tangle no
+  (define (attach-tag contents . type-tag)
+    (cond ((number? contents) (cons 'number contents))
+	  ((symbol? contents) (cons 'symbol contents))
+	  (else (cons type-tag contents))))
+#+END_SRC
+
+#+RESULTS:
