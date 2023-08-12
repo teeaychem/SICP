@@ -4711,4 +4711,53 @@ However, if we reverse the order of arguments, then we can make the type optiona
 	  (else (cons type-tag contents))))
 #+END_SRC
 
-#+RESULTS:
+
+** 2.79
+
+Or, maybe…
+
+#+BEGIN_SRC racket
+  (define (equ? a b)
+    (let ((type-a (type-tag a))
+	  (type-b (type-tag b)))
+      (get 'equ type-a type-b) a b)
+#+END_SRC
+
+I don't think this is too interesting.
+
+- We already have a test for ordinary numbers.
+- With rational numbers, we probably want to test the reduced form of both number, unless there's a guarantee these numbers have been provided by make-rational.
+- Complex numbers will have two cases, depending on the representation.
+  As the procedure works on typed objects directly, I'd suggest three procedures.
+  On for rectangular, one for polar, and the final for either rectangular or polar.
+  The latter, of course, reduces to one of the former, similar to =magnitude=, above.
+
+So, the general structure would be:
+
+#+BEGIN_SRC racket :tangle no
+  (define (install-equ-package)
+    (define (equ-number a b) (…))
+
+    …
+
+    (put 'equ '(number number) (equ-number))
+
+    …
+    )
+#+END_SRC
+
+In contrast to the other packages, there's no need to tag the result.
+Unless, that is, we like =bool=.
+
+** 2.80
+
+In terms of installing the package, this is no different from the above.
+Noting, of course, =zero?= takes a single argumnet.
+
+So, I guess the only interesting thing here is writing the inidivudal functions?
+
+I'll pass on this.
+
+I get the feeling these are exercises designed so something which involves writing code can be assigned in a class.
+Perhaps there's something interesting!
+But, I think the cost of finding out is too high…
