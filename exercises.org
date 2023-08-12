@@ -246,12 +246,12 @@ If this is right, it seems a little subtle for the sixth question...
 
 ** 1.7
 
-good-enough? checks to see whether abs(guess^2 - target) < 0.001
+=good-enough?= checks to see whether =abs(guess^2 - target) < 0.001=.
 
 In the case of small numbers, this not very effective and for large number inadequate.
 As good-enough? compares two squared numbers, for small values there won't be much of a difference, while for large number there will be a significant difference.
 
-Observe, squares increaes fast with magnitude.
+Observe, squares increaes quickly with magnitude.
 
 #+BEGIN_SRC racket
   <<def:square>>
@@ -336,11 +336,10 @@ goodCubeGuess? could also be adjusted, as with previous exercise.
   (define (+ a b)
     (if (= a 0)
 	b
-	(inc (+ (dec a) b)))
-    )
+	(inc (+ (dec a) b))))
 #+END_SRC
 
-#+BEGIN_SRC racket
+#+BEGIN_SRC racket :tangle no
 (+ 4 5)
 (inc (+ (dec a) b))
 (inc (+ 3 5))
@@ -363,7 +362,7 @@ Recursive prodecure and recursive process.
 	(+ (dec a) (inc b))))
 #+END_SRC
 
-#+BEGIN_SRC racket
+#+BEGIN_SRC racket :tangle no
   (+ 4 5)
   (+ (dec 4) (inc 5))
   (+ 3 6)
@@ -377,7 +376,7 @@ Recursve procedure but iterative process
 
 ** 1.10
 
-#+BEGIN_SRC racket
+#+BEGIN_SRC racket :tangle no
 (A 1 10)
 (A 0 (A 1 9))
 (A 0 (A 0 (A 1 8)))
@@ -400,7 +399,7 @@ Recursve procedure but iterative process
 1024
 #+END_SRC
 
-#+BEGIN_SRC racket
+#+BEGIN_SRC racket :tangle no
 (A 2 4)
 (A 1 (A 2 3))
 (A 1 (A 1 (A 2 2)))
@@ -442,9 +441,9 @@ Okay, this grows in a cool way.
   (A 2 3)
 #+END_SRC
 
-(A 0 n) is 2n
-(A 1 n) is 2^ns
-(A 2 n) is 2^^(n - 1) i.e. if n = 3, 2^2^2, if n = 4 2^2^2^2
+- (A 0 n) is 2n
+- (A 1 n) is 2^n
+- (A 2 n) is 2^^(n - 1) i.e. if n = 3, 2^2^2, if n = 4 2^2^2^2
 
 ** 1.11
 
@@ -620,7 +619,7 @@ Main fuction, following the hint
 
 ** 1.17
 
-Using (* 2 x) for double x and (/ x 2) for half x.
+Using =(* 2 x)= for =(double x)= and =(/ x 2)= for =(half x)=.
 
 dhMultH, only works for positive integers.
 So, dhMult ensures positive numbers are passed through, and adjusts the result appropriately.
@@ -975,8 +974,7 @@ Added some formatting, though ofc I should have a single call for n/prime displa
     (cond ((= exp 0) 1)
 	  ((even? exp)
 	   (remainder (square (MR-check-sqaure (MR-expmod base (/ exp 2) m) m)) m))
-	  (else (remainder (* base (MR-expmod base (- exp 1) m)) m))
-	  ))
+	  (else (remainder (* base (MR-expmod base (- exp 1) m)) m))))
 
   (define (MR-check-sqaure a m)
     <<def:square>>
@@ -1068,8 +1066,6 @@ Well, the results are closer to 1/4…
 #+END_SRC
 
 ** 1.31
-
-
 
 *** a.
 
@@ -1520,8 +1516,7 @@ Here, 1 could be anything – it's just a first guess.
     (let (
 	  (good? (lambda (guess) (< (abs (- (square guess) x)) 0.001)))
 	  (improve (lambda (guess) (average guess (/ x guess)))))
-      ((iterative-improve good? improve) 1)
-      ))
+      ((iterative-improve good? improve) 1)))
 #+END_SRC
 
 Some tests
@@ -4236,7 +4231,6 @@ So, we get a tree which has no balance.
 
 ** TODO 2.72
 
-
 I'd like to consider the general case.
 
 And, also, work through a few more basic problems first.
@@ -4259,16 +4253,118 @@ As the call to get requires an operator, we must perform some tests to ensure th
 
 *** b.
 
+Our original procedure for symbolic differentation looked like this:
 
+#+BEGIN_SRC racket :tangle no
+  (define (deriv exp var)
+    (cond ((number? exp) 0)
+	  ((variable? exp) (if (same-variable? exp var) 1 0))
+	  ((sum? exp)
+	   (make-sum
+	    (deriv (addend exp) var)
+	    (deriv (augend exp) var)))
+	  ((product? exp) (make-sum
+			   (make-product (multiplier exp)
+					 (deriv (multiplicand exp) var))
+			   (make-product (deriv (multiplier exp) var) (multiplicand exp))))
+	  ; (more rules can be added here)
+	  (else (error " unknown expression type -- DERIV" exp))))
+#+END_SRC
+
+With data-directed programming, we have the option of making deriv addidative.
+
+On way of approaching this rewrite is to write out functions for each type combination.
+For example, make-sum starts to look something like this:
+
+#+BEGIN_SRC racket :tangle no
+  (define (make-sum-numbers exp1 exp2) (+ exp1 exp2))
+
+  (define (make-sum-sym exp1 exp2) (list '+ exp1 exp2))
+#+END_SRC
+
+#+BEGIN_SRC racket :tangle no
+  (put 'make-sum '(number number) make-sum-numbers)
+
+  (put 'make-sum '(symbol symbol) (list '+ exp1 exp2))
+#+END_SRC
+
+Indeed, ='deriv= already does some basic type checking.
+However, the approach taken is to use data-directed programming to obtain arbitrary operators relative to ='deriv=, without type-checking.
+
+The base code given is:
+
+#+BEGIN_SRC racket :tangle no
+  (define (deriv exp var)
+    (cond ((number? exp) 0)
+	  ((variable? exp) (if (same-variable? exp var) 1 0))
+	  (else ((get 'deriv (operator exp)) (operands exp) var))))
+
+  (define (operator exp) (car exp))
+
+  (define (operands exp) (cdr exp))
+#+END_SRC
+
+So, the call to get takes ='deriv= and the operator.
+Hence, the procedure we define does not work on typed objects.
+So, =make-sum= is close to before.
+Though, now we have a list of expressions and a variable, and maybe the need to call ='deriv=
+
+#+BEGIN_SRC racket :tangle no
+  (define (make-sum exps var)
+    (let ((exp1 (car exps))
+	  (exp2 (cadr exps)))
+      (cond ((=number? exp1 0) exp2)
+	    ((=number? exp2 0) exp1)
+	    ((and (number? exp1) (number? exp2)) (+ exp1 exp2))
+	    (else (list '+
+			((get 'deriv (operator exp1)) (operands exp1) var)
+			((get 'deriv (operator exp2)) (operands exp2) var))))))
+#+END_SRC
+
+Note, the =number?= cases function like base cases.
+There's nothing more to be done.
+And, the =else= case just breaks down the expression one step.
+
+
+To make this available, we =put= a suitable name relative to ='deriv=.
+For example:
+
+#+BEGIN_SRC racket :tangle no
+  (put 'deriv 'make-sum make-sum)
+#+END_SRC
+
+And perhaps:
+
+#+BEGIN_SRC racket :tangle no
+  (put 'deriv '+ make-sum)
+#+END_SRC
+
+Here, with the data-directed approach we have a lot of flexibility with the possible operator symbols.
+
+=make-product= is transformed in an analogous way.
 
 *** c.
 
 
+I don't think this is sufficiently different from part b.
+
 *** d.
 
-We'd need to update the operators used within deriv, as now +, *, etc. all require disambiguation.
-Something like number should work for this, as +, *, etc. as used are only defined with respect to numbers.
-I guess this includes rationals, and possibly more?
+
+We'd need to update each of the helper functions, as these may calls to =get=.
+Aside from this, no significant changes are required.
+
+However, things could get complex.
+For, in addition to ='deriv=, the same operators may be associated with other procedures.
+As things are originially, there's nothing too difficult.
+Rather than ='deriv= we'd have a name for the new procedure, and specify operators relative to the procedure.
+
+However, on the proposed change we'd need to ensure each existing operator was appropriately disambiguated.
+
+Well, I'd guess.
+We have a lookup table and ordered argumnets.
+So, I would expect =get= searches by row then column or vice-versa.
+If =get= doesn't work this way, then there's nothing too signficant.
 
 ** 2.74
 
@@ -4400,3 +4496,7 @@ In this sense, something which takes two objects could recieve a message, such a
 On the other hand, we're still building everything from the foundations of lisp, so you should decide whether the procedure is creating an object that should recieve messages.
 And, if so write out ways to handle those messages.
 
+** 2.77
+
+The important thing to keep in mind win the data-directed style is that as soon as we remove types, everything is basic lisp.
+So, as long as =real-part=, etc. work on complex numbers, there's no issue associating =real-part= with the =complex= type.
