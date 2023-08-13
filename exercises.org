@@ -5169,3 +5169,33 @@ I can see why these exercises are interesting, though.
 And, especially at the time, I imagine this was an interesting avenue for research.
 And, I recognise dynamic typing is a thing which may work in the way described here.
 But, I'm not sure it's worth going through everything while =put= and =get= are still out of reach.
+
+** 2.87
+
+=zero?= for polynomials checks to see whether every coefficient is 0.
+
+The following should do the trick.
+=accumulate= walks through =(term-list poly)= where =x= is the next element to process and =y= is the result of previously processed elements.
+So, we conjoin the previously processed elements with a check on whether the current term has a coefficient of 0.
+
+#+BEGIN_SRC racket
+  (define (zero? poly)
+    <<def:accumulate>>
+    (accumulate (lambda (x y) (and (= 0 (coeff x)) y)) #t (term-list poly)))
+#+END_SRC
+
+Here are a few tests, where the term lists are written by hand, and =cadr= replaces =coeff=.
+
+#+BEGIN_SRC racket
+  <<def:accumulate>>
+  (accumulate (lambda (x y) (and (= 0 (cadr x)) y)) #t (list (list 5 6) (list 3 1) (list 2 6) (list 1 5)))
+
+  (accumulate (lambda (x y) (and (= 0 (cadr x)) y)) #t (list (list 5 6) (list 3 1)))
+
+  (accumulate (lambda (x y) (and (= 0 (cadr x)) y)) #t (list (list 5 0) (list 3 1)))
+
+  (accumulate (lambda (x y) (and (= 0 (cadr x)) y)) #t (list (list 5 0)))
+#+END_SRC
+
+
+** 2.88
