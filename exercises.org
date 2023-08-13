@@ -5237,7 +5237,7 @@ Where, all the work is passed on to =sub-terms=:
 	(error "Polys not in same var -- SUB-POLY" (list p1 p2)))
 #+END_SRC
 
-Here, our work is a little easier by observing \((x - y) = (x + (- y))\).
+Here, our work is a little easier by observing $(x - y) = (x + (- y))$.
 
 #+BEGIN_SRC racket :tangle no
   (define (sub-terms L1 L2)
