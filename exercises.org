@@ -4954,6 +4954,7 @@ So, the simplest way to implement a generic raise operation is to use =apply-gen
 For, this will evaluate =(get 'raise type)=.
 Hence, we have:
 
+#+NAME: def:raise
 #+BEGIN_SRC racket
   (define (raise exp) (apply-generic 'raise exp))
 #+END_SRC
@@ -4977,3 +4978,166 @@ Then, given an expression, we use the list to find the relevant transform type.
 However, this doesn't lend well to a generic =raise= procedure, as asked for.
 
 ** 2.84
+
+It's fairly easy to implement a general method for finding the type of a raised expression.
+For example, we can start with:
+
+#+BEGIN_SRC racket
+  (define (raised-type exp)
+    <<def:raise>>
+    (type-tag (raise exp)))
+#+END_SRC
+
+Then, substitute this for a generic version of raised-type.
+
+With this, we could keep raising the type of an expression to create a list of the possible raises.
+Then, we just need to search for the first match in the lists.
+
+The issue is =raised-type= can't rely on or be generic here.
+For, we'll need to figure out a way to see there's no possibility of raising a type any further.
+To do this we'd need to observe =raised-type= does not return a type.
+But, this will result in an error.
+
+So, implementing =raised-type= via =raise= isn't a good first step.
+However, implementing a generic =raised-type= is fine.
+
+#+NAME: def:raised-type
+#+BEGIN_SRC racket
+  (define (raised-type exp) (apply-generic 'raised-type exp))
+#+END_SRC
+
+#+BEGIN_SRC racket
+  (define (integer-to-rational-type n) '(rational))
+#+END_SRC
+
+We just have many simple procedures.
+For example:
+
+#+BEGIN_SRC racket
+  (put 'raised-type '(integer) integer-to-rational)
+#+END_SRC
+
+Or quick lambdas.
+Such as:
+
+#+BEGIN_SRC racket
+  (put 'raised-type '(integer) (lambda (x) '(rational)))
+#+END_SRC
+
+However, key is the option of returning =nil=.
+
+#+BEGIN_SRC racket
+  (put 'raised-type '(complex) nil)
+#+END_SRC
+
+With this, we can now reconstruct the heirarchy above a certain type:
+
+#+BEGIN_SRC racket
+  (define (get-above-types type)
+    (if (null? type)
+	nil
+	(cons type ((get-above-types (raised-type type))))))
+#+END_SRC
+
+This is little more than recursively keeping track of the current type and moving to a super-type before combining everything into a list.
+
+Now, we can find the first match fairly easily.
+We know both types are part of a hierarchy, so if we start at the top of the hierarchy, we are sure to have a match.
+We can store this, and then continually move down the hierarchy checking for matches.
+As soon as a match fails to be found, we've attempted to move to a subtype of one of the types.
+Hence, we should return the stored last match.
+
+As a general procedure which works on any two lists, we have something like this:
+
+#+NAME: def:first-match
+#+BEGIN_SRC racket
+	(define (first-match l1 l2)
+	  (define (first-match-reversed l1 l2 previous)
+	    (cond
+	      ((or (not (pair? l1)) (not (pair? l2))) previous)
+	      ((not (equal? (car l1) (car l2))) previous)
+	      (else (first-match-reversed (cdr l1) (cdr l2) (car l1)))))
+	  (let ((l1R (reverse l1))
+		(l2R (reverse l2)))
+	    (first-match-reversed l1R l2R nil)))
+#+END_SRC
+
+But, we can extend this to work on an arbitrary number of lists in the following way:
+
+#+NAME: def:first-match-lists
+#+BEGIN_SRC racket
+      (define (first-match-lists lists)
+	(define (first-match-reversed lists previous)
+	  <<def:accumulate>>
+	  <<def:filter>>
+	  (cond
+	    ((accumulate (lambda (x y) (or (not (pair? x)) y)) #f lists)
+	     previous)
+	    ((not (= (length lists) (length (filter (lambda (x) (equal? (car x) (car (car lists)))) lists))))
+	     previous)
+	    (else
+	     (first-match-reversed (map cdr lists) (car (car lists))))))
+	(first-match-reversed (map reverse lists) nil))
+#+END_SRC
+
+The second =cond= condition is a little messy here.
+Effectively, we're ensuring the first element of every list is the same.
+To do this we filter the list of lists by equality of the first element of the first list and then check to see no lists have been omitted.
+
+Here are some tests:
+
+#+BEGIN_SRC racket
+   <<def:first-match-lists>>
+
+  (first-match-lists (list (list 'a 'b 'c 'd) (list 'a 'b 'c 'd)))
+
+  (first-match-lists (list (list 'b 'c 'd) (list 'a 'b 'c 'd)))
+
+  (first-match-lists (list (list 'd) (list 'a 'b 'c 'd)))
+
+  (first-match-lists (list (list 'b 'c 'd) (list )))
+
+  (first-match-lists (list (list ) (list )))
+
+  (first-match-lists (list (list 'a 'b 'c 'd) (list 'b 'c 'd) (list 'c 'd)))
+
+  (first-match-lists (list (list 'a 'b 'c 'd) (list 'b 'c 'd) (list 'c 'd) (list 'd)))
+#+END_SRC
+
+Note, by using =first-match= we'll get a return of =nil= if the types do not belong to the same hierarchy.
+So, with =apply-generic= we now switch out everything after a test for the same type to include a test for a shared type between all the arguments.
+If a shared type is found, then each argumnet is coerced to that type.
+Otherwise, no method is available.
+
+It's easy to recusively raise a type so long as we have a guarntee raising is possible, which we do have in this case:
+
+#+BEGIN_SRC racket
+  (define (raise-to-type exp type)
+    (if (equal? (type-tag exp) type)
+	exp
+	(raise-to-type (raise exp) type)))
+#+END_SRC
+
+So, to finish things off, we raise each type to the shared type.
+
+#+BEGIN_SRC racket :tangle no
+  (define (apply-generic op . args)
+    <<def:list-of-elem>>
+    (let ((type-args (map type-tag args)))
+      (let ((proc (get op type-tags)))
+	(if proc
+	    (apply proc (map contents args))
+	    (cond ((= (length args) 0)
+		   (error "No arguments given to an operator of arity > 0"))
+		  ((list-of-elem (car type-tags) type-tags)
+		   (error "No method for this type (for all arguments)" (list op (car type-tags))))
+		  ;; Here, we figure out the shared type.
+		  (else (let ((sharedType (first-match-lists (map get-above-types type-args))))
+			  if (sharedType)
+			  ;; Here we raise each type to the shared type.
+			  (apply-generic op (map (lambda (x) (raise-to-type x sharedType)) args))
+			  (error "No method for these types" (list op type-tags))
+			  )))))))
+#+END_SRC
+
+
