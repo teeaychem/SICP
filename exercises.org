@@ -4711,7 +4711,6 @@ However, if we reverse the order of arguments, then we can make the type optiona
 	  (else (cons type-tag contents))))
 #+END_SRC
 
-
 ** 2.79
 
 Or, maybe…
@@ -4761,7 +4760,6 @@ I'll pass on this.
 I get the feeling these are exercises designed so something which involves writing code can be assigned in a class.
 Perhaps there's something interesting!
 But, I think the cost of finding out is too high…
-
 
 ** 2.81
 
@@ -4849,7 +4847,6 @@ As =list-of-elem= takes an arbitrary list, this is done /before/ we limit oursel
 			      (error "No method for these types" (list op type-tags)))))))
 		  (else	(error "No method for these types" (list op type-tags))))))))
 #+END_SRC
-
 
 ** 2.82
 
@@ -5140,7 +5137,6 @@ So, to finish things off, we raise each type to the shared type.
 			  )))))))
 #+END_SRC
 
-
 ** MAYBE 2.85
 
 Really? I think this is a mix of everything done above.
@@ -5279,3 +5275,27 @@ Here, we define:
 #+END_SRC
 
 Ah, so peaceful!
+
+** 2.89
+
+For dense polynomals…
+
+Ah, this is not fun.
+Instead of a set of order coefficient pairs we'd work with a list for which the $i$th index is the coeffciient for the $i$th order.
+This is quite the headache.
+As, we pass around terms isolated from the term list.
+And, these need to have order information.
+But, in the case of dense polynomials, this means we either translate to sparse representation or have a dense representation which is mostly empty.
+And, as we don't have sparse/dense typing, only the latter is sensbile.
+(Though, if you really wanted you could inspect the structure of the data, but this seems a little unsafe.)
+
+- =adjoin-term= would basically merge two lists, where the adjoining term is a list empty but for one place.
+- =first-term= would =car= the term-list
+- =rest-terms= would =cdr= the term-list
+- =make-term= would create a list of =(- order 1)= 0s, and then the coeffecient.
+- =order= would =car= the list until something non-zero is found, and return the number of =car= applied plus one or error if nil is found.
+- =coeff= would =car= the list until something non-zero is found, and return whatever that is or zero is nil is found.
+
+I think that covers everything.
+
+** 2.90
