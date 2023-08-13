@@ -5141,3 +5141,31 @@ So, to finish things off, we raise each type to the shared type.
 #+END_SRC
 
 
+** MAYBE 2.85
+
+Really? I think this is a mix of everything done above.
+So, I'm not sure what the payoff is.
+
+I may come back to this…
+
+** MAYBE 2.86
+
+Wow, this is an exercise!
+
+Though, I'm not sure what the goal is.
+
+If it's to simply work with numbers input in various ways, then we could simply raise everything as high as possilbe.
+So, the reals and complex numbers, I think.
+Or, maybe just complex numbers.
+Though, trig. operations such as sine… might not be defined for complex numbers.
+
+So, an upshot of this exercise is finding out some limits of creating generic operations and coercion, while also recognising benefits of cases avoided.
+
+And, with coercion there's no real worry out the resultant type.
+If a different type was desired, and possible, then it's easy to coerce.
+
+For now this is a maybe.
+I can see why these exercises are interesting, though.
+And, especially at the time, I imagine this was an interesting avenue for research.
+And, I recognise dynamic typing is a thing which may work in the way described here.
+But, I'm not sure it's worth going through everything while =put= and =get= are still out of reach.
