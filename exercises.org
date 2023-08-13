@@ -5233,7 +5233,7 @@ Where, all the work is passed on to =sub-terms=:
 	(error "Polys not in same var -- SUB-POLY" (list p1 p2))))
 #+END_SRC
 
-Here, our work is a little easier by observing \( (x - y) = (x + (- y)) \).
+Here, our work is a little easier by observing $(x - y) = (x + (- y))$.
 
 #+BEGIN_SRC racket :tangle no
   (define (sub-terms L1 L2)
@@ -5281,7 +5281,7 @@ Ah, so peaceful!
 For dense polynomals…
 
 Ah, this is not fun.
-Instead of a set of order coefficient pairs we'd work with a list for which the \( i \)th index is the coeffciient for the \( i \)th order.
+Instead of a set of order coefficient pairs we'd work with a list for which the $i$th index is the coeffciient for the $i$th order.
 This is quite the headache.
 As, we pass around terms isolated from the term list.
 And, these need to have order information.
@@ -5309,8 +5309,8 @@ And, on top of this work out a function for concerting between the two types.
 Is there interesting trade-off here?
 For sparse representation, when searching through the terms we need to make a comparison.
 While, with dense representation we only need to walk to a certain point in the list.
-But, if the comparison is assumed to take a constant about of time, there's not going to be a \( \Theta \) difference.
-As, it's \( n \) =car= and =null?= instances versus \( n \) =car=, =car=, ===, and =null?= instances.
+But, if the comparison is assumed to take a constant about of time, there's not going to be a $\Theta$ difference.
+As, it's $n$ =car= and =null?= instances versus $n$ =car=, =car=, ===, and =null?= instances.
 It is double, but doubling of a constant.
 
 So, we're very much into detailed efficiency.
@@ -5320,7 +5320,7 @@ Ah, well, this is almost-certainly-skip-maybe.
 
 ** 2.91
 
-#+BEGIN_SRC racket :tangle no
+#+BEGIN_SRC racket :tange no
   (define (div-terms L1 L2)
     (if (empty-list? L1)
 	(list (the-empty-termlist) (the-empty-termlist))
