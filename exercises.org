@@ -1567,7 +1567,7 @@ Note, doing (define (mult) (* n d)) wouldn't be any help, as this would just cal
 #+NAME: def:make-rat-basic
 #+BEGIN_SRC racket
   (define (make-rat-basic n d)
-    (let ((sign  ((lambda (x) (/ x (abs x))) (* n d))))
+    (let ((sign ((lambda (x) (/ x (abs x))) (* n d))))
       (cons (* sign (abs n)) (abs d))))
 #+END_SRC
 
@@ -5197,5 +5197,85 @@ Here are a few tests, where the term lists are written by hand, and =cadr= repla
   (accumulate (lambda (x y) (and (= 0 (cadr x)) y)) #t (list (list 5 0)))
 #+END_SRC
 
+Given I've used this idea twice, here's the general form:
+
+#+NAME: def:big-and
+#+BEGIN_SRC racket
+  (define (big-and predicate list)
+    <<def:accumulate>>
+    (accumulate (lambda (x y) (and (predicate x) y)) #t list))
+#+END_SRC
+
+#+NAME: def:big-or
+#+BEGIN_SRC racket
+  (define (big-or predicate list)
+    <<def:accumulate>>
+    (accumulate (lambda (x y) (or (predicate x) y)) #f list))
+#+END_SRC
+
+So, we can write:
+
+#+BEGIN_SRC racket :tangle no
+  (define (zero? poly)
+    <<def:big-and>>
+    (big-and (lambda (x) (= 0 (coeff x))) (term-list poly)))
+#+END_SRC
+
+And this should work exactly as the other definition.
 
 ** 2.88
+
+The basic subtraction operator mirrors addition.
+Where, all the work is passed on to =sub-terms=:
+
+#+BEGIN_SRC racket :tangle no
+  (define (sub-poly p1 p2)
+    (if (same-variable? (variable p1) (variable p2))
+	(make-poly (variable p1)
+		   (sub-terms (term-list p1)
+			      (term-list p2)))
+	(error "Polys not in same var -- SUB-POLY" (list p1 p2)))
+#+END_SRC
+
+Here, our work is a little easier by observing \((x - y) = (x + (- y))\).
+
+#+BEGIN_SRC racket :tangle no
+  (define (sub-terms L1 L2)
+    (add-terms L1 (negate-terms L2)))
+#+END_SRC
+
+In turn, we can break down the term list as usual, applying a unary negation operator on the coeffectient of terms.
+
+#+BEGIN_SRC racket :tangle no
+  (define (negate-terms term-list)
+    (if (null? term-list)
+	nil
+	(let ((term (car term-list)))
+	  (cons (make-term (order term) (negate (coeff term))) (negate-terms (cdr term-list))))))
+#+END_SRC
+
+At this point, it makes sense to use to generic procedure.
+
+#+BEGIN_SRC racket :tangle no
+  (define (negate z) (apply-generic 'negate n))
+#+END_SRC
+
+So, our task now reduces to writing out the negate operator for each relevant type and then using =put= to make these accessible.
+For example, we'd write something like the following for rationals:
+
+#+BEGIN_SRC racket :tangle no
+  (define (negate rational)
+    (make-rational (negate (numerator rational)) (denomenator rational)))
+#+END_SRC
+
+Here, we simply negate the numerator.
+Here, again, negate is dynamically applyed to whatever type the numerator is.
+
+The simplest case is basic numbers.
+Here, we define:
+
+#+BEGIN_SRC racket :tangle no
+  (define (negate number) (- number))
+#+END_SRC
+
+Ah, so peaceful!
