@@ -1,4 +1,4 @@
-#+STARTUP: Overview
+[]#+STARTUP: Overview
 #+PROPERTY: header-args :noweb eval :results output :tangle tangle.rkt :prologue "#lang sicp"
 #+TITLE: SICP Exercises
 
@@ -188,7 +188,7 @@ So, here, first checking whether x or y are 0 would lead to a different result, 
 
 #+BEGIN_SRC racket
   (define (test2 x y)
-  (if (or (x = 0) (y = 0)) 0
+  (if (or (= x 0) (= y 0)) 0
       (if (= x 0)
           0
           y)))
@@ -246,7 +246,7 @@ If this is right, it seems a little subtle for the sixth question...
 
 ** 1.7
 
-=good-enough?= checks to see whether =abs(guess^2 - target) < 0.001=.
+~good-enough?~ checks to see whether ~abs(guess^2 - target) < 0.001~.
 
 In the case of small numbers, this not very effective and for large number inadequate.
 As good-enough? compares two squared numbers, for small values there won't be much of a difference, while for large number there will be a significant difference.
@@ -619,7 +619,7 @@ Main fuction, following the hint
 
 ** 1.17
 
-Using =(* 2 x)= for =(double x)= and =(/ x 2)= for =(half x)=.
+Using ~(* 2 x)~ for ~(double x)~ and ~(/ x 2)~ for ~(half x)~.
 
 dhMultH, only works for positive integers.
 So, dhMult ensures positive numbers are passed through, and adjusts the result appropriately.
@@ -4288,8 +4288,8 @@ For example, make-sum starts to look something like this:
   (put 'make-sum '(symbol symbol) (list '+ exp1 exp2))
 #+END_SRC
 
-Indeed, ='deriv= already does some basic type checking.
-However, the approach taken is to use data-directed programming to obtain arbitrary operators relative to ='deriv=, without type-checking.
+Indeed, ~'deriv~ already does some basic type checking.
+However, the approach taken is to use data-directed programming to obtain arbitrary operators relative to ~'deriv~, without type-checking.
 
 The base code given is:
 
@@ -4304,10 +4304,10 @@ The base code given is:
   (define (operands exp) (cdr exp))
 #+END_SRC
 
-So, the call to get takes ='deriv= and the operator.
+So, the call to get takes ~'deriv~ and the operator.
 Hence, the procedure we define does not work on typed objects.
-So, =make-sum= is close to before.
-Though, now we have a list of expressions and a variable, and maybe the need to call ='deriv=
+So, ~make-sum~ is close to before.
+Though, now we have a list of expressions and a variable, and maybe the need to call ~'deriv~.
 
 #+BEGIN_SRC racket :tangle no
   (define (make-sum exps var)
@@ -4321,12 +4321,12 @@ Though, now we have a list of expressions and a variable, and maybe the need to 
 			((get 'deriv (operator exp2)) (operands exp2) var))))))
 #+END_SRC
 
-Note, the =number?= cases function like base cases.
+Note, the ~number?~ cases function like base cases.
 There's nothing more to be done.
-And, the =else= case just breaks down the expression one step.
+And, the ~else~ case just breaks down the expression one step.
 
 
-To make this available, we =put= a suitable name relative to ='deriv=.
+To make this available, we ~put~ a suitable name relative to ~'deriv~.
 For example:
 
 #+BEGIN_SRC racket :tangle no
@@ -4341,7 +4341,7 @@ And perhaps:
 
 Here, with the data-directed approach we have a lot of flexibility with the possible operator symbols.
 
-=make-product= is transformed in an analogous way.
+~make-product~ is transformed in an analogous way.
 
 *** c.
 
@@ -4351,20 +4351,20 @@ I don't think this is sufficiently different from part b.
 *** d.
 
 
-We'd need to update each of the helper functions, as these may calls to =get=.
+We'd need to update each of the helper functions, as these may calls to ~get~.
 Aside from this, no significant changes are required.
 
 However, things could get complex.
-For, in addition to ='deriv=, the same operators may be associated with other procedures.
+For, in addition to ~'deriv~, the same operators may be associated with other procedures.
 As things are originially, there's nothing too difficult.
-Rather than ='deriv= we'd have a name for the new procedure, and specify operators relative to the procedure.
+Rather than ~'deriv~ we'd have a name for the new procedure, and specify operators relative to the procedure.
 
 However, on the proposed change we'd need to ensure each existing operator was appropriately disambiguated.
 
 Well, I'd guess.
 We have a lookup table and ordered argumnets.
-So, I would expect =get= searches by row then column or vice-versa.
-If =get= doesn't work this way, then there's nothing too signficant.
+So, I would expect ~get~ searches by row then column or vice-versa.
+If ~get~ doesn't work this way, then there's nothing too signficant.
 
 ** 2.74
 
@@ -4468,11 +4468,11 @@ And, any new operation needs to be defined.
 
 **** Data-directed style
 
-For a new type we should provide a way of tagging objects as the relevant type, define isolated procedures on the relevant objets and then =put= these procedures on the table.
+For a new type we should provide a way of tagging objects as the relevant type, define isolated procedures on the relevant objets and then ~put~ these procedures on the table.
 
 As with generic operations with explict dispatch, we need to explictly extend existing procedures to the new types.
 However, this doesn't necessarily involve writing anything new.
-For, with =put= we can associate an existing procedure with the new type, so long as the procedure works as intended on the typed object.
+For, with ~put~ we can associate an existing procedure with the new type, so long as the procedure works as intended on the typed object.
 
 Ideally, though, we would design a package with constructors, selectors, and all other procedures for the relevant type.
 
@@ -4484,13 +4484,13 @@ However, we do introduce a way of disamguating the way we interact with familar 
 For a new type we need to specify a constructor, and internal to this we have the relevant selectors.
 
 For new procedures, it depends.
-Procedures like =make-from-real-imag= and =make-from-mag-ang= return an object, and for procedures on the object, we should specify messages to recieve.
+Procedures like ~make-from-real-imag~ and ~make-from-mag-ang~ return an object, and for procedures on the object, we should specify messages to recieve.
 
 For other procedures I'm not sure.
 And, to be honest I'm not sure with the two procedures either.
 
 For, from a general perspective, each operator can be seen as an object.
-In this sense, something which takes two objects could recieve a message, such as =make-from-real-imag= or =+= and then work out what to do.
+In this sense, something which takes two objects could recieve a message, such as ~make-from-real-imag~ or ~+~ and then work out what to do.
 On the other hand, we're still building everything from the foundations of lisp, so you should decide whether the procedure is creating an object that should recieve messages.
 And, if so write out ways to handle those messages.
 
@@ -4498,7 +4498,7 @@ And, if so write out ways to handle those messages.
 
 
 The important thing to keep in mind win the data-directed style is that as soon as we remove types, everything is basic lisp.
-So, as long as =real-part=, etc. work on complex numbers, there's no issue associating =real-part= with the =complex= type.
+So, as long as ~real-part~, etc. work on complex numbers, there's no issue associating ~real-part~ with the ~complex~ type.
 
 #+BEGIN_SRC racket :tangle no
   (define (apply-generic op . args)
@@ -4524,16 +4524,16 @@ We have evaluated:
 #+END_SRC
 
 However, this means there's room for some ambiguity.
-The expression we're asked to evaluate is =(magnitude z)=, but should this be read =('magnitude z)=?
+The expression we're asked to evaluate is ~(magnitude z)~, but should this be read ~('magnitude z)~?
 This is resolved when recalling on p. 184 we have:
 
 #+BEGIN_SRC racket  :tangle no
   (define (magnitude z) (apply-generic 'magnitude z))
 #+END_SRC
 
-Our task is to evaluate =(magnitude z)=.
-In turn, this amounts to evaluating =(apply-generic 'magnitude z)=.
-Putting in the value for =z=, we have:
+Our task is to evaluate ~(magnitude z)~.
+In turn, this amounts to evaluating ~(apply-generic 'magnitude z)~.
+Putting in the value for ~z~, we have:
 
 #+BEGIN_SRC racket  :tangle no
   (apply-generic 'magnitude ('complex ('rectangular (3 4))))
@@ -4551,7 +4551,7 @@ Expanded:
 	       (list 'magnitude type-tags))))))
 #+END_SRC
 
-Recall, the definition of =type-tag= is:
+Recall, the definition of ~type-tag~ is:
 
 #+BEGIN_SRC racket  :tangle no
   (define (type-tag datum)
@@ -4560,7 +4560,7 @@ Recall, the definition of =type-tag= is:
 	(error " Bad tagged datum -- TYPE-TAG" datum)))
 #+END_SRC
 
-So, applying the first =map= we obtain:
+So, applying the first ~map~ we obtain:
 
 #+BEGIN_SRC racket  :tangle no
   (let ((type-tags 'complex))
@@ -4572,7 +4572,7 @@ So, applying the first =map= we obtain:
 	       (list 'magnitude 'complex))))))
 #+END_SRC
 
-At this point, Alyssa's procedure is used for the second =let=!
+At this point, Alyssa's procedure is used for the second ~let~!
 
 #+BEGIN_SRC racket  :tangle no
   (let ((type-tags 'complex))
@@ -4584,7 +4584,7 @@ At this point, Alyssa's procedure is used for the second =let=!
 	       (list 'magnitude 'complex))))))
 #+END_SRC
 
-As we have a =proc=, we need =contents= for the second =map=.
+As we have a ~proc~, we need ~contents~ for the second ~map~.
 Here it is:
 
 #+BEGIN_SRC racket  :tangle no
@@ -4606,16 +4606,16 @@ So, we get:
 	       (list 'magnitude 'complex)))))
 #+END_SRC
 
-So, now our task is to evaluate =(apply proc ('rectangular (3 4)))=.
-Where =proc= is =magnitude=.
-It's the same problem as above, where evaluating =magnitude= makes results in a call to =apply-generic=.
-Alyssa's procedure works because ='complex= is just a wrapper for ='rectangular= and ='polar=.
-So, by making a second call to =magnitude= we're effectively ignoring the ='complex= type.
-Though, this is only with respect to the version of =magnitude= installed by the complex package.
+So, now our task is to evaluate ~(apply proc ('rectangular (3 4)))~.
+Where ~proc~ is ~magnitude~.
+It's the same problem as above, where evaluating ~magnitude~ makes results in a call to ~apply-generic~.
+Alyssa's procedure works because ~'complex~ is just a wrapper for ~'rectangular~ and ~'polar~.
+So, by making a second call to ~magnitude~ we're effectively ignoring the ~'complex~ type.
+Though, this is only with respect to the version of ~magnitude~ installed by the complex package.
 
 So, the process starts again!
-This time, though, the type is ='rectangular=.
-So, the version of =magnitiude= installed by the rectangular package is used.
+This time, though, the type is ~'rectangular~.
+So, the version of ~magnitiude~ installed by the rectangular package is used.
 
 #+BEGIN_SRC racket  :tangle no
   (let ((type-tags ('rectangular)))
@@ -4653,11 +4653,11 @@ I.e.
 	   (square 4)))
 #+END_SRC
 
-In total, then, we make two calls to =apply-generic=.
+In total, then, we make two calls to ~apply-generic~.
 
 ** 2.78
 
-The initial definitions of =type-tag=, =contents=, and =attach-tag= are as follows:
+The initial definitions of ~type-tag~, ~contents~, and ~attach-tag~ are as follows:
 
 #+BEGIN_SRC racket :tangle no
   (define (type-tag datum)
@@ -4678,7 +4678,7 @@ The initial definitions of =type-tag=, =contents=, and =attach-tag= are as follo
     (cons type-tag contents))
 #+END_SRC
 
-To extend these so the generic system takes advantage of Scheme's interval type system using =symbol?= and =number?= we make use of some =cond= instances.
+To extend these so the generic system takes advantage of Scheme's interval type system using ~symbol?~ and ~number?~ we make use of some ~cond~ instances.
 
 #+BEGIN_SRC racket :tangle no
   (define (type-tag datum)
@@ -4697,8 +4697,8 @@ To extend these so the generic system takes advantage of Scheme's interval type 
 	(error "Bad tagged datum -- CONTENTS " datum)))
 #+END_SRC
 
-=attach-tag= is a little puzzling.
-As specified, =attach-tag= takes a tag argument and contents.
+~attach-tag~ is a little puzzling.
+As specified, ~attach-tag~ takes a tag argument and contents.
 So, there's no room for making use of Scheme's internal type system.
 A type must be given!
 
@@ -4729,7 +4729,7 @@ I don't think this is too interesting.
 - Complex numbers will have two cases, depending on the representation.
   As the procedure works on typed objects directly, I'd suggest three procedures.
   On for rectangular, one for polar, and the final for either rectangular or polar.
-  The latter, of course, reduces to one of the former, similar to =magnitude=, above.
+  The latter, of course, reduces to one of the former, similar to ~magnitude~, above.
 
 So, the general structure would be:
 
@@ -4746,12 +4746,12 @@ So, the general structure would be:
 #+END_SRC
 
 In contrast to the other packages, there's no need to tag the result.
-Unless, that is, we like =bool=.
+Unless, that is, we like ~bool~.
 
 ** 2.80
 
 In terms of installing the package, this is no different from the above.
-Noting, of course, =zero?= takes a single argumnet.
+Noting, of course, ~zero?~ takes a single argumnet.
 
 So, I guess the only interesting thing here is writing the inidivudal functions?
 
@@ -4783,26 +4783,26 @@ But, I think the cost of finding out is too high…
 		(error "No method for these types" (list op type-tags)))))))
 #+END_SRC
 
-Louis observes =apply-generic= may try to coerce the arguemnts to each others type even if they already have the same type.
+Louis observes ~apply-generic~ may try to coerce the arguemnts to each others type even if they already have the same type.
 
 This certainly happens if there's no procedure for the types in question.
 As, coercion is attempted without any further check.
 
 And, as coercion is only attempted if no procedure is found, this is the only way it happens.
 
-So, why not turn the =if= into a =cond= and first check to see whether all the types are the same?
+So, why not turn the ~if~ into a ~cond~ and first check to see whether all the types are the same?
 
 Setting this aside!
 
 *** a.
 
-If we call =exp= with two complex numbers as arguments then we get an error.
-=proc= will not be found, and coercion from complex to complex will be attempted.
-But, =exp= only has an entry on scheme-numbers, and coercion is only attempted relative to the other argument (of a pair).
+If we call ~exp~ with two complex numbers as arguments then we get an error.
+~proc~ will not be found, and coercion from complex to complex will be attempted.
+But, ~exp~ only has an entry on scheme-numbers, and coercion is only attempted relative to the other argument (of a pair).
 
 *** b.
 
-I think =apply-generic= works as is.
+I think ~apply-generic~ works as is.
 
 
 *** c.
@@ -4820,8 +4820,8 @@ Here's a helper function I think I may have written before to check whether ever
   (list-of-elem 0 (list 0 0 0))
 #+END_SRC
 
-We use =list-of-elem= see whether all the types given are equal.
-As =list-of-elem= takes an arbitrary list, this is done /before/ we limit ourselves to binary operators.
+We use ~list-of-elem~ see whether all the types given are equal.
+As ~list-of-elem~ takes an arbitrary list, this is done /before/ we limit ourselves to binary operators.
 
 #+BEGIN_SRC racket :tangle no
   (define (apply-generic op . args)
@@ -4861,8 +4861,8 @@ Should the result be a vector of scheme-numbers or of rationals?
 Still, nothing here really relies on arguments other than two.
 
 And, the same observation applies to predicates.
-For example, =prime?= appplies to rational numbers, as natural numbers are a subset.
-But, there's no possible additional argument to obtain the =scheme-number= type from.
+For example, ~prime?~ appplies to rational numbers, as natural numbers are a subset.
+But, there's no possible additional argument to obtain the ~scheme-number~ type from.
 
 So, is there something interesting which happens with more than two arguments?
 I'm not sure.
@@ -4874,7 +4874,7 @@ Instead of working with the two types explicitly, we consider the arity of the o
 Then, consider all possible permutations of those types which match the arity.
 
 I.e. we'd have a way of getting all permutations.
-Then, we'd have a sub-procedure which takes =tpye-args=, the permutation, and the arguments.
+Then, we'd have a sub-procedure which takes ~tpye-args~, the permutation, and the arguments.
 The sub-procedure then attempts coercion, and if coercion is possible, returns the result of applying the procedure after coercion.
 
 At this point, there are two things we could do.
@@ -4945,10 +4945,10 @@ Here we have a simple tower of types:
   integer => rational => real => complex
 #+END_SRC
 
-It's possible to raise a type, as there is always a unique super-type (expect in the case of =complex=).
+It's possible to raise a type, as there is always a unique super-type (expect in the case of ~complex~).
 
-So, the simplest way to implement a generic raise operation is to use =apply-generic=.
-For, this will evaluate =(get 'raise type)=.
+So, the simplest way to implement a generic raise operation is to use ~apply-generic~.
+For, this will evaluate ~(get 'raise type)~.
 Hence, we have:
 
 #+NAME: def:raise
@@ -4956,8 +4956,8 @@ Hence, we have:
   (define (raise exp) (apply-generic 'raise exp))
 #+END_SRC
 
-Now, we only need to =put= various procedures.
-For example (as n = n/1):
+Now, we only need to ~put~ various procedures.
+For example (as $n = n/1$):
 
 #+BEGIN_SRC racket
   (define (integer-to-rational n) (make-rational n 1))
@@ -4972,7 +4972,7 @@ And then:
 This means the hierarchy is spread throughout the code.
 So, an alternative method is to store the hierarchy as a list.
 Then, given an expression, we use the list to find the relevant transform type.
-However, this doesn't lend well to a generic =raise= procedure, as asked for.
+However, this doesn't lend well to a generic ~raise~ procedure, as asked for.
 
 ** 2.84
 
@@ -4990,13 +4990,13 @@ Then, substitute this for a generic version of raised-type.
 With this, we could keep raising the type of an expression to create a list of the possible raises.
 Then, we just need to search for the first match in the lists.
 
-The issue is =raised-type= can't rely on or be generic here.
+The issue is ~raised-type~ can't rely on or be generic here.
 For, we'll need to figure out a way to see there's no possibility of raising a type any further.
-To do this we'd need to observe =raised-type= does not return a type.
+To do this we'd need to observe ~raised-type~ does not return a type.
 But, this will result in an error.
 
-So, implementing =raised-type= via =raise= isn't a good first step.
-However, implementing a generic =raised-type= is fine.
+So, implementing ~raised-type~ via ~raise~ isn't a good first step.
+However, implementing a generic ~raised-type~ is fine.
 
 #+NAME: def:raised-type
 #+BEGIN_SRC racket
@@ -5021,7 +5021,7 @@ Such as:
   (put 'raised-type '(integer) (lambda (x) '(rational)))
 #+END_SRC
 
-However, key is the option of returning =nil=.
+However, key is the option of returning ~nil~.
 
 #+BEGIN_SRC racket
   (put 'raised-type '(complex) nil)
@@ -5077,7 +5077,7 @@ But, we can extend this to work on an arbitrary number of lists in the following
 	(first-match-reversed (map reverse lists) nil))
 #+END_SRC
 
-The second =cond= condition is a little messy here.
+The second ~cond~ condition is a little messy here.
 Effectively, we're ensuring the first element of every list is the same.
 To do this we filter the list of lists by equality of the first element of the first list and then check to see no lists have been omitted.
 
@@ -5101,8 +5101,8 @@ Here are some tests:
   (first-match-lists (list (list 'a 'b 'c 'd) (list 'b 'c 'd) (list 'c 'd) (list 'd)))
 #+END_SRC
 
-Note, by using =first-match= we'll get a return of =nil= if the types do not belong to the same hierarchy.
-So, with =apply-generic= we now switch out everything after a test for the same type to include a test for a shared type between all the arguments.
+Note, by using ~first-match~ we'll get a return of ~nil~ if the types do not belong to the same hierarchy.
+So, with ~apply-generic~ we now switch out everything after a test for the same type to include a test for a shared type between all the arguments.
 If a shared type is found, then each argumnet is coerced to that type.
 Otherwise, no method is available.
 
@@ -5164,14 +5164,14 @@ For now this is a maybe.
 I can see why these exercises are interesting, though.
 And, especially at the time, I imagine this was an interesting avenue for research.
 And, I recognise dynamic typing is a thing which may work in the way described here.
-But, I'm not sure it's worth going through everything while =put= and =get= are still out of reach.
+But, I'm not sure it's worth going through everything while ~put~ and ~get~ are still out of reach.
 
 ** 2.87
 
-=zero?= for polynomials checks to see whether every coefficient is 0.
+~zero?~ for polynomials checks to see whether every coefficient is 0.
 
 The following should do the trick.
-=accumulate= walks through =(term-list poly)= where =x= is the next element to process and =y= is the result of previously processed elements.
+~accumulate~ walks through ~(term-list poly)~ where ~x~ is the next element to process and ~y~ is the result of previously processed elements.
 So, we conjoin the previously processed elements with a check on whether the current term has a coefficient of 0.
 
 #+BEGIN_SRC racket
@@ -5180,7 +5180,7 @@ So, we conjoin the previously processed elements with a check on whether the cur
     (accumulate (lambda (x y) (and (= 0 (coeff x)) y)) #t (term-list poly)))
 #+END_SRC
 
-Here are a few tests, where the term lists are written by hand, and =cadr= replaces =coeff=.
+Here are a few tests, where the term lists are written by hand, and ~cadr~ replaces ~coeff~.
 
 #+BEGIN_SRC racket
   <<def:accumulate>>
@@ -5222,7 +5222,7 @@ And this should work exactly as the other definition.
 ** 2.88
 
 The basic subtraction operator mirrors addition.
-Where, all the work is passed on to =sub-terms=:
+Where, all the work is passed on to ~sub-terms~:
 
 #+BEGIN_SRC racket :tangle no
   (define (sub-poly p1 p2)
@@ -5256,7 +5256,7 @@ At this point, it makes sense to use to generic procedure.
   (define (negate z) (apply-generic 'negate n))
 #+END_SRC
 
-So, our task now reduces to writing out the negate operator for each relevant type and then using =put= to make these accessible.
+So, our task now reduces to writing out the negate operator for each relevant type and then using ~put~ to make these accessible.
 For example, we'd write something like the following for rationals:
 
 #+BEGIN_SRC racket :tangle no
@@ -5289,12 +5289,12 @@ But, in the case of dense polynomials, this means we either translate to sparse 
 And, as we don't have sparse/dense typing, only the latter is sensbile.
 (Though, if you really wanted you could inspect the structure of the data, but this seems a little unsafe.)
 
-- =adjoin-term= would basically merge two lists, where the adjoining term is a list empty but for one place.
-- =first-term= would =car= the term-list
-- =rest-terms= would =cdr= the term-list
-- =make-term= would create a list of =(- order 1)= 0s, and then the coeffecient.
-- =order= would =car= the list until something non-zero is found, and return the number of =car= applied plus one or error if nil is found.
-- =coeff= would =car= the list until something non-zero is found, and return whatever that is or zero is nil is found.
+- ~adjoin-term~ would basically merge two lists, where the adjoining term is a list empty but for one place.
+- ~first-term~ would ~car~ the term-list
+- ~rest-terms~ would ~cdr~ the term-list
+- ~make-term~ would create a list of (- order 1)~ 0s, and then the coeffecient.
+- ~order~ would ~car~ the list until something non-zero is found, and return the number of ~car~ applied plus one or error if nil is found.
+- ~coeff~ would ~car~ the list until something non-zero is found, and return whatever that is or zero is nil is found.
 
 I think that covers everything.
 
@@ -5310,7 +5310,7 @@ Is there interesting trade-off here?
 For sparse representation, when searching through the terms we need to make a comparison.
 While, with dense representation we only need to walk to a certain point in the list.
 But, if the comparison is assumed to take a constant about of time, there's not going to be a $\Theta$ difference.
-As, it's $n$ =car= and =null?= instances versus $n$ =car=, =car=, ~=~, and =null?= instances.
+As, it's $n$ ~car~ and ~null?~ instances versus $n$ ~car~, ~car~, ~=~, and ~null?~ instances.
 It is double, but doubling of a constant.
 
 So, we're very much into detailed efficiency.
