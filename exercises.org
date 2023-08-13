@@ -4950,4 +4950,30 @@ Here we have a simple tower of types:
 
 It's possible to raise a type, as there is always a unique super-type (expect in the case of =complex=).
 
+So, the simplest way to implement a generic raise operation is to use =apply-generic=.
+For, this will evaluate =(get 'raise type)=.
+Hence, we have:
 
+#+BEGIN_SRC racket
+  (define (raise exp) (apply-generic 'raise exp))
+#+END_SRC
+
+Now, we only need to =put= various procedures.
+For example (as n = n/1):
+
+#+BEGIN_SRC racket
+  (define (integer-to-rational n) (make-rational n 1))
+#+END_SRC
+
+And then:
+
+#+BEGIN_SRC racket
+  (put 'raise '(integer) integer-to-rational)
+#+END_SRC
+
+This means the hierarchy is spread throughout the code.
+So, an alternative method is to store the hierarchy as a list.
+Then, given an expression, we use the list to find the relevant transform type.
+However, this doesn't lend well to a generic =raise= procedure, as asked for.
+
+** 2.84
