@@ -4851,3 +4851,103 @@ As =list-of-elem= takes an arbitrary list, this is done /before/ we limit oursel
 #+END_SRC
 
 
+** 2.82
+
+Attempting to coerce arguments to types given isn't ideal.
+Sometimes, different type.
+
+For example, scalar multiplication with a rational.
+
+Though, this has it's own problems.
+Should the result be a vector of scheme-numbers or of rationals?
+
+Still, nothing here really relies on arguments other than two.
+
+And, the same observation applies to predicates.
+For example, =prime?= appplies to rational numbers, as natural numbers are a subset.
+But, there's no possible additional argument to obtain the =scheme-number= type from.
+
+So, is there something interesting which happens with more than two arguments?
+I'm not sure.
+For example, perhaps we have three arguments, and we'd like to coerce the second argumnet to the type of the first argumnet, but leave the type of the third argument as is.
+This isn't possible on the current approach, but I can't think of a natural procedure which would have this form.
+
+In any case, a naive approach is to modify the ~(= (length args) 2)~ case.
+Instead of working with the two types explicitly, we consider the arity of the operation (e.g. by ~(length type-args)~) and all the types given.
+Then, consider all possible permutations of those types which match the arity.
+
+I.e. we'd have a way of getting all permutations.
+Then, we'd have a sub-procedure which takes =tpye-args=, the permutation, and the arguments.
+The sub-procedure then attempts coercion, and if coercion is possible, returns the result of applying the procedure after coercion.
+
+At this point, there are two things we could do.
+
+First, we could return the first successful coercion.
+This makes sense if there's no possibility of coercing things in unexpected ways.
+
+Second, we could collect all the successful coercions.
+And, only return a result if all the coercions match.
+
+On the first approach we may end up with either a scheme-number or rational, depending on which coercion was attempted first.
+On the latter approach we'd end up with a scheme-number only if there was no coercion which resulted in a rational number.
+
+So, this is all quite open-ended.
+At the moment, here's some functions which build up to permuting a list up to some length.
+
+First, a way to prepend an item to everything in a list.
+
+#+NAME: def:prepend-to-all
+#+BEGIN_SRC racket
+  (define (prepend-to-all item list-of-lists)
+    (map (lambda (x) (cons item x)) list-of-lists))
+#+END_SRC
+
+Second, an extension to a list of items.
+
+#+NAME: def:prepend-items-to-lists
+#+BEGIN_SRC racket
+  (define (prepend-items-to-lists items list-of-lists)
+    <<def:prepend-to-all>>
+    <<def:flatmap>>
+    (flatmap ((lambda (x) (lambda (y) (prepend-to-all y x))) list-of-lists) items))
+#+END_SRC
+
+#+NAME: def:permute-to-n
+#+BEGIN_SRC racket
+  (define (permute-to-n l n)
+      (define (permute-items-to items list-of-list n)
+	<<def:prepend-items-to-lists>>
+	(if (= 1 n)
+	    list-of-list
+	    (permute-items-to l (prepend-items-to-lists items list-of-list) (- n 1))))
+
+      (cond ((= n 0) '())
+	    ((= n 1) (map (lambda (x) (list x)) l))
+	    (else (permute-items-to l (map (lambda (x) (list x)) l) n))))
+#+END_SRC
+
+Quick test:
+
+#+BEGIN_SRC racket
+  <<def:permute-to-n>>
+  (permute-to-n (list 'a 'b 'c 'd) 0)
+  (permute-to-n (list 'a 'b 'c 'd) 1)
+  (permute-to-n (list 'a 'b 'c 'd) 3)
+#+END_SRC
+
+This is a lot of checking.
+Though, if we had direct access to a coercion table things could be improved.
+As, we could gather the possible coercions for each argument in a list, and consider all permutations drawing from types in the respective list.
+Though, this would require a modified function.
+
+** 2.83
+
+Here we have a simple tower of types:
+
+#+BEGIN_SRC racket :tangle no
+  integer => rational => real => complex
+#+END_SRC
+
+It's possible to raise a type, as there is always a unique super-type (expect in the case of =complex=).
+
+
