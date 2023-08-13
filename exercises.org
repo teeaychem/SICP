@@ -5320,6 +5320,8 @@ Ah, well, this is almost-certainly-skip-maybe.
 
 ** 2.91
 
+Something like this?
+
 #+BEGIN_SRC racket :tange no
   (define (div-terms L1 L2)
     (if (empty-list? L1)
@@ -5327,12 +5329,34 @@ Ah, well, this is almost-certainly-skip-maybe.
 	(let ((t1 (first-term L1))
 	      (t2 (first-term L2)))
 	  (if (> (order t2) (order t1))
+	      ;; When order or divisor is greater than order of dividend, the dividend is the remainder
 	      (list (the-empty-termlist) L1)
+	      ;; Else, we can do some work
 	      (let ((new-c (div (coeff t1) (coeff t2)))
 		    (new-o (- (order t1) (order t2))))
 		(let ((rest-of-result
-		       ;; Compute rest of result recursively
-		       ))
-		  ;; Form complete result
-		  ))))))
+		       ;; Compute rest of result recursively, with the inputs described.
+		       (div-terms (sub-terms L1 (mult-terms (make-term new-c new-o) L2)) L2)))
+		  ;; Form complete result by taking the quotient and adding the term obtained, and leaving the remainder as is.
+		  ;; However, also check we shouldn't be returning zero
+		  (let ((newQuoteient (cons (make-term new-c new-o) (car rest-of-result)))
+			(newRemainder (cdr rest-of-result))
+			(if (zero? newQuoteient)
+			    (cons (cons 0 0) '(cons 0 0)) ;; Not sure what the representation for zero is.
+			    (cons newQuoteient newRemainder)))))))))
 #+END_SRC
+
+I think the rest of the result is obtained as described.
+This will return a quotient and remainder pair.
+So, we need to modify this so that the current coefficient order pair is part of the quotient to be returned, and the remainder is left as is.
+
+The check for the dividend being zero is applied to the new quotient.
+As, we either make the new quoitent and then check zero or check zero on parts to combine and then combine if ok.
+This seems more straightforward.
+Aside from whether this is really what was intended, I'm not sure what the representation used for 0 is.
+I'm guessing it's ~(0 . 0)~ as this should be ~0~ for the 0th term. (I.e., just 0).
+Though, ~the-empty-termlist~ might also work.
+
+Using this to implement ~div-poly~ is straightforward.
+See ~sub-poly~ above.
+Everything interesting happens in ~div-terms~.
