@@ -5343,7 +5343,7 @@ Something like this?
 			(newRemainder (cdr rest-of-result))
 			(if (zero? newQuoteient)
 			    (cons (cons 0 0) '(cons 0 0)) ;; Not sure what the representation for zero is.
-			    (cons newQuoteient newRemainder)))))))))
+			    (cons newQuoteient newRemainder))))))))))
 #+END_SRC
 
 I think the rest of the result is obtained as described.
@@ -5406,6 +5406,8 @@ Well, as this is a contination of the previous exercises, this is also on the li
 
 
 * Chapter 3
+
+** Check on argument evaluation
 
 Quick check to see evaluation of a procedure with an argument does something like:
 
@@ -5510,7 +5512,8 @@ And, nothing else needs to be modified.
 	  (cond ((eq? m 'withdraw) withdraw)
 		((eq? m 'deposit) deposit)
 		(else (error "Unknown request --- MAKE-ACCOUNT" m)))
-	  "Incorrect password"))
+	  (lambda (x) (display "Incorrect password"))
+	  ))
     dispatch)
 #+END_SRC
 
@@ -5522,3 +5525,85 @@ Tests:
   ((acc 'secret 'withdraw) 20)
   ((acc 'SeCrEt 'withdraw) 20)
 #+END_SRC
+
+#+RESULTS:
+: 80
+: Incorrect password
+
+** 3.4
+
+There are a few things to note.
+
+- As we're testing for a password on dispatch we return the incorrect password notification as a function.
+  This way, something like ~((acc 'SeCrEt 'withdraw) 20)~ doesn't error by attempting to apply ~20~ to ~"Incorrect password"~.
+  - (This should also have been the case in the previous exercise, and is now updated.)
+- ~call-the-cops~ is underspecified, so prints a message.
+- What to do on a correct password after too many incorrect is undefined.
+  At the moment, a correct password resets everything (though the police are on the way).
+  Alternatively, a check for passowrd attempts to be less than 7 at the beginning of ~dispatch~ would lock the account on the final failure.
+
+#+NAME: def:make-account-cops
+#+BEGIN_SRC racket
+  (define (call-the-cops)
+    (lambda (x) (begin (display "Siren sounds") (newline))))
+
+  (define (make-account balance password)
+    (define passwordAttempts 0)
+    (define (withdraw amount)
+      (if (>= balance amount)
+	  (begin (set! balance (- balance amount))
+		 balance)
+	  "Insufficient funds"))
+    (define (deposit amount)
+      (set! balance (+ balance amount))
+      balance)
+    (define (dispatch word m)
+      (cond
+	((eq? word password)
+	 (begin
+	   (set! passwordAttempts 0)
+	   (cond ((eq? m 'withdraw) withdraw)
+		 ((eq? m 'deposit) deposit)
+		 (else (error "Unknown request --- MAKE-ACCOUNT" m)))))
+	(else
+	 (set! passwordAttempts (+ passwordAttempts 1))
+	 (cond ((> passwordAttempts 7) (call-the-cops))
+	       (else (lambda (x) (begin (display "Incorrect password") (newline))))))))
+    dispatch)
+#+END_SRC
+
+#+RESULTS: def:make-account-cops
+
+#+BEGIN_SRC racket
+  <<def:make-account-cops>>
+  (define acc (make-account 100 'secret))
+  ((acc 'secret 'withdraw) 20)
+  ((acc 'secret 'withdraw) 20)
+  ((acc 'SeCrEt 'withdraw) 20)
+  ((acc 'SeCrEt 'withdraw) 20)
+  ((acc 'SeCrEt 'withdraw) 20)
+  ((acc 'SeCrEt 'withdraw) 20)
+  ((acc 'SeCrEt 'withdraw) 20)
+  ((acc 'SeCrEt 'withdraw) 20)
+  ((acc 'SeCrEt 'withdraw) 20)
+  ((acc 'SeCrEt 'withdraw) 20)
+  ((acc 'secret 'withdraw) 20)
+  ((acc 'SeCrEt 'withdraw) 20)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+80
+60
+Incorrect password
+Incorrect password
+Incorrect password
+Incorrect password
+Incorrect password
+Incorrect password
+Incorrect password
+Siren sounds
+40
+Incorrect password
+#+end_example
+
