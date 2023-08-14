@@ -5609,6 +5609,8 @@ Incorrect password
 
 ** 3.5
 
+To start, some provided procedures:
+
 #+NAME: def:random-in-range
 #+BEGIN_SRC racket
   (define (random-in-range low high)
@@ -5631,8 +5633,6 @@ Incorrect password
     (iter trials 0))
 #+END_SRC
 
-
-
 #+NAME: def:estimate-integral
 #+BEGIN_SRC racket
   (define (estimate-integral P xl xh yl yh trials)
@@ -5646,9 +5646,7 @@ Incorrect password
       (* xRange yRange (monte-carlo trials P-test))))
 #+END_SRC
 
-#+RESULTS: def:estimate-integral
-
-This is a bit of a headache.
+This task is a bit of a headache.
 We want to estimate the area of a circle by a unit circle.
 However, range only returns integers.
 
@@ -5662,20 +5660,44 @@ And, as we're already taking arguments we specify the origin of the circle too.
 (Indeed, this could just take a circle object as an argument.)
 Then, it returns the right test.
 
+#+NAME: def:inside-circle?
 #+BEGIN_SRC racket
   (define (inside-circle? r ox oy)
     <<def:square>>
     (lambda (x y)
       (>= (square r) (+ (square (- x ox)) (square (- y oy))))))
+#+END_SRC
 
-    (define (estimate-pi-circle size trials)
-      <<def:estimate-integral>>
-      <<def:square>>
-      (let ((center+Radius (/ size 2)))
-	(* 4.0 (/ (estimate-integral (inside-circle? center+Radius center+Radius center+Radius) 0 size 0 size trials) (square size)))))
+Our main function ~estimate-pi-circle~ then takes a scale for the unit circle and the number of trials to perform.
 
-  (estimate-pi-circle 9999 999)
+#+NAME: def:estimate-pi-circle
+#+BEGIN_SRC racket
+  (define (estimate-pi-circle scale trials)
+    <<def:inside-circle?>>
+    <<def:estimate-integral>>
+    <<def:square>>
+    (let ((center+Radius (/ scale 2)))
+      (* 4.0
+	 (/ (estimate-integral (inside-circle? center+Radius center+Radius center+Radius) 0 scale 0 scale trials)
+	    (square scale)))))
+#+END_SRC
+
+Some instances, though even at the larger arguments the result is quite varaible:
+
+#+BEGIN_SRC racket
+  <<def:estimate-pi-circle>>
+  (estimate-pi-circle 1 10)
+  (estimate-pi-circle 10 1)
+  (estimate-pi-circle 99 9999)
+  (estimate-pi-circle 9999 99)
+  (estimate-pi-circle 9999 9999)
 #+END_SRC
 
 #+RESULTS:
-: 3.1831831831831834
+: 0
+: 4.0
+: 3.1487148714871487
+: 3.111111111111111
+: 3.1275127512751277
+
+** 3.6
