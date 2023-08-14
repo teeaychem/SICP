@@ -5369,8 +5369,9 @@ However, unless I've missed something ~apply-generic~ will be used, and so any w
 
 So, without the option to run any code, I'll pass on this for now.
 
+** MAYBE Extended exercise: Rational functions
 
-** MAYBE 2.93
+*** MAYBE 2.93
 
 Huh? We're asked to modify the rational-arithmetic package to use generic operations, and then test the system.
 But, there's no way to test the system…
@@ -5387,18 +5388,68 @@ Checking ~#lang sicp~ here: https://docs.racket-lang.org/sicp-manual/SICP_Langua
 
 So, maybe I'll be able to come back to this after chapter 3?
 
-** MAYBE 2.94
+*** MAYBE 2.94
 
 Same problem as above, exercise includes tests I don't have a way to run.
 
-** MAYBE 2.95
+*** MAYBE 2.95
 
 Depends on completion of 2.94.
 
-** MAYBE 2.96
+*** MAYBE 2.96
 
 Depends on completion of 2.95.
 
-** MAYBE 2.97
+*** MAYBE 2.97
 
 Well, as this is a contination of the previous exercises, this is also on the list of things to return to.
+
+
+* Chapter 3
+
+Quick check to see evaluation of a procedure with an argument does something like:
+
+- Define a variable for the argument.
+- Assign the input value to the variable.
+
+#+BEGIN_SRC racket
+  (define (make-withdraw balance)
+    (lambda (amount)
+      (if (>= balance amount)
+	  (begin (set! balance (- balance amount))
+		 balance)
+	  "Insufficient funds")))
+
+  (define balance 100)
+
+  (define W1 (make-withdraw balance))
+  (define W2 (make-withdraw balance))
+
+  (W1 50)
+  (W2 75)
+#+END_SRC
+
+Note, both W1 and W2 take the same argumnet, but an instance of W1 does not affect W2.
+
+** 3.1
+
+#+NAME: def:make-accumulator
+#+BEGIN_SRC racket
+  (define (make-accumulator n)
+    (lambda (m) (begin
+		  (set! n (+ n m))
+		  n)))
+#+END_SRC
+
+Tests:
+
+#+BEGIN_SRC racket
+  <<def:make-accumulator>>
+  (define A (make-accumulator 5))
+  (A 10)
+  (A 10)
+#+END_SRC
+
+#+RESULTS:
+: 15
+: 25
