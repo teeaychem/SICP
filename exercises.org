@@ -5453,3 +5453,37 @@ Tests:
 #+RESULTS:
 : 15
 : 25
+
+** 3.2
+
+Note, we only update called when ~f~ is set to run, not ~mf~.
+
+#+NAME: def:make-monitored
+#+BEGIN_SRC racket
+  (define (make-monitored f)
+    (define called 0)
+    (define (mf arg)
+      (cond ((eq? arg 'how-many-calls?) called)
+	    (else
+	     (begin
+	       (set! called (+ called 1))
+	       (f arg)))))
+    mf)
+#+END_SRC
+
+Some tests:
+
+#+BEGIN_SRC racket
+  <<def:make-monitored>>
+  (define s (make-monitored sqrt))
+  (s 100)
+  (s 'how-many-calls?)
+  (s 25)
+  (s 'how-many-calls?)
+#+END_SRC
+
+#+RESULTS:
+: 10
+: 1
+: 5
+: 2
