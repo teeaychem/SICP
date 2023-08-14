@@ -5701,3 +5701,55 @@ Some instances, though even at the larger arguments the result is quite varaible
 : 3.1275127512751277
 
 ** 3.6
+
+Ah, ~rand~
+
+#+BEGIN_SRC racket
+  (define (rand-update x)
+    (+ x 1))
+
+  (define rand
+    (let ((x 0))
+      (lambda ()
+	(set! x (rand-update x))
+	x)))
+
+  (rand)
+  (rand)
+#+END_SRC
+
+#+RESULTS:
+: 1
+: 2
+
+Note, ~rand~ is defined like a term where the value for the term is a procedure.
+So, initially, to evaluate ~rand~ we set up ~x~ and then call the lambda expression.
+On subsequent calls, we evaluate the lambda expression.
+
+But, this means rand must be treated like a function.
+That is, ~rand~ is just a procedure, but ~(rand)~ evaluates the lambda expression, and the current value of ~x~ is returned.
+Note, in particular, ~(- rand 1)~ is not okay, but ~(- (rand) 1)~ is!
+
+With the above in mind, modifying ~rand~ is straightforward.
+
+#+BEGIN_SRC racket
+  (define (rand-update x) (+ x 1))
+
+  (define rand-again
+    (let ((base-val 0))
+      (lambda (msg . arg)
+	(cond ((eq? msg 'generate) (set! base-val (rand-update base-val)) base-val)
+	      ((eq? msg 'reset) (set! base-val (car arg)))
+	      ))))
+
+  (rand-again 'generate)
+  (rand-again 'reset 9)
+  (rand-again 'generate)
+#+END_SRC
+
+First, we treat ~rand-again~ as something which takes no arguments so ~base-val~ is fixed.
+Then, instead of returining a lambda expression which takes no values, we retrun a lambda expression which takes a message and some other args.
+Messages determine what happens.
+And, both cases are similar, ~base-val~ is ~set~ to something else.
+In the case of ~'reset~ a new argument is needed, and hence we look to the first of any additional args beyond the message.
+
