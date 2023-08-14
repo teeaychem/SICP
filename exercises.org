@@ -5487,3 +5487,38 @@ Some tests:
 : 1
 : 5
 : 2
+
+** 3.3
+
+To implement password-protected accounts we place a check on dispatch.
+As everything to do with account is handled via dispatch in message passing style, this restricts any interaction appropriately.
+And, nothing else needs to be modified.
+
+#+NAME: def:make-account
+#+BEGIN_SRC racket
+  (define (make-account balance password)
+    (define (withdraw amount)
+      (if (>= balance amount)
+	  (begin (set! balance (- balance amount))
+		 balance)
+	  "Insufficient funds"))
+    (define (deposit amount)
+      (set! balance (+ balance amount))
+      balance)
+    (define (dispatch word m)
+      (if (eq? word password)
+	  (cond ((eq? m 'withdraw) withdraw)
+		((eq? m 'deposit) deposit)
+		(else (error "Unknown request --- MAKE-ACCOUNT" m)))
+	  "Incorrect password"))
+    dispatch)
+#+END_SRC
+
+Tests:
+
+#+BEGIN_SRC racket
+  <<def:make-account>>
+  (define acc (make-account 100 'secret))
+  ((acc 'secret 'withdraw) 20)
+  ((acc 'SeCrEt 'withdraw) 20)
+#+END_SRC
