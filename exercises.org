@@ -5607,3 +5607,75 @@ Siren sounds
 Incorrect password
 #+end_example
 
+** 3.5
+
+#+NAME: def:random-in-range
+#+BEGIN_SRC racket
+  (define (random-in-range low high)
+    (let ((range (- high low)))
+      (+ low (random range))))
+#+END_SRC
+
+#+RESULTS: def:random-in-range
+
+#+NAME: def:monte-carlo
+#+BEGIN_SRC racket
+  (define (monte-carlo trials experiment)
+    (define (iter trials-remaining trials-passed)
+      (cond ((= trials-remaining 0) ; If no trails remaining, calculate the pass rate
+	     (/ trials-passed trials))
+	    ((experiment) ; If some trails remain, run the experiment. As it's a test, success triggers a new instance with pass + 1
+	     (iter (- trials-remaining 1) (+ trials-passed 1)))
+	    (else ; And failure trigger a new instance with pass the same.
+	     (iter (- trials-remaining 1) trials-passed))))
+    (iter trials 0))
+#+END_SRC
+
+
+
+#+NAME: def:estimate-integral
+#+BEGIN_SRC racket
+  (define (estimate-integral P xl xh yl yh trials)
+    <<def:monte-carlo>>
+    (let ((xRange (- xh xl))
+	  (yRange (- yh yl)))
+      (define (P-test)
+	<<def:random-in-range>>
+	<<def:square>>
+	(P (random-in-range xl xh) (random-in-range yl yh)))
+      (* xRange yRange (monte-carlo trials P-test))))
+#+END_SRC
+
+#+RESULTS: def:estimate-integral
+
+This is a bit of a headache.
+We want to estimate the area of a circle by a unit circle.
+However, range only returns integers.
+
+One option is to try to modify range.
+Alterantively, we can scale a unit circle as desired.
+
+However, scaling the unit circle means the test for whether a point is inside a circle needs to know about the scaling.
+Hence, ~inside-circle?~ isn't just a straightforward test.
+Rather, it takes the radius of the circle as an argumnet.
+And, as we're already taking arguments we specify the origin of the circle too.
+(Indeed, this could just take a circle object as an argument.)
+Then, it returns the right test.
+
+#+BEGIN_SRC racket
+  (define (inside-circle? r ox oy)
+    <<def:square>>
+    (lambda (x y)
+      (>= (square r) (+ (square (- x ox)) (square (- y oy))))))
+
+    (define (estimate-pi-circle size trials)
+      <<def:estimate-integral>>
+      <<def:square>>
+      (let ((center+Radius (/ size 2)))
+	(* 4.0 (/ (estimate-integral (inside-circle? center+Radius center+Radius center+Radius) 0 size 0 size trials) (square size)))))
+
+  (estimate-pi-circle 9999 999)
+#+END_SRC
+
+#+RESULTS:
+: 3.1831831831831834
