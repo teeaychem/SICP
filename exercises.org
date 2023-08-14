@@ -1,4 +1,4 @@
-[]#+STARTUP: Overview
+#+STARTUP: Overview
 #+PROPERTY: header-args :noweb eval :results output :tangle tangle.rkt :prologue "#lang sicp"
 #+TITLE: SICP Exercises
 
@@ -5360,3 +5360,45 @@ Though, ~the-empty-termlist~ might also work.
 Using this to implement ~div-poly~ is straightforward.
 See ~sub-poly~ above.
 Everything interesting happens in ~div-terms~.
+
+** MAYBE 2.92
+
+This problem is interesting, for sure.
+
+However, unless I've missed something ~apply-generic~ will be used, and so any way to interact with the procedures would be deferred to Chapter 3 where we see how to implement ~put~ and ~get~ (going by p. 181).
+
+So, without the option to run any code, I'll pass on this for now.
+
+
+** MAYBE 2.93
+
+Huh? We're asked to modify the rational-arithmetic package to use generic operations, and then test the system.
+But, there's no way to test the system…
+
+#+BEGIN_SRC racket
+  (put 'proc (list 'rational))
+#+END_SRC
+
+#+BEGIN_SRC racket
+  (get 'proc (list 'rational))
+#+END_SRC
+
+Checking ~#lang sicp~ here: https://docs.racket-lang.org/sicp-manual/SICP_Language.html?q=sicp we can see ~put~ and ~get~ aren't provided.
+
+So, maybe I'll be able to come back to this after chapter 3?
+
+** MAYBE 2.94
+
+Same problem as above, exercise includes tests I don't have a way to run.
+
+** MAYBE 2.95
+
+Depends on completion of 2.94.
+
+** MAYBE 2.96
+
+Depends on completion of 2.95.
+
+** MAYBE 2.97
+
+Well, as this is a contination of the previous exercises, this is also on the list of things to return to.
