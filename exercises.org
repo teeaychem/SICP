@@ -6017,3 +6017,57 @@ For, this allows us to keep the arguments given having a default value.
 For example, with ~make-withdraw~ the initial amount would always be available.
 
 ** 3.11
+
+
+~(define acc (make-account 50))~ on first frame of global, acc.
+~make-account~ is procedure, so enviroment E1.
+But, as ~make-account~ is global, super-enviroment of this environment is global.
+Each definition is defined relative to E1.
+And, we call ~dispatch~.
+So, we have associated ~acc~ with a procedure which is evaluated within enviroment E1.
+
+Note, this means ~(define acc2 (make-account 100))~ will all follow with respect to a different enviroment.
+And, in particular, the internal functions are all relative to the respect enviroments.
+
+This is interesting if we have the option to update ~make-account~.
+For, any use of ~make-account~ before the update will be fixed.
+The enviroment will contain all the relevant procedures, and so on.
+So, we don't need to worry about breaking the past.
+However, this means that if the past is broken, we can't easily (if at all) update all the accounts to have a fixed version of deposit, etc.
+
+** 3.12
+
+#+NAME: def:last-pair
+#+BEGIN_SRC racket
+  (define (last-pair l)
+    (if (null? (cdr l))
+	l
+	(last-pair (cdr l))))
+#+END_SRC
+
+#+NAME: def:append!
+#+BEGIN_SRC racket
+  (define (append! x y)
+    <<def:last-pair>>
+    (set-cdr! (last-pair x) y))
+#+END_SRC
+
+#+BEGIN_SRC racket
+  <<def:append!>>
+  (define x (list 'a 'b))
+  (define y (list 'c 'd))
+  (define z (append x y))
+  (cdr x)
+  (define w (append! x y))
+  (cdr x)
+#+END_SRC
+
+#+RESULTS:
+: (b)
+: (b c d)
+
+The first call to ~cdr~ has ~x~ as defined.
+So, we get ~('b)~ (or ~('b . nil)~, if you like).
+When we define w ~append!~ is evaluated in the global enviroment.
+The last-pair of ~x~ is ~('b . nil)~, and now we have ~('b . y)~ (or ~('b 'c 'd')~).
+
