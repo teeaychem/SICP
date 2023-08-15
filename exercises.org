@@ -6072,3 +6072,96 @@ When we define w ~append!~ is evaluated in the global enviroment.
 The last-pair of ~x~ is ~('b . nil)~, and now we have ~('b . y)~ (or ~('b 'c 'd')~).
 
 
+** 3.13
+
+So, ~(set-cdr! (last-pair x) x)~ is going to shift the pointer to ~nil~ (or really ~nil~) at the end of ~x~ to the start of ~x~.
+Hence, I'd expect ~make-cycle~ fails to terminate, if the call to ~x~ amounts to working through ~x~ to display the elements using ~car~ and ~cdr~.
+
+Let's test:
+
+#+BEGIN_SRC racket
+  (define (make-cycle x)
+    <<def:last-pair>>
+    (set-cdr! (last-pair x) x)
+    x)
+
+  (make-cycle (list 'a 'b))
+#+END_SRC
+
+#+RESULTS:
+: #0=(a b . #0#)
+
+This is cool!
+I guess testing for cycles isn't so hard if we keep a list of pointers accessed, though this probably expensive to check.
+So, something more careful is involved.
+
+A slightly trickier case:
+
+#+BEGIN_SRC racket
+  (define (make-cycle x)
+    (define (second-to-last l)
+      (if (null? (cddr l))
+	  l
+	  (second-to-last (cdr l))))
+    (set-cdr! (second-to-last x) (cdr x))
+    x)
+
+  (make-cycle (list 'a 'b 'c 'd))
+#+END_SRC
+
+#+RESULTS:
+: (a . #0=(b c . #0#))
+
+Interesting!
+I guess something is done when ~set-cdr!~ is evaluated.
+
+
+** 3.14
+
+#+NAME: def:mystery-3.14
+#+BEGIN_SRC racket
+  (define (mystery x)
+    (define (loop x y)
+      (if (null? x)
+      y
+      (let ((temp (cdr x)))
+	(set-cdr! x y)
+	(loop temp x))))
+    (loop x '()))
+#+END_SRC
+
+So, we're running ~loop~, mostly.
+Given a list we store everything but the first element in ~temp~.
+Then, we ~set-cdr!~ ~x~ to the other argument given.
+And, now we repeat, this time we're looking at the ~cdr~ of ~x~, so the rest of the list.
+Again, take first element, store rest of list, attach first element to other argument, which is now first element of ~x~ pointing to ~nil~.
+
+Hence, something like:
+
+#+BEGIN_SRC racket
+  (1 2 3 nil) nil
+
+  (2 3 nil) (1 nil)
+
+  (3 nil) (2 1 nil)
+
+  nil (3 2 1 nil)
+
+  (3 2 1 nil)
+#+END_SRC
+
+So, reversing a list of length $n$ in $\Theta(n)$, as it's a constant operation for each element.
+
+Let's test!
+
+#+BEGIN_SRC racket
+  <<def:mystery-3.14>>
+  (mystery (list 1 2 3))
+  (mystery (list 1 2 3 4 5))
+#+END_SRC
+
+#+RESULTS:
+: (3 2 1)
+: (5 4 3 2 1)
+
+Neat!
