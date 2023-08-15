@@ -6071,3 +6071,4 @@ So, we get ~('b)~ (or ~('b . nil)~, if you like).
 When we define w ~append!~ is evaluated in the global enviroment.
 The last-pair of ~x~ is ~('b . nil)~, and now we have ~('b . y)~ (or ~('b 'c 'd')~).
 
+
