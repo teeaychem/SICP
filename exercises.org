@@ -5702,7 +5702,8 @@ Some instances, though even at the larger arguments the result is quite varaible
 
 ** 3.6
 
-Ah, ~rand~
+Ah, ~rand~.
+For testing we use a model ~rand-update~ which just increments the arugment given.
 
 #+BEGIN_SRC racket
   (define (rand-update x)
@@ -5717,10 +5718,6 @@ Ah, ~rand~
   (rand)
   (rand)
 #+END_SRC
-
-#+RESULTS:
-: 1
-: 2
 
 Note, ~rand~ is defined like a term where the value for the term is a procedure.
 So, initially, to evaluate ~rand~ we set up ~x~ and then call the lambda expression.
@@ -5753,3 +5750,180 @@ Messages determine what happens.
 And, both cases are similar, ~base-val~ is ~set~ to something else.
 In the case of ~'reset~ a new argument is needed, and hence we look to the first of any additional args beyond the message.
 
+** 3.7
+
+The general approach is for ~make-join~ to return ~peter-acc~ in some way.
+Here, we have (at least) two options.
+
+1. Add the password to the original account. Then, simply return the original account when called.
+2. Make accessing the original account depend on the password being given.
+   - If this is done, we now need some way of accessing the original account.
+     We could use the password set, though going forward this might be a problem.
+     For example, if the password changes.
+     So, instead we might add an 'internal' password.
+     Then, on set-up the original account password is used to get the interal password, and this is stored for further access.
+
+
+#+NAME: def:make-account-joint
+#+BEGIN_SRC racket
+  (define (make-account balance password)
+    (define backdoor-key 'backdoor-key)
+    (define (withdraw amount)
+      (if (>= balance amount)
+	  (begin (set! balance (- balance amount))
+		 balance)
+	  "Insufficient funds"))
+    (define (deposit amount)
+      (set! balance (+ balance amount))
+      balance)
+    (define (dispatch word m)
+      (if (or (eq? word password) (eq? word backdoor-key))
+	  (cond ((eq? m 'withdraw) withdraw)
+		((eq? m 'deposit) deposit)
+		((eq? m 'get-backdoor-key) backdoor-key)
+		(else (error "Unknown request --- MAKE-ACCOUNT" m)))
+	  (lambda (x) (display "Incorrect password") (newline))
+	  ))
+    dispatch)
+#+END_SRC
+
+#+RESULTS: def:make-account-joint
+
+#+BEGIN_SRC racket
+  <<def:make-account-joint>>
+  (define acc (make-account 100 'secret))
+  ((acc 'secret 'withdraw) 20)
+  ((acc 'backdoor-key 'withdraw) 20)
+#+END_SRC
+
+
+#+BEGIN_SRC racket
+  (define (make-joint base-acc base-pwd pwd)
+    (let ((access (base-acc base-pwd 'get-backdoor-key)))
+      (lambda (word . args)
+	(if (eq? word pwd)
+	    (base-acc access (car args))
+	    (lambda (x) (display "Incorrect password") (newline))))))
+
+  <<def:make-account-joint>>
+  (define acc1 (make-account 100 'secret))
+  (define acc2 (make-joint acc1 'secret 'my))
+  ((acc1 'secret 'withdraw) 20)
+  ((acc2 'my 'deposit) 20)
+  ((acc1 'my 'deposit) 20)
+  ((acc2 'secret 'deposit) 20)
+#+END_SRC
+
+#+RESULTS:
+: 80
+: 100
+: Incorrect password
+: Incorrect password
+
+Though, in retrospect this wasn't really the right idea.
+Instead, it would be best to modify accounts to access balance.
+Then, share balance between accounts.
+In this way, the second account would be a regular account.
+
+Here, then, we distinguish an account from a headless account.
+A headless account stores a balance and related procedures.
+When an account is made, this invloves creating a headless account.
+In the ~make-account~ case, a headless account is created with the balance specified.
+In the ~make-joint~ case, the headless account from the base account is used.
+
+#+NAME: def:make-account-balance-oops
+#+BEGIN_SRC racket
+  (define (make-headless-account balance)
+    (define (withdraw amount)
+      (if (>= balance amount)
+	  (begin (set! balance (- balance amount))
+		 balance)
+	  "Insufficient funds"))
+    (define (deposit amount)
+      (set! balance (+ balance amount))
+      balance)
+    (define (dispatch m)
+      (cond ((eq? m 'withdraw) withdraw)
+	    ((eq? m 'deposit) deposit)
+	    (else (error "Unknown request --- MAKE-ACCOUNT" m))))
+    dispatch)
+
+
+  (define (make-account-by-headless password headless)
+    (define (withdraw amount) ((headless 'withdraw) amount))
+    (define (deposit amount) ((headless 'deposit) amount))
+    (define (password-ok? word) (eq? word password))
+    (define (get-headless) headless)
+    (define (dispatch word m)
+      (if (password-ok? word)
+	  (cond ((eq? m 'withdraw) withdraw)
+		((eq? m 'deposit) deposit)
+		((eq? m 'password-ok?) password-ok?)
+		((eq? m 'get-headless) (get-headless)) ; Eval get-headless so we get headless, not the procedure which returns headless.
+		(else (error "Unknown request --- MAKE-ACCOUNT" m)))
+	  (lambda (x) (display "Incorrect password") (newline))))
+    dispatch)
+
+
+  (define (make-account balance password)
+    (make-account-by-headless password (make-headless-account balance)))
+
+  (define (make-joint base-acc base-pwd pwd)
+    (if (base-acc 'password-ok? base-pwd)
+	(make-account-by-headless pwd (base-acc base-pwd 'get-headless))))
+#+END_SRC
+
+Here are a few tests.
+
+#+BEGIN_SRC racket
+  <<def:make-account-balance-oops>>
+
+  (define test-acc (make-account 100 'test))
+  ((test-acc 'test 'withdraw) 10)
+  (((test-acc 'test 'get-headless)  'withdraw) 10)
+  (define test-acc2 (make-joint test-acc 'test 'this))
+  ((test-acc2 'this 'deposit) 100)
+  ((test-acc 'test 'withdraw) 180)
+#+END_SRC
+
+#+RESULTS:
+: 90
+: 80
+: 180
+: 0
+
+Phew! I think this works okay.
+
+** 3.8
+
+Here, ~f~ is very similar to everything that's come before.
+We define an argument which creates some constants and then returns a new argument that is evaluated against those constants.
+In this case, there is one constant ~var~ and this is updated just in case it's not a number.
+I.e. ~var~ will fix on the first number argument given to (the procedure returned by the first eval of) ~f~.
+
+#+NAME: def:f-order-matters
+#+BEGIN_SRC racket
+  (define f
+    (let ((var 'a))
+    (lambda (x)
+      (if (not (number? var)) (set! var x))
+      var)))
+#+END_SRC
+
+Two tests:
+
+#+BEGIN_SRC racket
+  <<def:f-order-matters>>
+  (+ (f 0) (f 1))
+#+END_SRC
+
+#+RESULTS:
+: 0
+
+#+BEGIN_SRC racket
+  <<def:f-order-matters>>
+  (+ (f 1) (f 0))
+#+END_SRC
+
+#+RESULTS:
+: 2
