@@ -5431,6 +5431,10 @@ Quick check to see evaluation of a procedure with an argument does something lik
   (W2 75)
 #+END_SRC
 
+#+RESULTS:
+: 50
+: 25
+
 Note, both W1 and W2 take the same argumnet, but an instance of W1 does not affect W2.
 
 ** 3.1
@@ -5927,3 +5931,89 @@ Two tests:
 
 #+RESULTS:
 : 2
+
+
+** NOTES Rules for evaluation
+
+To evaluate a combination we:
+
+1. Evaluate the subexpressions of the combination.
+2. Apply the valuue of the operator subexpression to the values of the operand subexpressions.
+
+The important thing to keep in mind is that this is all done with respect to an environment.
+In short, an environment is a store of variables.
+
+In long, and environment is a ordered graph of frames, where each frame contains variable assignments, where some frame is the (unique) main frame.
+
+When defining a procedure, the procedure is stored as a variable on the main frame of the enviromnet the procedure is defined in.
+
+When evaluating a procedure, a new enviroment is created, and a reference to the enviroment the something is evaluated in is kept.
+So, we get a new main frame.
+
+Important here is where the new enviroment is 'located'.
+As things are, it's a sub-environment of the environment where defined.
+I.e. it is not a sub-enviroment of the environment where it is evaluated.
+In part, this ensures any variables used in the procedure have the values given with respect to the enviroment of definition.
+And, we won't run into trouble by taking an argument with the name ~f~ and calling a procedure named ~f~.
+
+But why not simply talk of frames?
+Well, any given frame may be incomplete with respect to the variables which have been defined.
+I.e. a sub-enviroment may contain all the super-frames of the super-enviroment.
+Note, this suggestion is the inverse of Figure 3.1.
+Though, thinking in terms of Figure 3.1 seems useful for considering a procedure applied to arguments which are themselves procedures.
+
+
+
+** 3.9
+
+Both versions of factorial are defined with respect to the global environment.
+And, we don't yet have any detail about the way results are returned, combined, etc.
+Further, the same procedure is repeatedly called.
+So, the diagrams are very similar to Figure 3.5 on p. 242, with a fixed procedure.
+What changes are the arguments.
+
+For recursive ~factorial~, there is a single argument ~n~ which decreases from 6 to 1.
+I.e. the digram will contain six enviroments, the first will have ~n: 6~, the second ~n: 5~ and so on.
+
+For iterative ~factorial~ the procedure takes three arguments.
+Here we'll have six enviroments, the first containg ~prodcut: 1, counter: 1, max-count: 6~, the second ~prodcut: 1, counter: 2, max-count: 6~, and the last ~prodcut: 120, counter: 6, max-count: 6~.
+
+** 3.10
+
+Ah, I was wondering about this.
+
+With the standard definition of a function we have an enviroment and a frame containing the arguments as variables.
+When ~let~ is used, we obtain a lambda expression, and so a second enviroment is created, where any variables set-up by the ~let~ call are themselves arguments.
+
+So, if we call a procedure and then form a call to ~let~ to explicitly fix the arguments, we create a sub-environment which mirrors the main environment.
+
+One way to get a feel for the way this works is by overwriting variables.
+The following procedure sets up an enviroment with variable ~n~.
+Then, ~let~ is called, which expands to ~(lambda (n) … ) n~.
+So, the lambda expression creates a new enviroment with variable ~n~ and the value of ~n~ is set to the vale of the outer ~n~.
+Now, ~(set! n x)~ updates the value of ~n~ in the enviroment of the lambda expression.
+However, as we're now an enviroment detached from the enviroment of the original value of ~n~ is left untouched.
+
+#+BEGIN_SRC racket
+  (define (test n)
+    (display "Original: ") (display n) (newline)
+    (let ((n n))
+      (begin
+	(set! n 20)
+	(display "Overwritten: ") (display n) (newline)))
+    (display "Original: ") (display n) (newline)
+    )
+
+  (test 5)
+#+END_SRC
+
+#+RESULTS:
+: Original: 5
+: Overwritten: 20
+: Original: 5
+
+This has some benefits.
+For, this allows us to keep the arguments given having a default value.
+For example, with ~make-withdraw~ the initial amount would always be available.
+
+** 3.11
