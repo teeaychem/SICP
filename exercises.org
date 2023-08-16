@@ -6374,7 +6374,6 @@ I.e. ~z1~ is ~((list 'wow 'b) 'wow 'b)~
 With ~z2~ the reasoning is similar, but we have two distinct lists.
 Hence, ~set-to-wow!~ only affects the first element of the first element of the list.
 
-
 ** 3.16
 
 #+NAME: def:count-pairs-dodgy
@@ -6632,3 +6631,195 @@ So, if we set up a diversion for any future traffic, and the diversion is hit, t
 If we've got a recursive function, we can then repair everything on the way back after hitting the base case or recognising we've been diverted.
 
 Recognising a diversion is easy, as a non-diversion must either be a pair or nil.
+
+#+NAME: def:cycle?-slim
+#+BEGIN_SRC racket
+  (define (cycle? x)
+    (define dead-end (cons "dead-end" nil))
+    (define (recurse x)
+      (cond ((eq? x dead-end) #t)
+	    ((not (pair? x)) #f)
+	    (else
+	     (let ((orig-cdr (cdr x))
+		   (result 0))
+	       (set-cdr! x (cons dead-end (cdr x)))
+	       (set! result (or (recurse (car x))
+				(recurse (cddr x))))
+	       (begin
+		 (set-cdr! x (cddr x))
+		 result)))))
+    (recurse x))
+#+END_SRC
+
+Test:
+
+#+BEGIN_SRC racket
+  <<def:cycle?-slim>>
+  (define x (list 1 2 3 4))
+  (define y (list 1 2))
+  (cycle? x)
+  y
+  (set-cdr! (cdr y) y)
+  y
+  (cycle? y)
+  y
+  (define z (list (list 1) 2 3))
+  z
+  (set-cdr! (car z) z)
+  z
+  (cycle? z)
+  z
+#+END_SRC
+
+#+RESULTS:
+: #f
+: (1 2)
+: #0=(1 2 . #0#)
+: #t
+: #0=(1 2 . #0#)
+: ((1) 2 3)
+: #0=((1 . #0#) 2 3)
+: #t
+: #0=((1 . #0#) 2 3)
+
+Well, this works.
+Is it really constant space?
+No.
+We need to keep a record of the original route.
+So, this takes up n additional space.
+
+Instead, the idea is to insert a mark.
+Everything to the left of the mark is something we've seen, and everything to the right is something to check.
+We work through the is sequence.
+For each step we take, we note what comes next.
+Then, test for equality up until the mark.
+If something is equal, we're about to enter a loop.
+Else, it's safe to move forward, along with the marker.
+
+This takes constant space, as the only additional thing is the marker.
+
+The only problem is the marker may accidentally be equal to something in the list.
+But, this isn't something to worry about too much, I don't think.
+
+First procedure is ~insert-crumb~.
+This adds a mark as the second element in a list.
+(We can check the first two elements don't loop without using a marker, and indeed for any fixed n - the problem is lists may be of arbitrary length.)
+
+#+NAME: def:insert-crumb
+#+BEGIN_SRC racket
+  (define (insert-crumb l c)
+    (cond ((< (length l) 2) (error "list too short"))
+	  (else
+	   (set-cdr! c (cdr l))
+	   (set-cdr! l c))))
+#+END_SRC
+
+Second, we have ~insert-crumb~, which removes a crumb so long as it's where it was inserted.
+
+#+NAME: def:remove-crumb
+#+BEGIN_SRC racket
+        (define (remove-crumb l c)
+	(cond ((< (length l) 2) (error "list too short"))
+	      ((eq? (cdr l) c)
+	       (set-cdr! l (cdr c))
+	       (set-cdr! c nil))
+	      (else
+	       (error "crumb not found")
+	       )))
+#+END_SRC
+
+Next up is ~push-crumb~ which pushes the crumb one space forward in the list.
+
+#+NAME: def:push-crumb
+#+BEGIN_SRC racket
+  (define (push-crumb l e)
+    (cond ((null? l) (error "oops, went too far"))
+	  ((and (eq? (cdr l) e) (not (null? (cddr l)))) ; next is e
+	   (set-cdr! l (cddr l)) ; we've removed e
+	   (set-cdr! e (cddr l))
+	   (set-cdr! (cdr l) e))
+	  ((and (eq? (cdr l) e) (null? (cddr l)))
+	   #f)
+	  (else
+	   (push-crumb (cdr l) e))))
+#+END_SRC
+
+And, ~pull-crumb~ pulls the crumb one space backward in the list.
+
+#+NAME: def:pull-crumb
+#+BEGIN_SRC racket
+  (define (pull-crumb l e)
+    (cond ((null? l) (error "oops e not found"))
+	  ((eq? (cdr l) e)
+	   #f) ; e is too close.
+	  ((eq? (cddr l) e) ; two next is e
+	   (set-cdr! (cdr l) (cdr e))
+	   (set-cdr! e (cdr l))
+	   (set-cdr! l e))
+	  ((and (eq? (cdr l) e) (null? (cddr l)))
+	   #f)
+	  (else
+	   (pull-crumb (cdr l) e))))
+#+END_SRC
+
+Some tests:
+
+#+BEGIN_SRC racket
+  <<def:insert-crumb>>
+  <<def:remove-crumb>>
+  <<def:push-crumb>>
+  <<def:pull-crumb>>
+  (define x (list 1 2 3 4))
+  (define crumb (list 'a))
+  x
+  (insert-crumb x crumb)
+  x
+  (push-crumb x crumb)
+  x
+  (push-crumb x crumb)
+  x
+  (push-crumb x crumb)
+  x
+  (push-crumb x crumb)
+  (pull-crumb x crumb)
+  x
+  (pull-crumb x crumb)
+  x
+  (pull-crumb x crumb)
+  x
+  (pull-crumb x crumb)
+  (remove-crumb x crumb)
+  x
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+(1 2 3 4)
+(1 a 2 3 4)
+(1 2 a 3 4)
+(1 2 3 a 4)
+(1 2 3 4 a)
+#f
+(1 2 3 a 4)
+(1 2 a 3 4)
+(1 a 2 3 4)
+#f
+(1 2 3 4)
+#+end_example
+
+At the moment, there's no way to check the first element of the list.
+However, the above procedures can be modified to move the crumb appropriately, so long as the relevant structure is present.
+
+And, there is an issue of returning to where the crumb is.
+For, we may need to search through the entire list.
+
+However, this isn't a problem.
+We know we haven't been caught in a loop yet, so, as long as the next search goes not further than where we are, it won't get stuck in a loop.
+
+We can do this with a flag.
+For each step, we check to see whether the flag allows the search to continue.
+And, when we've found the crumb this flag is set to prevent further search.
+
+When a new search starts, the flag resets.
+
+I *think* this covers everything, and typing everything else seems like an interseting challenge!
