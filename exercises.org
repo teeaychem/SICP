@@ -6551,7 +6551,7 @@ So, the return is just ~or~ on the recursive cases.
 #+END_SRC
 
 #+BEGIN_SRC racket
-  <<def:cycle?>>
+  <<def:cycle?-pair>>
   (define a (cons 'a1 'a2))
   (define b (cons 'b1 'b2))
   (define x (cons a b))
@@ -6577,7 +6577,7 @@ So, the return is just ~or~ on the recursive cases.
 
 
 #+BEGIN_SRC racket
-  <<def:cycle?>>
+  <<def:cycle?-pair>>
   (define a (cons 'a1 'a2))
   (define b (cons 'b1 'b2))
   (define x (cons a b))
@@ -6590,3 +6590,45 @@ So, the return is just ~or~ on the recursive cases.
 #+RESULTS:
 : (#0=(#0# . #0#) b1 . b2)
 : #t
+
+Oops, this was meant to be on lists.
+However, the procedure works fine on lists.
+Here's some tests:
+
+Tests:
+
+#+BEGIN_SRC racket
+  <<def:cycle?>>
+  (define x (list 1 2 3 4))
+  (define y (list 1 2))
+  (cycle? x)
+  y
+  (set-cdr! (cdr y) y)
+  y
+  (cycle? y)
+  (define z (list (list 1) 2 3))
+  z
+  (set-cdr! (car z) z)
+  z
+  (cycle? z)
+#+END_SRC
+
+#+RESULTS:
+: #f
+: (1 2)
+: #0=(1 2 . #0#)
+: #t
+: ((1) 2 3)
+: #0=((1 . #0#) 2 3)
+: #t
+
+
+** 3.19
+
+Okay.
+Idea is to follow a list.
+If a loop has been entered, then it's possible to return to where we are.
+So, if we set up a diversion for any future traffic, and the diversion is hit, then there's a loop.
+If we've got a recursive function, we can then repair everything on the way back after hitting the base case or recognising we've been diverted.
+
+Recognising a diversion is easy, as a non-diversion must either be a pair or nil.
