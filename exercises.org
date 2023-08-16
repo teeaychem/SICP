@@ -6491,6 +6491,7 @@ The main procedure sets up ~seen-pairs~ as a term, pointing to the empty list.
 So, this handles the recursive call and takes an argument which specifies the amount to add to the result of recursion.
 And, ~internal~ handles the ideas expressed above.
 
+#+NAME: def:count-pairs
 #+BEGIN_SRC racket
   (define (count-pairs x)
     (let ((seen-pairs (list )))
@@ -6507,8 +6508,11 @@ And, ~internal~ handles the ideas expressed above.
 	      (recurse-add x 1))
 	    (recurse-add x 0)))
       (internal x)))
+#+END_SRC
 
 
+#+BEGIN_SRC racket
+  <<def:count-pairs>>
   (define a (cons 'a1 'a2))
   (define b (cons 'b1 'b2))
   (define x (cons a b))
@@ -6523,3 +6527,66 @@ And, ~internal~ handles the ideas expressed above.
 
 Seems good!
 
+** 3.18
+
+Key insight here is that in contrast to the last exercise, we'd like the list of seen pairs to be local to each recursive call.
+I.e. ~seen-pairs~ only keeps track of the pairs passed through to get to the current pair.
+
+If we hit a base case (something not a pair), there are no cycles, and if we hit a pointer already seen, there is a cycle.
+So, the return is just ~or~ on the recursive cases.
+
+#+NAME: def:cycle?
+#+BEGIN_SRC racket
+  (define (cycle? x)
+    (define (recurse x seen)
+      (cond ((not (pair? x)) #f)
+	    (else (or (internal (car x) seen)
+		      (internal (cdr x) seen)))))
+    (define (internal x seen-pairs)
+      <<def:has-element>>
+      (if (not (has-element seen-pairs x))
+	  (recurse x (cons x seen-pairs))
+	  #t))
+    (internal x '()))
+#+END_SRC
+
+#+BEGIN_SRC racket
+  <<def:cycle?>>
+  (define a (cons 'a1 'a2))
+  (define b (cons 'b1 'b2))
+  (define x (cons a b))
+  (set-car! a b)
+  (set-cdr! a b)
+  x
+  (cycle? x)
+  (set-cdr! x a)
+  x
+  (cycle? x)
+  (set-cdr! x x)
+  x
+  (cycle? x)
+#+END_SRC
+
+#+RESULTS:
+: (((b1 . b2) b1 . b2) b1 . b2)
+: #f
+: (((b1 . b2) b1 . b2) (b1 . b2) b1 . b2)
+: #f
+: #1=((#0=(b1 . b2) . #0#) . #1#)
+: #t
+
+
+#+BEGIN_SRC racket
+  <<def:cycle?>>
+  (define a (cons 'a1 'a2))
+  (define b (cons 'b1 'b2))
+  (define x (cons a b))
+  (set-car! a a)
+  (set-cdr! a a)
+  x
+  (cycle? x)
+#+END_SRC
+
+#+RESULTS:
+: (#0=(#0# . #0#) b1 . b2)
+: #t
