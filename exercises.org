@@ -6092,11 +6092,10 @@ Let's test:
 : #0=(a b . #0#)
 
 This is cool!
-I guess testing for cycles isn't so hard if we keep a list of pointers accessed, though this probably expensive to check.
-So, something more careful is involved.
 
 A slightly trickier case:
 
+#+NAME: def:make-cycle
 #+BEGIN_SRC racket
   (define (make-cycle x)
     (define (second-to-last l)
@@ -6113,7 +6112,29 @@ A slightly trickier case:
 : (a . #0=(b c . #0#))
 
 Interesting!
-I guess something is done when ~set-cdr!~ is evaluated.
+
+Something is done when the list is displayed!
+The folliwing doesn't terminate:
+
+#+NAME: def:make-cycle
+#+BEGIN_SRC racket
+  (define (Sisyphus x)
+    (define (second-to-last l)
+      (if (null? (cddr l))
+	  l
+	  (second-to-last (cdr l))))
+    (set-cdr! (second-to-last x) (cdr x))
+    (define (until-nil x)
+      (if (null? x)
+	"Done"
+	(until-nil (cdr x))
+	  )
+
+      )
+    (until-nil x))
+
+  (Sisyphus (list 'a 'b 'c 'd))
+#+END_SRC
 
 
 ** 3.14
@@ -6165,3 +6186,94 @@ Let's test!
 : (5 4 3 2 1)
 
 Neat!
+
+Oh, there's more.
+What happens when we define a variable to be the result of ~mystery~?
+Well, we return ~y~, so a pointer to the last element of the list, which is the first element of the reversed list.
+Does the last element point to ~nil~ or to the second-to-last element?
+
+Hm, so on first run, dealing with the first element, we do ~set-cdr!~.
+However, this is on ~x~ as an argumen to ~loop~, which is a frame removed from ~mystery~.
+So, the original form of ~x~ is untouched?
+
+#+BEGIN_SRC racket
+  <<def:mystery-3.14>>
+  (define v (list 'a 'b 'c 'd))
+  v
+  (mystery v)
+  (define w (mystery v))
+  v
+  (set! v 10)
+  v
+  w
+#+END_SRC
+
+#+RESULTS:
+: (a b c d)
+: (d c b a)
+: (a)
+: 10
+: (a)
+
+No, but this differs from ~set!~
+
+#+BEGIN_SRC racket
+  (define s 5)
+  s
+  (define (test x)
+    (set! x 10)
+    x)
+  (test s)
+  s
+#+END_SRC
+
+#+RESULTS:
+: 5
+: 10
+: 5
+
+To make the parrallel clearer:
+
+#+BEGIN_SRC racket
+  (define s (list 1 0))
+  s
+  (define (test x)
+    (set-car! x (cadr x))
+    x)
+  (test s)
+  s
+#+END_SRC
+
+#+RESULTS:
+: (1 0)
+: (0 0)
+: (0 0)
+
+So, it's clear ~set-car!~ mutates something, but /which/ something.
+With ~set!~ we mutate the 'closest' instance of the variable.
+But, the same is not true for ~set-car!~.
+
+Well, I understand ~set!~ isn't a mutating operation, in the sense that a mutating operation mutates the referents of a term, while ~set!~ 'mutates' the referent of a term.
+The thing is, that mutation crosses frame boundries still isn't obvious.
+
+I think my understanding of frames is needs revising.
+
+My initial thought was a frame stores a term and the value of the term.
+When a new frame is generated, the value of the term is copied.
+
+However, what I now think happens is that a frame associates a term with a pointer to an object.
+
+The key idea here is that frames allow us to update the value of a term, but that's all.
+What is associated with a term is frame independent.
+And, for many operations this is no issue, because the procedures are non-mutating --- any arguments are used to obtain some result, but are not rewritten.
+
+For sure, this sort of design makes sense.
+It means frames are fairly easy to construct, and also that we don't end up with heavy copy operations.
+
+I'm surprised, and a little disappointed, that none of this is made particularly clear.
+A simple example with lists or some other mutable data type would have been very helpful.
+
+Though, some of this is clear in retrospect.
+
+A list is just a pointer to a pair, where the first element is some value and the second is a pointer or null.
+So, in this respect, the 'value' of something like ~(list 1 2 3)~ is a pointer.
