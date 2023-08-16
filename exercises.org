@@ -6071,7 +6071,6 @@ So, we get ~('b)~ (or ~('b . nil)~, if you like).
 When we define w ~append!~ is evaluated in the global enviroment.
 The last-pair of ~x~ is ~('b . nil)~, and now we have ~('b . y)~ (or ~('b 'c 'd')~).
 
-
 ** 3.13
 
 So, ~(set-cdr! (last-pair x) x)~ is going to shift the pointer to ~nil~ (or really ~nil~) at the end of ~x~ to the start of ~x~.
@@ -6136,7 +6135,6 @@ The folliwing doesn't terminate:
   (Sisyphus (list 'a 'b 'c 'd))
 #+END_SRC
 
-
 ** 3.14
 
 #+NAME: def:mystery-3.14
@@ -6200,19 +6198,14 @@ So, the original form of ~x~ is untouched?
   <<def:mystery-3.14>>
   (define v (list 'a 'b 'c 'd))
   v
-  (mystery v)
+  ;; (mystery v)
   (define w (mystery v))
-  v
-  (set! v 10)
-  v
   w
 #+END_SRC
 
 #+RESULTS:
 : (a b c d)
 : (d c b a)
-: (a)
-: 10
 : (a)
 
 No, but this differs from ~set!~
@@ -6277,3 +6270,256 @@ Though, some of this is clear in retrospect.
 
 A list is just a pointer to a pair, where the first element is some value and the second is a pointer or null.
 So, in this respect, the 'value' of something like ~(list 1 2 3)~ is a pointer.
+
+So, returning:
+
+#+BEGIN_SRC racket
+  (define v (list 'a 'b 'c 'd))
+  v
+  (mystery v)
+#+END_SRC
+
+~v~ points to the start of the list, which is ~(a . pointer)~
+Here, we've run ~mystery~, and ~v~ still points to the same object, which is now ~(a . nil)~.
+
+#+BEGIN_SRC racket
+  (define w (mystery v))
+  w
+#+END_SRC
+
+Here, we've already run ~mystery~, so expanded, the first line is:
+
+#+BEGIN_SRC racket
+  (define w (mystery (a . nil)))
+  w
+#+END_SRC
+
+Which, returns ~(list a)~.
+
+However, if things go as follows:
+
+#+BEGIN_SRC racket
+  (define v (list 'a 'b 'c 'd))
+  (define w (mystery v))
+  w
+#+END_SRC
+
+Then we've got a pointer to ~(d . pointer)~, as ~mystery~ returns a pointer to the new first element of the reversed list.
+
+Phew!
+
+** 3.15
+
+#+NAME: def:set-to-wow!
+#+BEGIN_SRC racket
+  (define (set-to-wow! x)
+    (set-car! (car x) 'wow)
+    x)
+#+END_SRC
+
+~set-to-wow!~ takes a list and changes the first element of the first element of the list to be ~'wow~.
+
+We have the folling terms:
+
+#+NAME: consts:3.15
+#+BEGIN_SRC racket
+  (define x (list 'a 'b))
+  (define z1 (cons x x))
+  (define z2 (cons (list 'a 'b) (list 'a 'b)))
+#+END_SRC
+
+Consider:
+
+#+BEGIN_SRC racket :tangle no
+  (set-wow! z1)
+#+END_SRC
+
+This is equivalent to:
+
+#+BEGIN_SRC racket :tangle no
+  (set-car! (car (cons x x)) 'wow)
+  (cons x x)
+#+END_SRC
+
+Simplifying the first evaluation:
+
+#+BEGIN_SRC racket :tangle no
+  (set-car! x 'wow)
+#+END_SRC
+
+I.e.
+
+#+BEGIN_SRC racket :tangle no
+  (set-car! (list 'a 'b) 'wow)
+#+END_SRC
+
+So, ~x~ now points to the folling list:
+
+#+BEGIN_SRC racket :tangle no
+  (list 'wow 'b)
+#+END_SRC
+
+And, ~z1~ is ~(cons x x)~.
+I.e. ~z1~ is ~((list 'wow 'b) 'wow 'b)~
+
+#+BEGIN_SRC racket
+  <<def:set-to-wow!>>
+  <<consts:3.15>>
+  (set-to-wow! z1)
+#+END_SRC
+
+#+RESULTS:
+: ((wow b) wow b)
+
+With ~z2~ the reasoning is similar, but we have two distinct lists.
+Hence, ~set-to-wow!~ only affects the first element of the first element of the list.
+
+
+** 3.16
+
+#+NAME: def:count-pairs-dodgy
+#+BEGIN_SRC racket
+  (define (count-pairs x)
+    (if (not (pair? x))
+	0
+	(+ (count-pairs (car x))
+	   (count-pairs (cdr x))
+	   1)))
+#+END_SRC
+
+Here's a simple case:
+
+#+BEGIN_SRC racket
+  <<def:count-pairs-dodgy>>
+  (define a (cons 'a1 'a2))
+  (define b (cons 'b1 'b2))
+  (define x (cons a b))
+  (count-pairs x)
+#+END_SRC
+
+The result is as expected.
+We have the two pairs ~a~ and ~b~ and the pair containing these for a total of three pairs.
+
+#+RESULTS:
+: 3
+
+To get four pairs, we update one of the elements in ~a~ to be ~b~.
+
+#+BEGIN_SRC racket
+  <<def:count-pairs-dodgy>>
+  (define a (cons 'a1 'a2))
+  (define b (cons 'b1 'b2))
+  (define x (cons a b))
+  (set-cdr! b a)
+  (count-pairs x)
+#+END_SRC
+
+#+RESULTS:
+: 4
+
+Here, we still have three pairs.
+However, it's ~(a . b)~, ~(a1 . a2)~ and ~(b1 . a)~.
+
+To get four pairs, the idea is to have ~b~ as above.
+Then, ~a~ becomes ~(b . b)~, and ~x~ becomes ~(a . a)~
+This gives a count of seven from three pairs.
+
+#+BEGIN_SRC racket
+  <<def:count-pairs-dodgy>>
+  (define a (cons 'a1 'a2))
+  (define b (cons 'b1 'b2))
+  (define x (cons a b))
+  (set-car! a b)
+  (set-cdr! a b)
+  (set-cdr! x a)
+  (count-pairs x)
+#+END_SRC
+
+#+RESULTS:
+: 7
+
+A pair which never returns contains some self-reference.
+I did this first with one set as follows:
+
+#+BEGIN_SRC racket
+  <<def:count-pairs-dodgy>>
+  (define x (cons 'hi nil))
+  (set-cdr! x x)
+  (count-pairs x)
+#+END_SRC
+
+Here, ~(car x)~ is ~x~.
+And, we never hit the base case of ~count-pairs~
+
+And, in line with the three pairs above, we could set, e.g. ~a~ to pair itself with itself.
+
+#+BEGIN_SRC racket
+  <<def:count-pairs-dodgy>>
+  (define a (cons 'a1 'a2))
+  (define b (cons 'b1 'b2))
+  (define x (cons a b))
+  (set-car! a a)
+  (set-cdr! a a)
+  (count-pairs x)
+#+END_SRC
+
+** 3.17
+
+A little messy and not particularly elegant, but this should work.
+
+The idea is to store a list of pairs added.
+(Here, of course, this list is really just pointers to pairs.)
+
+We always check to see if a pair is on the list.
+If a pair is not on the list, we add it but count the pair.
+Else, we don't count the pair.
+Then, look to sub-pairs.
+
+Here's a quick search on a list:
+
+#+NAME: def:has-element
+#+BEGIN_SRC racket
+  (define (has-element l e)
+    (cond ((null? l)
+	   #f)
+	  ((eq? (car l) e) #t)
+	  (else (has-element (cdr l) e))))
+#+END_SRC
+
+The main procedure sets up ~seen-pairs~ as a term, pointing to the empty list.
+~recurse-add~ is defined as we want to recurse in the same way whether or not a pair was seen before, changing only whether we count the pair.
+So, this handles the recursive call and takes an argument which specifies the amount to add to the result of recursion.
+And, ~internal~ handles the ideas expressed above.
+
+#+BEGIN_SRC racket
+  (define (count-pairs x)
+    (let ((seen-pairs (list )))
+      (define (recurse-add x n)
+	(cond ((not (pair? x)) 0)
+	      (else (+ (internal (car x))
+		       (internal (cdr x))
+		       n))))
+      (define (internal x)
+	<<def:has-element>>
+	(if (not (has-element seen-pairs x))
+	    (begin
+	      (set! seen-pairs (cons x seen-pairs))
+	      (recurse-add x 1))
+	    (recurse-add x 0)))
+      (internal x)))
+
+
+  (define a (cons 'a1 'a2))
+  (define b (cons 'b1 'b2))
+  (define x (cons a b))
+  (set-car! a b)
+  (set-cdr! a b)
+  (set-cdr! x a)
+  (count-pairs x)
+#+END_SRC
+
+#+RESULTS:
+: 3
+
+Seems good!
+
