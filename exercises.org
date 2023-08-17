@@ -7090,8 +7090,7 @@ So, instead we'll represent a queue as a pair, where to the left is the elemnent
 	    (else
 	     (set-deque-cell-rer! (rear-ptr deque) new-cell)
 	     (set-deque-cell-fnt! new-cell (rear-ptr deque))
-	     (set-rear-ptr! deque new-cell)
-	     ))))
+	     (set-rear-ptr! deque new-cell)))))
 
   (define (insert-deque-fnt! deque item)
     (let ((new-cell (make-deque-cell item)))
@@ -7101,37 +7100,24 @@ So, instead we'll represent a queue as a pair, where to the left is the elemnent
 	    (else
 	     (set-deque-cell-rer! new-cell (front-ptr deque))
 	     (set-deque-cell-fnt! (front-ptr deque) new-cell)
-	     (set-front-ptr! deque new-cell)
-	     ))))
-
+	     (set-front-ptr! deque new-cell)))))
 
   (define (print-deque deque)
     (define (loop cell)
       (cond ((eq? cell nil))
 	    ((not (eq? cell (rear-ptr deque)))
-	     (display (car cell))
-	     (display ", ")
+	     (display (car cell)) (display ", ")
 	     (loop (deque-cell-rer cell)))
-	    (else
-	     (display (car cell))
-	     )))
-    (display "(")
-    (loop (front-ptr deque))
-    (display ")")
-    (newline)
-    )
+	    (else (display (car cell)))))
+    (display "(") (loop (front-ptr deque)) (display ")") (newline))
 
   (define (delete-deque-fnt! deque)
     (cond ((empty-deque? deque) #f)
-	  (else
-	   (set-front-ptr! deque (deque-cell-rer (front-ptr deque))))))
-
+	  (else (set-front-ptr! deque (deque-cell-rer (front-ptr deque))))))
 
   (define (delete-deque-rer! deque)
     (cond ((empty-deque? deque) #f)
-	  (else
-	   (set-rear-ptr! deque (deque-cell-fnt (rear-ptr deque)))
-	   )))
+	  (else (set-rear-ptr! deque (deque-cell-fnt (rear-ptr deque))))))
 #+END_SRC
 
 Some tests:
