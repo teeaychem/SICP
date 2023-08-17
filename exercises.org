@@ -7139,3 +7139,73 @@ Some tests:
 : (hi, there, sup)
 : (there, sup)
 : (there)
+
+** 3.24
+
+#+NAME: def:assoc
+#+BEGIN_SRC racket
+  (define (assoc key records)
+    (cond ((null? records) false)
+	  ((equal? key (caar records)) (car records))
+	  (else (assoc key (cdr records)))))
+#+END_SRC
+
+Insert either finds the key in the table and changes the value.
+Or, puts the key as the first thing in the table together with the value.
+It doesn't really matter where the key goes, but we have easy access to this position.
+
+#+NAME: def:insert!
+#+BEGIN_SRC racket
+  (define (insert! key value table)
+    (let ((record (assoc key (cdr table))))
+      (if record
+	  (set-cdr! record value)
+	  (set-cdr! table
+		    (cons (cons key value) (cdr table))))))
+#+END_SRC
+
+To generalise ~insert!~ we form a recursive procedure which works through the list of keys.
+When the list is length 1, we have the base case, which is a straightforward instance of ~insert!~ on the current table.
+On a recurse case, we check to see if an entry for the current key is present.
+If so, the we move to the table associated with the entry and continue with the remaining keys.
+Otherwise, we use ~insert~ to create an empty table and then move to this table.
+
+To speed things up slightly, we shortcut to what would be assigned to the term result if the procedure were run again on the same input with the update table.
+We could also take advantange of the way ~insert!~ works to jump directly to the new table.
+Though, I think it's preferable to key ~insert!~ separate and perform a search.
+
+#+NAME: def:g-insert!
+#+BEGIN_SRC racket
+  (define (g-insert! keys value table)
+    <<def:insert!>>
+    (cond ((null? keys) #f)
+	  ((= 1 (length keys)) (insert! (car keys) value table))
+	  (else
+	   (let ((result (assoc (car keys) (cdr table))))
+	     (cond (result
+		    (g-insert! (cdr keys) value result))
+		   (else (insert! (car keys) '() table)
+			 (g-insert! (cdr keys) value (assoc (car keys) (cdr table)))))))))
+#+END_SRC
+
+Some tests for general insert:
+
+#+BEGIN_SRC racket
+  <<def:insert!>>
+  <<def:g-insert!>>
+  (define (make-table)
+	(cons '*table* nil))
+
+  (define table (make-table))
+  (g-insert! (list 'a) 2 table)
+  (g-insert! (list 'b) 3 table)
+  (g-insert! (list 'c 'd 'e) 4 table)
+  (g-insert! (list 'c 'd 'f) 5 table)
+  table
+#+END_SRC
+
+#+RESULTS:
+: (*table* (c (d (f . 5) (e . 4))) (b . 3) (a . 2))
+
+
+
