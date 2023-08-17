@@ -5407,7 +5407,7 @@ Well, as this is a contination of the previous exercises, this is also on the li
 
 * Chapter 3
 
-** Check on argument evaluation
+** NOTES Check on argument evaluation
 
 Quick check to see evaluation of a procedure with an argument does something like:
 
@@ -5436,6 +5436,7 @@ Quick check to see evaluation of a procedure with an argument does something lik
 : 25
 
 Note, both W1 and W2 take the same argumnet, but an instance of W1 does not affect W2.
+
 
 ** 3.1
 
@@ -6621,7 +6622,6 @@ Tests:
 : #0=((1 . #0#) 2 3)
 : #t
 
-
 ** 3.19
 
 *** Initial $\Theta(n)$ space idea.
@@ -6954,3 +6954,21 @@ And, when we've found the crumb this flag is set to prevent further search.
 When a new search starts, the flag resets.
 
 For now, though, this is enough.
+
+** 3.20
+
+Key thing to keep in mind here is the result of ~cons~ is stored in an enviroment directly linked to the global enviroment.
+And, ~set-car!~ updates the value of the left element of the pair stores in the ~cons~ environment.
+
+** 3.21
+
+The issue here is the implementation of queues.
+A queue points to pair, where the left element points to a list and the right element points to the last element of the list.
+The response of the interpreter is to present the pair.
+So, we see a pair, the left element of which is the queue constructed and the right element is the last element of the queue.
+
+The only surprising result here is the observation that after deleting ~'b~ as the last element in the queue, the right pointer still points to ~'b~ rather than ~nil~.
+
+** 3.22
+
+
