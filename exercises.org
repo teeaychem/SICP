@@ -6971,4 +6971,71 @@ The only surprising result here is the observation that after deleting ~'b~ as t
 
 ** 3.22
 
+Things are very straightfoward.
+Only notable point is extra check on delete to see if the end of the queue should be set to nil.
+Whether this is useful depends.
+As, there's external way to access the rear pointer.
+However, internally one may assume this is set to nil when the queue is empty.
 
+And, of course, the need to return no-argument procedures as evaluated.
+
+#+NAME: def:make-queue-message
+#+BEGIN_SRC racket
+  (define (make-queue)
+    (let ((front-ptr nil)
+	  (rear-ptr nil))
+      (define (empty-q?)
+	(eq? front-ptr nil))
+      (define (front-queue)
+	(if (empty-q?)
+	    (error "empty queue")
+	    (car front-ptr)))
+      (define (insert item)
+	(let ((new-pair (cons item nil)))
+	  (cond ((empty-q?)
+		 (set! front-ptr new-pair)
+		 (set! rear-ptr new-pair))
+		(else
+		 (set-cdr! rear-ptr new-pair)
+		 (set! rear-ptr new-pair)))))
+      (define (delete)
+	(cond ((empty-q?) #f)
+	      (else
+	       (set! front-ptr (cdr front-ptr))
+	       (if (eq? front-ptr nil) ; Check to see if rear pointer should also be updated
+		   (set! rear-ptr nil)))))
+      (define (dispatch m)
+	(cond ((eq? m 'print) (display front-ptr) (newline))
+	      ((eq? m 'rear) (display rear-ptr) (newline))
+	      ((eq? m 'empty-queue?) (empty-q?))
+	      ((eq? m 'front-queue) (front-queue))
+	      ((eq? m 'insert-queue) insert)
+	      ((eq? m 'delete-queue) (delete))))
+      dispatch))
+#+END_SRC
+
+Some tests, which access ~make-queue~ via dispatch:
+
+#+BEGIN_SRC racket
+  <<def:make-queue-message>>
+  (define q (make-queue))
+  (q 'empty-queue?)
+  ((q 'insert-queue) 5)
+  ((q 'insert-queue) 10)
+  (q 'front-queue)
+  ((q 'insert-queue) 20)
+  ((q 'insert-queue) 30)
+  (q 'print)
+  (q 'rear)
+  (q 'delete-queue)
+  (q 'print)
+  (q 'front-queue)
+#+END_SRC
+
+#+RESULTS:
+: #t
+: 5
+: (5 10 20 30)
+: (30)
+: (10 20 30)
+: 10
