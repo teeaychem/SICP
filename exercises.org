@@ -7039,3 +7039,117 @@ Some tests, which access ~make-queue~ via dispatch:
 : (30)
 : (10 20 30)
 : 10
+
+
+** 3.23
+
+For a deque, the only operations we need to consider are inserting to the front and deleting to the rear.
+
+To insert to the front, we create a pair where the left is the element to be inserted, and the right is a pointer to the start of the current queue.
+Then, we update the start of the queue to the pair just created.
+
+To delete from the rear, requires a different structure.
+For, given a list there is no way to discover what points to the object in the list.
+
+So, instead we'll represent a queue as a pair, where to the left is the elemnent, and to the right is a pair where the left points earlier in the queue and the right points later in the queue.
+
+#+NAME: def:deque
+#+BEGIN_SRC racket
+  (define (make-deque-cell elem) (cons elem (cons nil nil)))
+
+  (define (deque-cell-fnt cell) (car (cdr cell)))
+
+  (define (set-deque-cell-fnt! cell to) (set-car! (cdr cell) to))
+
+  (define (set-deque-cell-rer! cell to) (set-cdr! (cdr cell) to))
+
+  (define (deque-cell-rer cell) (cdr (cdr cell)))
+
+  (define (make-deque) (cons nil nil))
+
+  (define (front-ptr deque) (car deque))
+
+  (define (rear-ptr deque) (cdr deque))
+
+  (define (set-front-ptr! deque item) (set-car! deque item))
+
+  (define (set-rear-ptr! deque item) (set-cdr! deque item))
+
+  (define (empty-deque? deque) (null? (front-ptr deque)))
+
+  (define (front-deque deque)
+    (if (empty-deque? deque)
+	(error "no elements in deque")
+	(car (front-ptr deque))))
+
+  (define (insert-deque-rer! deque item)
+    (let ((new-cell (make-deque-cell item)))
+      (cond ((empty-deque? deque)
+	     (set-front-ptr! deque new-cell)
+	     (set-rear-ptr! deque new-cell))
+	    (else
+	     (set-deque-cell-rer! (rear-ptr deque) new-cell)
+	     (set-deque-cell-fnt! new-cell (rear-ptr deque))
+	     (set-rear-ptr! deque new-cell)
+	     ))))
+
+  (define (insert-deque-fnt! deque item)
+    (let ((new-cell (make-deque-cell item)))
+      (cond ((empty-deque? deque)
+	     (set-front-ptr! deque new-cell)
+	     (set-rear-ptr! deque new-cell))
+	    (else
+	     (set-deque-cell-rer! new-cell (front-ptr deque))
+	     (set-deque-cell-fnt! (front-ptr deque) new-cell)
+	     (set-front-ptr! deque new-cell)
+	     ))))
+
+
+  (define (print-deque deque)
+    (define (loop cell)
+      (cond ((eq? cell nil))
+	    ((not (eq? cell (rear-ptr deque)))
+	     (display (car cell))
+	     (display ", ")
+	     (loop (deque-cell-rer cell)))
+	    (else
+	     (display (car cell))
+	     )))
+    (display "(")
+    (loop (front-ptr deque))
+    (display ")")
+    (newline)
+    )
+
+  (define (delete-deque-fnt! deque)
+    (cond ((empty-deque? deque) #f)
+	  (else
+	   (set-front-ptr! deque (deque-cell-rer (front-ptr deque))))))
+
+
+  (define (delete-deque-rer! deque)
+    (cond ((empty-deque? deque) #f)
+	  (else
+	   (set-rear-ptr! deque (deque-cell-fnt (rear-ptr deque)))
+	   )))
+#+END_SRC
+
+Some tests:
+
+#+BEGIN_SRC racket
+  <<def:deque>>
+  (define t (make-deque))
+  (insert-deque-rer! t 'there)
+  (insert-deque-rer! t 'sup)
+  (insert-deque-fnt! t 'hi)
+  (print-deque t)
+  (delete-deque-fnt! t)
+  (print-deque t)
+  (delete-deque-rer! t)
+  (print-deque t)
+#+END_SRC
+
+#+RESULTS:
+: (hi, there, sup)
+: (there, sup)
+: (there)
