@@ -6624,6 +6624,8 @@ Tests:
 
 ** 3.19
 
+*** Initial $\Theta(n)$ space idea.
+
 Okay.
 Idea is to follow a list.
 If a loop has been entered, then it's possible to return to where we are.
@@ -6688,47 +6690,65 @@ No.
 We need to keep a record of the original route.
 So, this takes up n additional space.
 
-Instead, the idea is to insert a mark.
+*** Revised idea
+
+The idea is to insert a mark.
 Everything to the left of the mark is something we've seen, and everything to the right is something to check.
-We work through the is sequence.
+We work through the list in sequence.
 For each step we take, we note what comes next.
 Then, test for equality up until the mark.
 If something is equal, we're about to enter a loop.
 Else, it's safe to move forward, along with the marker.
 
-This takes constant space, as the only additional thing is the marker.
+This takes constant space, as the only additional thing is the marker and a few other items to avoid frames with terms on recursive calls.
 
 The only problem is the marker may accidentally be equal to something in the list.
 But, this isn't something to worry about too much, I don't think.
 
-First procedure is ~insert-crumb~.
+We start with a procedure to test if a list has at least two elements.
+This is important as we need at least two element to insert a crumb.
+And, ~length~ is unavaialbe, given a list with a loop has undefined length.
+
+#+NAME: def:at-least-two?
+#+BEGIN_SRC racket
+  (define (at-least-two? l)
+	     (cond ((null? l) #f)
+		   ((null? (cdr l)) #f)
+		   (else #t)))
+#+END_SRC
+
+
+We now have ~insert-crumb~.
 This adds a mark as the second element in a list.
 (We can check the first two elements don't loop without using a marker, and indeed for any fixed n - the problem is lists may be of arbitrary length.)
 
 #+NAME: def:insert-crumb
 #+BEGIN_SRC racket
   (define (insert-crumb l c)
-    (cond ((< (length l) 2) (error "list too short"))
-	  (else
+    <<def:at-least-two?>>
+    (cond ((at-least-two? l)
 	   (set-cdr! c (cdr l))
-	   (set-cdr! l c))))
+	   (set-cdr! l c))
+	  (else #f) ; list is too short to insert
+	  ))
 #+END_SRC
 
-Second, we have ~insert-crumb~, which removes a crumb so long as it's where it was inserted.
+Next, ~remove-crumb~, which removes a crumb so long as it's where it was inserted.
 
 #+NAME: def:remove-crumb
 #+BEGIN_SRC racket
-        (define (remove-crumb l c)
-	(cond ((< (length l) 2) (error "list too short"))
-	      ((eq? (cdr l) c)
-	       (set-cdr! l (cdr c))
-	       (set-cdr! c nil))
-	      (else
-	       (error "crumb not found")
-	       )))
+  (define (remove-crumb l c)
+    (cond ((eq? (cdr l) c)
+	   (set-cdr! l (cdr c))
+	   (set-cdr! c nil))
+	  (else #f) ; crumb wasn't there
+	  ))
 #+END_SRC
 
-Next up is ~push-crumb~ which pushes the crumb one space forward in the list.
+With ~insert-crumb~ and ~remove-crumb~ we have a way of temporaily putting a crumb in a list.
+Next up is pushing and pulling a crumb inside a list.
+
+~push-crumb~ pushes the crumb one space forward in the list.
 
 #+NAME: def:push-crumb
 #+BEGIN_SRC racket
@@ -6771,46 +6791,157 @@ Some tests:
   <<def:pull-crumb>>
   (define x (list 1 2 3 4))
   (define crumb (list 'a))
-  x
   (insert-crumb x crumb)
   x
   (push-crumb x crumb)
   x
   (push-crumb x crumb)
-  x
+  (push-crumb x crumb)
   (push-crumb x crumb)
   x
-  (push-crumb x crumb)
+  (pull-crumb x crumb)
   (pull-crumb x crumb)
   x
   (pull-crumb x crumb)
-  x
   (pull-crumb x crumb)
   x
-  (pull-crumb x crumb)
   (remove-crumb x crumb)
   x
 #+END_SRC
 
 #+RESULTS:
-#+begin_example
-(1 2 3 4)
-(1 a 2 3 4)
-(1 2 a 3 4)
-(1 2 3 a 4)
-(1 2 3 4 a)
-#f
-(1 2 3 a 4)
-(1 2 a 3 4)
-(1 a 2 3 4)
-#f
-(1 2 3 4)
-#+end_example
+: (1 a 2 3 4)
+: (1 2 a 3 4)
+: #f
+: (1 2 3 4 a)
+: (1 2 a 3 4)
+: #f
+: (1 a 2 3 4)
+: (1 2 3 4)
 
-At the moment, there's no way to check the first element of the list.
-However, the above procedures can be modified to move the crumb appropriately, so long as the relevant structure is present.
 
-And, there is an issue of returning to where the crumb is.
+The final thing is a procedure which works through a list and checks to see if the current (element . pointer) cell is the same as one given as an argument up until the crumb cell is identified.
+
+To ensure the overall procudure uses a constant about of space, we work through the list by a fixed pointer which is updated before and then used by a recursive call.
+
+#+NAME: def:same-before-crumb
+#+BEGIN_SRC racket
+  (define (same-before-crumb l cell crumb)
+    (define pointer l)
+    (define (go)
+      (cond ((null? pointer) #f) ; didn't even find crumb
+	    ((eq? pointer crumb) #f) ; found crumb
+	    ((eq? pointer cell) #t) ; found element
+	    (else
+	     (begin
+	       (set! pointer (cdr pointer)) ; otherwise, continue to sub-list
+	       (go)))))
+    (go))
+#+END_SRC
+
+#+RESULTS: def:same-before-crumb
+
+Here's a few quick tests:
+
+#+BEGIN_SRC racket
+  <<def:same-before-crumb>>
+  <<def:insert-crumb>>
+  <<def:push-crumb>>
+  (define x (list 1 2 3 4))
+  (define crumb (list 'a))
+  (insert-crumb x crumb)
+  (push-crumb x crumb)
+  x
+  (cdr x) ; (2 . pointer to crumb)
+  (same-before-crumb x x crumb) ; a match
+  (same-before-crumb x (cdr x) crumb) ; a match
+  (same-before-crumb x (cddr x) crumb) ; the crumb
+  (same-before-crumb x (cdddr x) crumb) ; something after.
+#+END_SRC
+
+#+RESULTS:
+: (1 2 a 3 4)
+: (2 a 3 4)
+: #t
+: #t
+: #f
+: #f
+
+Now, the overall procedure.
+In terms of the idea, this has been stated above.
+Of note is the temp stores.
+These are so we can store the return value of a procedure and then do some clean up.
+
+#+NAME: def:cycle-0
+#+BEGIN_SRC racket
+  (define (cycle? l)
+    <<def:at-least-two?>>
+    <<def:insert-crumb>>
+    <<def:remove-crumb>>
+    (define temp-store-c #f)
+    (define current-pair l)
+    (define crumb (list 'crumb))
+    (define (expedition)
+      <<def:push-crumb>>
+      <<def:pull-crumb>>
+      <<def:same-before-crumb>>
+      (define temp-store-e #f)
+      (cond ((null? (cdr crumb)) #f) ; base case, where we won't be able to push crumb any further
+	    ((eq? current-pair crumb) (set! current-pair l)) ; reset the current pair if we found the crumb.
+	    ((same-before-crumb l (cdr crumb) crumb) #t) ; otherwise, check to see if we get the same as what's about to come
+	    (else
+	     (push-crumb l crumb)
+	     (set! current-pair (cdr current-pair))
+	     (set! temp-store-e (expedition)) ; and if nothing works, move the crumb forward.
+	     (pull-crumb l crumb)
+	     temp-store-e)
+	    ))
+    (cond ((null? l) #f) ; test empty
+	  ((null? (cdr l)) #f) ; test single cell
+	  ((and (at-least-two? l) (eq? l (cdr l))) #t) ; test first two cells cycle
+	  (else
+	   (begin
+	     (insert-crumb l crumb)
+	     (set! temp-store-c (expedition))
+	     (remove-crumb l crumb)
+	     temp-store-c))))
+#+END_SRC
+
+A couple of tests:
+
+#+BEGIN_SRC racket
+  <<def:cycle-0>>
+  (define x (list 1 2 3 4 5))
+  ;  (set-cdr! (cddr x) x)
+  x
+  (cycle? x)
+  ;     (set-cdr! x 0)
+  x
+  (set-cdr! (cdddr x) x)
+  x
+  (cycle? x)
+  (set-cdr!  x x)
+  x
+  (cycle? x)
+#+END_SRC
+
+#+RESULTS:
+: (1 2 3 4 5)
+: #f
+: (1 2 3 4 5)
+: #0=(1 2 3 4 . #0#)
+: #t
+: #0=(1 . #0#)
+: #t
+
+*** Extendining to lists of lists…
+
+At the moment, we only check whether a list cycles.
+
+I.e., there's no way to check whether following the first element of the list cycles back to some element already seen.
+However, the above procedures can be modified to move the crumb appropriately, so long as the relevant structure is present (i.e. a list of sufficient length).
+
+Though, there is an issue of returning to where the crumb is.
 For, we may need to search through the entire list.
 
 However, this isn't a problem.
@@ -6822,4 +6953,4 @@ And, when we've found the crumb this flag is set to prevent further search.
 
 When a new search starts, the flag resets.
 
-I *think* this covers everything, and typing everything else seems like an interseting challenge!
+For now, though, this is enough.
