@@ -7414,7 +7414,8 @@ And, rather than leave a term for the current wire in frames created by a recurs
 	       (full-adder (car A-wires) (car B-wires) (cadr C-wires) (car S-wires) (car C-wires))
 	       (set! A-wires (cdr A-wires))
 	       (set! B-wires (cdr B-wires))
-	       (set! S-wires (cdr S-wires)))))))
+	       (set! S-wires (cdr S-wires)))))
+      add-another))
 #+END_SRC
 
 In terms of delay, we have $k$ full-adders.
@@ -7423,3 +7424,63 @@ In turn, this is the delay of two half-adders and and the delay of an or.
 In total:
 
 $k \times (2 \times (\text{inverter} + 2 \times \text{and} + \text{or}) + \text{or})$.
+
+** Wires
+
+#+NAME: def:call-each
+#+BEGIN_SRC racket
+  (define (call-each procedures)
+    (if (null? procedures)
+	'done
+	(begin
+	  ((car procedures))
+	  (call-each (cdr procedures)))))
+#+END_SRC
+
+#+NAME: def:make-wire
+#+BEGIN_SRC racket
+  (define (make-wire)
+    (let ((signal-value 0)
+	  (action-prcoedures '()))
+
+      (define (set-my-signal! new-value)
+	<<def:call-each>>
+	(if (not (= signal-value new-value))
+	    (begin (set! signal-value new-value)
+		   (call-each action-procedures))
+	    'done))
+
+      (define (accept-action-procedure! proc)
+	(set! action-procedures (cons proc action-procedures))
+	(proc))
+
+      (define (dispatch m)
+	(cond
+	  ((eq? m 'get-signal) signal-value)
+	  ((eq? m 'set-signal!) set-my-signal!)
+	  ((eq? m 'add-action!) accept-action-procedure!)
+	  (else (error "unkown operation -- WIRE" m))))
+      dispatch))
+#+END_SRC
+
+~make-wire~ is interesting.
+In particular, the call ~(proc)~ in ~accept-action-procedure!~.
+In short, this expands all the ~let~ instances, so on next call (e.g.) ~or-action-procedure~ 'happens'.
+Important to keep in mind here is the procedure is only executed relative to the current wire.
+
+Important to keep in mind, huh.
+When evaluating a procedure, nothing about the procedure changes.
+Instead, the pointer to the procedure not points to the output of the procedure.
+
+#+BEGIN_SRC racket
+  (define (get-signal wire) (wire 'get-signal))
+
+  (define (set-signal! wire new-value) ((wire 'set-signal!) new-value))
+
+  (define (add-action! wire action-procedure) ((wire 'add-action!) action-procedure))
+#+END_SRC
+
+** 3.31
+
+This question asks about the observation made above regarding ~(proc)~.
+If we don't immedately run the procedure, then the next run of the procedure 'just' initialises the ~let~ terms and returns the procedure of interest.
