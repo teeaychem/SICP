@@ -7371,7 +7371,7 @@ The basic observation here is that A or B = (not ((not A) and (not B))).
 
 So, to make this we need a few wires and the right combination of inverters and and-gates.
 
-#+BEGIN_SRC racket
+#+BEGIN_SRC racket :tangle no
   (define (or-gate a1 a2 output)
     (let ((not-a1-wire (make-wire))
 	  (not-a2-wire (make-wire))
@@ -7382,3 +7382,44 @@ So, to make this we need a few wires and the right combination of inverters and 
       (inverter and-wire output))
 #+END_SRC
 
+** 3.30
+
+A full adder looks like this:
+
+#+BEGIN_SRC racket
+  (define (full-adder a b c-in sum c-out)
+    (let ((s (make-wire))
+	  (c1 (make-wire))
+	  (c2 (make-wire)))
+      (half-adder b c-in s c1)
+      (half-addera s sum c2)
+      (or-gate c1 c2 c-out)
+      'ok))
+#+END_SRC
+
+~ripple-carry-adder~ works through the lists of A, B, and S wires until it's not possible to add another.
+At each step we create a C wire as needed.
+And, rather than leave a term for the current wire in frames created by a recursive call, we keep pointers to the remaining types of wires.
+
+#+BEGIN_SRC racket
+  (define (ripple-carry-adder A B S C)
+    (let ((C-wires (list C))
+	  (A-wires A)
+	  (B-wires B)
+	  (S-wires A))
+      (define (add-another)
+	(cond ((or (null? A-wires) (null? B-wires) (null? S-wires)) 'ok)
+	      (else
+	       (set! C-wires (cons (make-wire) C-wires)) ; Add a new c-wire to the list of C-wires
+	       (full-adder (car A-wires) (car B-wires) (cadr C-wires) (car S-wires) (car C-wires))
+	       (set! A-wires (cdr A-wires))
+	       (set! B-wires (cdr B-wires))
+	       (set! S-wires (cdr S-wires)))))))
+#+END_SRC
+
+In terms of delay, we have $k$ full-adders.
+So, we'll have $k$ times the delay of each full-adder.
+In turn, this is the delay of two half-adders and and the delay of an or.
+In total:
+
+$k \times (2 \times (\text{inverter} + 2 \times \text{and} + \text{or}) + \text{or})$.
