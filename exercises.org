@@ -7142,6 +7142,56 @@ Some tests:
 
 ** 3.24
 
+For a table implementation dispatch-style which allows specifying a method to test the equality of keys we create a term which refers to the ~same-key?~ process.
+Paired with this is a procedure to update the test.
+The only other change is to ~assoc~, where we change the ~equal?~ test to the ~same-key?~ test, and throw and error if no procedure has been specified.
+
+#+BEGIN_SRC racket :tangle no
+  (define (make-table)
+    (let ((local-table (list '*table*))
+	  (same-key? #f))
+      (define (update-same-key-test-to! proc)
+	(set! same-key? proc))
+      (define (assoc key records)
+	(cond ((null? records) #f)
+	      ((not same-key?)
+	       (error "No method for comparing keys"))
+	      ((same-key? key (caar records)) (car records))
+	      (else (assoc key (cdr records)))))
+      (define (lookup key-1 key-2)
+	(let ((subtable (assoc key-1 (cdr local-table))))
+	  (if subtable
+	      (let ((record (assoc key-2 (cdr subtable))))
+		(if record
+		    (cdr record)
+		    #f))
+	      #f)))
+      (define (insert! key-1 key-2 value)
+	(let ((subtable (assoc key-1 (cdr local-table))))
+	  (if subtable
+	      (let ((record (assoc key-2 subtable)))
+		(if record
+		    (set-cdr! record value)
+		    (set-cdr! subtable
+			      (cons (list key-2 value)
+				    (cdr subtable)))))
+	      (set-cdr! local-table
+			(cons (list key-1
+				    (cons key-2 value))
+			      (cdr local-table)))))
+      'ok)
+      (define (dispatch m)
+	(cond ((eq? m 'lookup-proc) lookup)
+	      ((eq? m 'insert-proc!) insert!)
+	      ((eq? m 'update-same-key-to-proc!) update-same-key-test-to!)
+	      (else (error "Unknown operation -- TABLE" m))))
+    dispatch))
+#+END_SRC
+
+#+RESULTS:
+
+** 3.25
+
 #+NAME: def:assoc
 #+BEGIN_SRC racket
   (define (assoc key records)
