@@ -7365,4 +7365,20 @@ We can define ~logical-or~ as follows:
 
 Or, we could go through all the cases in disjunctive normal form to be very explicit about things.
 
+** 3.29
+
+The basic observation here is that A or B = (not ((not A) and (not B))).
+
+So, to make this we need a few wires and the right combination of inverters and and-gates.
+
+#+BEGIN_SRC racket
+  (define (or-gate a1 a2 output)
+    (let ((not-a1-wire (make-wire))
+	  (not-a2-wire (make-wire))
+	  (and-wire (make-wire)))
+      (inverter a1 not-a1-wire)
+      (inverter a2 not-a2-wire)
+      (and-gate not-a1-wire not-a2-wire and-wire)
+      (inverter and-wire output))
+#+END_SRC
 
