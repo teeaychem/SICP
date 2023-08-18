@@ -7484,3 +7484,32 @@ Instead, the pointer to the procedure not points to the output of the procedure.
 
 This question asks about the observation made above regarding ~(proc)~.
 If we don't immedately run the procedure, then the next run of the procedure 'just' initialises the ~let~ terms and returns the procedure of interest.
+
+** 3.32
+
+If the procedures to be rin during each time segement of the agenda were kept in a list, procedures would be called first-in first-out.
+
+Okay, to see the problem, suppose we have:
+
+
+#+BEGIN_SRC racket
+    (set-signal! input-1 0)
+    (set-signal! input-2 1)
+#+END_SRC
+
+And, consider the following sequence:
+
+#+BEGIN_SRC racket :tangle no
+  (set-signal! input-1 1)
+  (logical-and input-1 input-2)
+  (set-signal! input-2 0)
+#+END_SRC
+
+The ~logical-and~ operation returns ~#t~ and ~input-1~ is set to ~1~ before ~logical-and~.
+However, if read first-in first-out, then ~input-2~ is set to ~0~ before ~logical-and~.
+
+So, we get a different result.
+But, how viable is this?
+In principle both signals could change at the same time, and in this case it seems and should remain ~#f~ throughout the segment.
+Which, suggests signal changes should be processed first.
+
