@@ -5407,7 +5407,7 @@ Well, as this is a contination of the previous exercises, this is also on the li
 
 * Chapter 3
 
-** NOTES Check on argument evaluation
+** Check on argument evaluation
 
 Quick check to see evaluation of a procedure with an argument does something like:
 
@@ -5436,7 +5436,6 @@ Quick check to see evaluation of a procedure with an argument does something lik
 : 25
 
 Note, both W1 and W2 take the same argumnet, but an instance of W1 does not affect W2.
-
 
 ** 3.1
 
@@ -5933,8 +5932,7 @@ Two tests:
 #+RESULTS:
 : 2
 
-
-** NOTES Rules for evaluation
+** Rules for evaluation
 
 To evaluate a combination we:
 
@@ -5962,8 +5960,6 @@ Well, any given frame may be incomplete with respect to the variables which have
 I.e. a sub-enviroment may contain all the super-frames of the super-enviroment.
 Note, this suggestion is the inverse of Figure 3.1.
 Though, thinking in terms of Figure 3.1 seems useful for considering a procedure applied to arguments which are themselves procedures.
-
-
 
 ** 3.9
 
@@ -7040,7 +7036,6 @@ Some tests, which access ~make-queue~ via dispatch:
 : (10 20 30)
 : 10
 
-
 ** 3.23
 
 For a deque, the only operations we need to consider are inserting to the front and deleting to the rear.
@@ -7512,4 +7507,142 @@ So, we get a different result.
 But, how viable is this?
 In principle both signals could change at the same time, and in this case it seems and should remain ~#f~ throughout the segment.
 Which, suggests signal changes should be processed first.
+And, we should have some checks to ensure the physically impossible does not happen.
+But, all this might be a bit much for now…
+
+** Constraint system
+
+#+BEGIN_SRC racket
+  (define (adder a1 a2 sum)
+    (define (process-new-value)
+      (cond ((and (has-value? a1) (has-value? a2))
+	     (set-value! sum
+			 (+ (get-value a1) (get-value a2))
+			 me))
+	    ((and (has-value? a1) (has-value? sum))
+	     (set-value! a2
+			 (- (get-value sum) (get-value a1))
+			 me))
+	    ((and (has-value? a2) (has-value? sum))
+	     (set-value! a1
+			 (- (get-value sum) (get-value a2))
+			 me))))
+    (define (process-forget-value)
+      (forget-value! sum me)
+      (forget-value! a1 me)
+      (forget-value! a2 me)
+      (process-new-value))
+    (define (me request)
+      (cond ((eq? request 'I-have-a-value)
+	     (process-new-value))
+	    ((eq? request 'I-lost-my-value)
+	     (process-forget-value))
+	    (else
+	     (error "Unknown request -- ADDER" request))))
+    (connect a1 me)
+    (connect a2 me)
+    (connect sum me)
+    me)
+#+END_SRC
+
+~adder~ is a message passing procedure.
+When a message is recieved.
+There are two options.
+
+1. ~process-new-value~, where the third value is attempted to be filled given two other values.
+   No ~else~ is specified here.
+2. ~process-forget-value~, which fogets the values for each of the related connectors.
+   I'm not sure what the call to ~process-new-value~ does here.
+   Ah, it depends on ~has-value?~ and ~forget-value!~.
+   For, it may be the case that ~forget-value!~ doesn't ensure there's no way to determine the value, and ~has-value?~ may check for any way to fix the value.
+
+#+BEGIN_SRC racket
+  (define (inform-about-value constraint)
+    (constraint 'I-have-a-value))
+
+  (define (inform-about-no-value constraint)
+    (constraint 'I-lost-my-value))
+#+END_SRC
+
+~adder~ is a particular constraint, but all constraints will have this form.
+Indeed, it's possible to generalise things by creating a process which takes a list of terms and two processes.
+The two process should then return a argument-less process which works on the given processes.
+Anyway…
+
+
+#+BEGIN_SRC racket
+  (define (multiplier m1 m2 product)
+    (define (process-new-value)
+      (cond ((or
+	      (and (has-value? m1) (= (get-value m1) 0))
+	      (and (has-value? m1) (= (get-value m1) 0)))
+	     (set-value! prodcut 0 me))
+	    ((and (has-value? m1) (has-value? m2))
+	     (set-value! product
+			 (* (get-value m1) (get-value m2))
+			 me))
+	    ((and (has-value? m1) (has-value? prodcut))
+	     (set-value! m2
+			 (/ (get-value product) (get-value m1))
+			 me))
+	    ((and (has-value? m2) (has-value? prodcut))
+	     (set-value! m1
+			 (/ (get-value product) (get-value m2))
+			 me))))
+    (define (process-forget-value)
+      (forget-value! product me)
+      (forget-value! m1 me)
+      (forget-value! m2 me)
+      (process-new-value))
+    (define (me request)
+      (cond ((eq? request 'I-have-a-value)
+	     (process-new-value))
+	    ((eq? request 'I-lost-my-value)
+	     (process-forget-value))
+	    (else
+	     (error "Unknown request -- ADDER" request))))
+    (connect m1 me)
+    (connect m2 me)
+    (connect sum me)
+    me)
+#+END_SRC
+
+~multiplier~ works the same as ~adder~.
+Note, we're never going to attempt to divide by anything unknown, nor divide by zero.
+
+#+BEGIN_SRC racket
+  (define (constant value connector)
+    (define (me request)
+      (error "Unknown request -- CONSTANT" request))
+    (connect connector me)
+    (set-value! connector value me)
+    me)
+#+END_SRC
+
+Okay, this sets the value with an identifier.
+I'm not sure why this needds to conform to the message passing protocol though.
+On the other hand, it does mean the error is a custom error, and not a generic wrong arguments type thing.
+
+#+BEGIN_SRC racket
+  (define (probe name connector)
+    (define (print-probe value)
+      (display "Probe: ")
+      (display name)
+      (display " = ")
+      (display value)
+      (newline))
+    (define (process-new-value)
+      (print-probe (get-value connector)))
+    (define (process-forget-value)
+      (print-probe "?"))
+    (define (me request)
+      (cond ((eq? request 'I-have-a-value)
+	     (process-new-value))
+	    ((eq? request 'I-lost-my-value)
+	     (process-forget-value))
+	    (else
+	     (error "Unknown request -- PROBE" request))))
+    (connect connector me)
+    me)
+#+END_SRC
 
