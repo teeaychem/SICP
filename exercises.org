@@ -7179,16 +7179,14 @@ The only other change is to ~assoc~, where we change the ~equal?~ test to the ~s
 			(cons (list key-1
 				    (cons key-2 value))
 			      (cdr local-table)))))
-      'ok)
+	'ok)
       (define (dispatch m)
 	(cond ((eq? m 'lookup-proc) lookup)
 	      ((eq? m 'insert-proc!) insert!)
 	      ((eq? m 'update-same-key-to-proc!) update-same-key-test-to!)
 	      (else (error "Unknown operation -- TABLE" m))))
-    dispatch))
+      dispatch))
 #+END_SRC
-
-#+RESULTS:
 
 ** 3.25
 
@@ -7300,3 +7298,39 @@ Some tests:
 : 2
 : #f
 
+** 3.26
+
+This is a binary tree.
+In this case, the idea of a table is as before.
+What matters isn't the representation of the data, but the way data is accessed using keys.
+
+** 3.27
+
+~memoise~ takes a procedure ~f~ and creates a table, and returns a procedure.
+The return procedure takes an argument and checks to see if it is present in the table.
+
+The puzzle here is about the use of ~or~.
+
+Intuitively, we either return what is stored in the table.
+Or, apply ~f~ to the argument, store the result with the key being the argumnet, and return the value.
+
+My guess is ~or~ returns the first non-false value.
+This is the case:
+
+#+BEGIN_SRC racket
+  (or 3 4)
+  (or #f 5)
+#+END_SRC
+
+#+RESULTS:
+: 3
+: 5
+
+~memo-fib~ computes the $n$th Fibonacci number in a number of steps proportional to $n$ as on the $i$th call we check the table for the arguments $i - 1$ and $i - 2$.
+So, this is less than $2i$ operations, and the work performed to get the $i$th Fibonnaci number is rouhgly constant.
+Assuming, that is, the table has been filled up to $i$ (and if the table has been filled beyond $i$ then it's at most $i$ lookups to find the result in the table).
+
+In particular, recursive calls are made but immediately terminate as the result of these calls is stored in the table.
+
+Memoisation would not have workd if we had defined ~memo-fib~ to be ~(memoise fib)~.
+For, ~fib~ makes a recursive call to ~fib~, and these calls to ~fib~ would not themselves detour through ~(memoise fib)~ to see if the results are in the table.
