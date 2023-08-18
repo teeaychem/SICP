@@ -7334,3 +7334,35 @@ In particular, recursive calls are made but immediately terminate as the result 
 
 Memoisation would not have workd if we had defined ~memo-fib~ to be ~(memoise fib)~.
 For, ~fib~ makes a recursive call to ~fib~, and these calls to ~fib~ would not themselves detour through ~(memoise fib)~ to see if the results are in the table.
+
+** 3.28
+
+~or-gate~ parallels ~and-gate~.
+We've got a two-place function which should be run if either input changes.
+The only difference is what is obtained.
+
+#+BEGIN_SRC racket :tangle no
+  (define (or-gate a1 a2 output)
+    (define (or-action-procedure)
+      (let ((new-value
+	     (logical-or (get-signal a1) (get-signal a2))))
+	(after-delay or-gate-delay
+		     (lambda ()
+		       (set-signal! output new-value)))))
+    (add-action! a1 or-action-procedure)
+    (add-action! a2 or-action-procedure)
+    'ok)
+#+END_SRC
+
+We can define ~logical-or~ as follows:
+
+#+BEGIN_SRC racket :tangle no
+  (define (logical-or a b)
+    (cond ((or (= a 1) (= b 1)) 1)
+	  ((and (= a 0) (= b 0)) 0)
+	  (else (error "Invalid signal" s))))
+#+END_SRC
+
+Or, we could go through all the cases in disjunctive normal form to be very explicit about things.
+
+
