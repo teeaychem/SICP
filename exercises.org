@@ -7174,6 +7174,11 @@ To speed things up slightly, we shortcut to what would be assigned to the term r
 We could also take advantange of the way ~insert!~ works to jump directly to the new table.
 Though, I think it's preferable to key ~insert!~ separate and perform a search.
 
+One way to make this more space efficient is to instantiate a general instance of ~result~.
+Then, rather than each frame holding on to a specific instance of ~result~, each frame overwrites the general instance as required.
+And, same with the arguments passed.
+
+
 #+NAME: def:g-insert!
 #+BEGIN_SRC racket
   (define (g-insert! keys value table)
@@ -7190,6 +7195,7 @@ Though, I think it's preferable to key ~insert!~ separate and perform a search.
 
 Some tests for general insert:
 
+#+NAME: consts:3.24-insert
 #+BEGIN_SRC racket
   <<def:insert!>>
   <<def:g-insert!>>
@@ -7207,5 +7213,40 @@ Some tests for general insert:
 #+RESULTS:
 : (*table* (c (d (f . 5) (e . 4))) (b . 3) (a . 2))
 
+For lookup, we change things up a little.
+So long as we have a key and a table, we can request the value of the key via ~assoc~.
+Hence, we do so recursively working through the list of keys.
+~#f~ is returned whenever a call to ~assoc~ fails.
+When a single key remains, we return the value.
+Else, we apply the next key to the tabe given by the current key.
 
+#+NAME: def:g-lookup
+#+BEGIN_SRC racket
+  (define (g-lookup keys table)
+
+    (cond ((null? keys) #f)
+	  (else
+	   (let ((result (assoc (car keys) (cdr table))))
+	     (cond (result
+		    (if (= 1 (length keys))
+			(cdr result)
+			(g-lookup (cdr keys) result)))
+		   (else #f))))))
+#+END_SRC
+
+Some tests:
+
+#+BEGIN_SRC racket
+  <<consts:3.24-insert>>
+  <<def:g-lookup>>
+  (g-lookup (list 'c 'd 'f) table)
+  (g-lookup (list 'a) table)
+  (g-lookup (list 'f) table)
+#+END_SRC
+
+#+RESULTS:
+: (*table* (c (d (f . 5) (e . 4))) (b . 3) (a . 2))
+: 5
+: 2
+: #f
 
