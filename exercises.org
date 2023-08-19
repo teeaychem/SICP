@@ -1170,8 +1170,7 @@ Replace accumalate with accumalate-iter to vary recu/iter.
   (if (> a b)
       null-value
       (combiner (if (filter a) (term a) null-value)
-                (filtered-accumulate-first filter combiner null-value term (next a) next b))
-      ))
+                (filtered-accumulate-first filter combiner null-value term (next a) next b))))
 #+END_SRC
 
 If the filter is satisfied, then combine (term a), otherwise combine via the null-value.
@@ -1796,27 +1795,34 @@ Note, only asked to do with for non-negative integers.
 
 So…
 
-0 = λf λx x
-1 = λf λx f x
-2 = λf λx ff x
+$0 = \lambda f \lambda x x$
 
-(define one (lambda (f) (lambda (x) (f (x)))))
-(define two (lambda (f) (lambda (x) (f (f (x))))))
+$1 = \lambda f \lambda x f x$
+
+$2 = \lambda f \lambda x ff x$
+
+
+#+BEGIN_SRC racket
+  (define one (lambda (f) (lambda (x) (f (x)))))
+  (define two (lambda (f) (lambda (x) (f (f (x))))))
+#+END_SRC
 
 Okay, not allowed to apply repeat to add-1.
 
 Still, this is just a variation on add-1.
 
-(define (add n m)
-(lambda (f) (lambda (x) (f (n f) ((m f) x)))))
+#+BEGIN_SRC racket
+  (define (add n m)
+    (lambda (f) (lambda (x) (f (n f) ((m f) x)))))
+#+END_SRC
 
-Instead of x, we have ((m f) x).
-m is of the form λf λx f^m x.
-So, ((m f) x) is of the form f^m x.
-n is of the form λf λx f^n x
-So, (n f) is of the form λx f^m x.
-Hence, (f (n f) ((m f) x)) reduces to f^n (f^m x).
-And, this is what we want. f applied n + m times.
+Instead of ~x~, we have ~((m f) x)~.
+~m~ is of the form $\lambda f \lambda x f^{m} x$.
+So, ~((m f) x)~ is of the form $f^{m} x$.
+~n~ is of the form $\lambda f \lambda x f^{n} x$.
+So, ~(n f)~ is of the form $\lambda x f^{m} x$.
+Hence, ~(f (n f) ((m f) x))~ reduces to $f^{n} (f^{m} x)$.
+And, this is what we want. $f$ applied $n + m$ times.
 
 ** 2.1.4 Extended exercise
 
