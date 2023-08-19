@@ -1795,11 +1795,11 @@ Note, only asked to do with for non-negative integers.
 
 So…
 
-$ 0 = \lambda f \lambda x x $
+$0 = \lambda f \lambda x x$
 
-$ 1 = \lambda f \lambda x f x $
+$1 = \lambda f \lambda x f x$
 
-$ 2 = \lambda f \lambda x ff x $
+$2 = \lambda f \lambda x ff x$
 
 
 #+BEGIN_SRC racket
@@ -1817,11 +1817,11 @@ Still, this is just a variation on add-1.
 #+END_SRC
 
 Instead of ~x~, we have ~((m f) x)~.
-~m~ is of the form $ \lambda f \lambda x f^{m} x $.
-So, ~((m f) x)~ is of the form $ f^{m} x $.
-~n~ is of the form $ \lambda f \lambda x f^{n} x $.
-So, ~(n f)~ is of the form $ \lambda x f^{m} x $.
-Hence, ~(f (n f) ((m f) x))~ reduces to $ f^{n} (f^{m} x) $.
+~m~ is of the form $\lambda f \lambda x f^{m} x$.
+So, ~((m f) x)~ is of the form $f^{m} x$.
+~n~ is of the form $\lambda f \lambda x f^{n} x$.
+So, ~(n f)~ is of the form $\lambda x f^{m} x$.
+Hence, ~(f (n f) ((m f) x))~ reduces to $f^{n} (f^{m} x)$.
 And, this is what we want. $f$ applied $n + m$ times.
 
 ** 2.1.4 Extended exercise
