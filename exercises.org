@@ -7884,6 +7884,23 @@ However, there's a slight issue.
 If we inspect the original C/F coverter, we'll see ~v~ is used as an argument to both an ~adder~ and a ~multiplier~.
 It's not possible to express this constraint using the binary operators, without doing something kind of unnatural.
 
+As a graph, the system of constraints looks like this:
+
+#+BEGIN_SRC racket
+  y (32)    v         x (5)  w (9)    c
+  |--(+)---| |--(*)---|      |---(*)--|
+     |           |                |
+     |           |                |
+     |-> f       |--->   u  <-----|
+#+END_SRC
+
+~v~ is the link between ~c~ and ~f~.
+I guess there's some analysis that can be done here.
+Some way of identifying a common variable between two expressions.
+
+When building with the more standard operations, we're going to end up with a more natural relationship between ~f~ and ~c~.
+As, there's no option to insert ~v~ type varaibles of the kind above.
+
 So, this means we also need a divider.
 We work this out in full:
 
@@ -7974,5 +7991,5 @@ And, the test:
 : #<procedure:...rg-babel-qJF37c.rkt:229:2>
 : #<procedure:...rg-babel-qJF37c.rkt:229:2>
 : Probe: Celsius temp = 25
-: Probe: Fahrenheit temp = 77
+w: Probe: Fahrenheit temp = 77
 : done
