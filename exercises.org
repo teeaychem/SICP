@@ -7813,3 +7813,61 @@ And, the C-F-contraint to test.
 : Probe: Fahrenheit temp = 77
 : done
 
+** 3.34
+
+~squarer~ is no use.
+
+#+BEGIN_SRC racket :tangle no
+  (define (squarer a b)
+    (multiplier a a b))
+#+END_SRC
+
+For, ~multiplier~ only has the capacity to determine one term given the other two terms.
+Hence, as ~a~ is given as an argument twice, it is not possible to use ~squarer~ to determine an unkown value (i.e. both values must be known in advance).
+
+
+** 3.35
+
+To define ~squarer~ we make use of ~square~ and ~sqrt~, just as, e.g., ~adder~ makes use of ~+~ and ~-~.
+
+#+NAME: def:multiplier
+#+BEGIN_SRC racket
+  (define (squarer a b)
+    <<def:connect>>
+    (define (process-new-value)
+      <<def:has-value?>>
+      <<def:get-value>>
+      <<def:set-value!>>
+      <<def:square>>
+      (cond ((has-value? a) (set-value! b (square (get-value a)) me))
+	    ((has-value? b)
+	     (if (< (get-value b) 0)
+		 (error "square less than 0 -- SQUARER" (get-value b))
+		 (set-value! a (sqrt (get-value b)) me)))))
+    (define (process-forget-value)
+      <<def:forget-value!>>
+      (forget-value! a me)
+      (forget-value! b me)
+      (process-new-value))
+    (define (me request)
+      (cond ((eq? request 'I-have-a-value)
+	     (process-new-value))
+	    ((eq? request 'I-lost-my-value)
+	     (process-forget-value))
+	    (else
+	     (error "Unknown request -- SQUARER" request))))
+    (connect a me)
+    (connect b me)
+    me)
+#+END_SRC
+
+** 3.36
+
+Still don't have a good way to represent enviroment diagramns here.
+
+The important thing about these networks is that the transmission of any given piece of information creates a directed acyclic graph.
+Directed, as messages are passed from connected components via connectors to other connected components.
+And, acyclic as otherwise ~set-value!~, etc., would have no guarantee of terminating.
+
+~for-each-except~ is important for ensuring the message graph is acyclic.
+For, it allows us to message every connected component /other than/ the current component.
