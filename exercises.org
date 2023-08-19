@@ -7997,5 +7997,33 @@ And, the test:
 : #<procedure:...rg-babel-qJF37c.rkt:229:2>
 : #<procedure:...rg-babel-qJF37c.rkt:229:2>
 : Probe: Celsius temp = 25
-w: Probe: Fahrenheit temp = 77
+: Probe: Fahrenheit temp = 77
 : done
+
+** 3.38
+
+*** a.
+
+The important operation is Mary, as this is a relative operation (taking half).
+
+| Peter | Paul  | Mary  | 45 |
+| Peter | Mary  | Paul  | 35 |
+| Paul  | Peter | Mary  | 45 |
+| Paul  | Mary  | Peter | 50 |
+| Mary  | Peter | Paul  | 40 |
+| Mary  | Paul  | Peter | 40 |
+
+*** b.
+
+No easy way to draw a timiing diagram here (and I think it's a little underspecified in the book).
+Still, to see all the different values that may be procudes we can write things out algenraically:
+
+| Peter | Paul  | Mary  | Base + (Pe + Pa) / Ma   |
+| Peter | Mary  | Paul  | Base + (Pe / Ma) + Pa   |
+| Paul  | Peter | Mary  | Base + (Pa + Pe) / Ma   |
+| Paul  | Mary  | Peter | Base + (Pa / Ma) + Pe   |
+| Mary  | Peter | Paul  | (Base / Mary) + Pe + Pa |
+| Mary  | Paul  | Peter | (Base / Mary) + Pe + Pa |
+
+One thing to note is that the possibilities here are more general than those obtained by ignoring paretheses and then exploring all possible ways to re-add parentheses (assing plus, etc., are binary operations).
+For, e.g., the first row doesn't allow an operation to be performed on ~Base~ and ~Ma~, while the last row does.
