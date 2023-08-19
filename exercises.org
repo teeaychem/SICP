@@ -7853,8 +7853,8 @@ To define ~squarer~ we make use of ~square~ and ~sqrt~, just as, e.g., ~adder~ m
       (cond ((eq? request 'I-have-a-value)
 	     (process-new-value))
 	    ((eq? request 'I-lost-my-value)
-	     (process-forget-value))
-	    (else
+	     (process-forget-else))
+	    (value
 	     (error "Unknown request -- SQUARER" request))))
     (connect a me)
     (connect b me)
@@ -7871,3 +7871,108 @@ And, acyclic as otherwise ~set-value!~, etc., would have no guarantee of termina
 
 ~for-each-except~ is important for ensuring the message graph is acyclic.
 For, it allows us to message every connected component /other than/ the current component.
+
+** 3.37
+
+The basic point here is that the constraint system requires connectors for all the parts of a term.
+E.g., for addition we need the two numbers to be added and the sum of the two numbers.
+And, the standard arguments-plus-operator-leaving-result-implicit does not lend itself to specifying a connected for the result.
+
+Further, by returning the connector for the result, it is easy to chain together operators.
+
+However, there's a slight issue.
+If we inspect the original C/F coverter, we'll see ~v~ is used as an argument to both an ~adder~ and a ~multiplier~.
+It's not possible to express this constraint using the binary operators, without doing something kind of unnatural.
+
+So, this means we also need a divider.
+We work this out in full:
+
+#+NAME: def:divider
+#+BEGIN_SRC racket
+  (define (divider numer denomer division)
+    <<def:connect>>
+    (define (process-new-value)
+      <<def:has-value?>>
+      <<def:get-value>>
+      <<def:set-value!>>
+      (cond ((and (has-value? denomer) (has-value? division))
+	     (set-value! numer (* (get-value denomer) (get-value division)) me))
+	    ((and (has-value? numer) (has-value? denomer) (not (= (get-value denomer) 0)))
+	     (set-value! division (/ (get-value numer) (get-value denomer)) me))
+	    ((and (has-value? numer) (has-value? division) (not (= (get-value numer) 0)))
+	     (set-value! denomer (/ (get-value division) (get-value numer)) me))))
+    (define (process-forget-value)
+      <<def:forget-value!>>
+      (forget-value! division me)
+      (forget-value! numer me)
+      (forget-value! denomer me)
+      (process-new-value))
+    (define (me request)
+      (cond ((eq? request 'I-have-a-value)
+	     (process-new-value))
+	    ((eq? request 'I-lost-my-value)
+	     (process-forget-value))
+	    (else
+	     (error "Unknown request -- DIVIDER" request))))
+    (connect numer me)
+    (connect denomer me)
+    (connect division me)
+    me)
+#+END_SRC
+
+The definitions for the constraint-operations are all very similar:
+
+#+NAME: defs:3.37
+#+BEGIN_SRC racket
+  <<def:make-connector>>
+  <<def:set-value!>>
+  (define (c+ x y)
+    <<def:adder>>
+    (let ((z (make-connector)))
+      (adder x y z)
+      z))
+
+  (define (c* x y)
+      <<def:multiplier>>
+    (let ((z (make-connector)))
+      (multiplier x y z)
+      z))
+
+  (define (c/ x y)
+    <<def:divider>>
+    (let ((z (make-connector)))
+      (divider x y z)
+      z))
+
+  (define (cv x)
+    <<def:constant>>
+    (let ((z (make-connector)))
+      (constant x z)
+      z))
+#+END_SRC
+
+And, the test:
+
+#+BEGIN_SRC racket
+  <<defs:3.37>>
+  <<def:probe>>
+  (define (celsius-farenheit-converter c)
+    (c+ (c* (c/ (cv 9) (cv 5))
+	    c)
+	(cv 32)))
+
+  (define C (make-connector))
+  (define F (celsius-farenheit-converter C))
+  (probe "Celsius temp" C)
+  (probe "Fahrenheit temp" F)
+
+  (set-value! C 25 'user)
+  ;(set-value! F 225 'user)
+#+END_SRC
+
+#+RESULTS:
+: #<procedure:...rg-babel-qJF37c.rkt:229:2>
+: #<procedure:...rg-babel-qJF37c.rkt:229:2>
+: Probe: Celsius temp = 25
+: Probe: Fahrenheit temp = 77
+: done
