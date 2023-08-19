@@ -5973,7 +5973,7 @@ For recursive ~factorial~, there is a single argument ~n~ which decreases from 6
 I.e. the digram will contain six enviroments, the first will have ~n: 6~, the second ~n: 5~ and so on.
 
 For iterative ~factorial~ the procedure takes three arguments.
-Here we'll have six enviroments, the first containg ~prodcut: 1, counter: 1, max-count: 6~, the second ~prodcut: 1, counter: 2, max-count: 6~, and the last ~prodcut: 120, counter: 6, max-count: 6~.
+Here we'll have six enviroments, the first containg ~product: 1, counter: 1, max-count: 6~, the second ~product: 1, counter: 2, max-count: 6~, and the last ~product: 120, counter: 6, max-count: 6~.
 
 ** 3.10
 
@@ -7428,7 +7428,7 @@ $k \times (2 \times (\text{inverter} + 2 \times \text{and} + \text{or}) + \text{
     (if (null? procedures)
 	'done
 	(begin
-	  ((car procedures))
+	  (car procedures)
 	  (call-each (cdr procedures)))))
 #+END_SRC
 
@@ -7512,9 +7512,14 @@ But, all this might be a bit much for now…
 
 ** Constraint system
 
+#+NAME: def:adder
 #+BEGIN_SRC racket
   (define (adder a1 a2 sum)
+    <<def:connect>>
     (define (process-new-value)
+      <<def:has-value?>>
+      <<def:get-value>>
+      <<def:set-value!>>
       (cond ((and (has-value? a1) (has-value? a2))
 	     (set-value! sum
 			 (+ (get-value a1) (get-value a2))
@@ -7528,6 +7533,7 @@ But, all this might be a bit much for now…
 			 (- (get-value sum) (get-value a2))
 			 me))))
     (define (process-forget-value)
+      <<def:forget-value!>>
       (forget-value! sum me)
       (forget-value! a1 me)
       (forget-value! a2 me)
@@ -7545,6 +7551,8 @@ But, all this might be a bit much for now…
     me)
 #+END_SRC
 
+#+RESULTS:
+
 ~adder~ is a message passing procedure.
 When a message is recieved.
 There are two options.
@@ -7556,10 +7564,14 @@ There are two options.
    Ah, it depends on ~has-value?~ and ~forget-value!~.
    For, it may be the case that ~forget-value!~ doesn't ensure there's no way to determine the value, and ~has-value?~ may check for any way to fix the value.
 
+#+NAME: def:inform-about-value
 #+BEGIN_SRC racket
   (define (inform-about-value constraint)
     (constraint 'I-have-a-value))
+#+END_SRC
 
+#+NAME: def:inform-about-no-value
+#+BEGIN_SRC racket
   (define (inform-about-no-value constraint)
     (constraint 'I-lost-my-value))
 #+END_SRC
@@ -7569,27 +7581,32 @@ Indeed, it's possible to generalise things by creating a process which takes a l
 The two process should then return a argument-less process which works on the given processes.
 Anyway…
 
-
+#+NAME: def:multiplier
 #+BEGIN_SRC racket
   (define (multiplier m1 m2 product)
+    <<def:connect>>
     (define (process-new-value)
+      <<def:has-value?>>
+      <<def:get-value>>
+      <<def:set-value!>>
       (cond ((or
 	      (and (has-value? m1) (= (get-value m1) 0))
 	      (and (has-value? m1) (= (get-value m1) 0)))
-	     (set-value! prodcut 0 me))
+	     (set-value! product 0 me))
 	    ((and (has-value? m1) (has-value? m2))
 	     (set-value! product
 			 (* (get-value m1) (get-value m2))
 			 me))
-	    ((and (has-value? m1) (has-value? prodcut))
+	    ((and (has-value? m1) (has-value? product))
 	     (set-value! m2
 			 (/ (get-value product) (get-value m1))
 			 me))
-	    ((and (has-value? m2) (has-value? prodcut))
+	    ((and (has-value? m2) (has-value? product))
 	     (set-value! m1
 			 (/ (get-value product) (get-value m2))
 			 me))))
     (define (process-forget-value)
+      <<def:forget-value!>>
       (forget-value! product me)
       (forget-value! m1 me)
       (forget-value! m2 me)
@@ -7603,15 +7620,18 @@ Anyway…
 	     (error "Unknown request -- ADDER" request))))
     (connect m1 me)
     (connect m2 me)
-    (connect sum me)
+    (connect product me)
     me)
 #+END_SRC
 
 ~multiplier~ works the same as ~adder~.
 Note, we're never going to attempt to divide by anything unknown, nor divide by zero.
 
+#+NAME: def:constant
 #+BEGIN_SRC racket
   (define (constant value connector)
+    <<def:connect>>
+    <<def:set-value!>>
     (define (me request)
       (error "Unknown request -- CONSTANT" request))
     (connect connector me)
@@ -7623,8 +7643,10 @@ Okay, this sets the value with an identifier.
 I'm not sure why this needds to conform to the message passing protocol though.
 On the other hand, it does mean the error is a custom error, and not a generic wrong arguments type thing.
 
+#+NAME: def:probe
 #+BEGIN_SRC racket
   (define (probe name connector)
+    <<def:connect>>
     (define (print-probe value)
       (display "Probe: ")
       (display name)
@@ -7632,6 +7654,7 @@ On the other hand, it does mean the error is a custom error, and not a generic w
       (display value)
       (newline))
     (define (process-new-value)
+      <<def:get-value>>
       (print-probe (get-value connector)))
     (define (process-forget-value)
       (print-probe "?"))
@@ -7645,4 +7668,148 @@ On the other hand, it does mean the error is a custom error, and not a generic w
     (connect connector me)
     me)
 #+END_SRC
+
+#+NAME: def:make-connector
+#+BEGIN_SRC racket
+    (define (make-connector)
+      (let ((value false)
+	    (informant false)
+	    (constraints '()))
+	(define (set-my-value newval setter)
+	  <<def:for-each-except>>
+	  <<def:has-value?>>
+	  <<def:inform-about-value>>
+	  (cond ((not (has-value? me))
+		 (set! value newval)
+		 (set! informant setter)
+		 (for-each-except setter
+				  inform-about-value
+				  constraints))
+		((not (= value newval))
+		 (error "Contradiction" (list value newval)))
+		(else 'ignored)))
+	(define (forget-my-value retractor)
+	  <<def:for-each-except>>
+	  <<def:inform-about-no-value>>
+	  (if (eq? retractor informant)
+	      (begin (set! informant false)
+		     (for-each-except retractor
+				      inform-about-no-value
+				      constraints))
+	      'ignored))
+	(define (connect new-constraint)
+	  <<def:inform-about-value>>
+	  <<def:has-value?>>
+	  (if (not (memq new-constraint constraints))
+	      (set! constraints
+		    (cons new-constraint constraints)))
+	  (if (has-value? me)
+	      (inform-about-value new-constraint))
+	  'done)
+	    (define (me request)
+	      (cond ((eq? request 'has-value?)
+		     (if informant true false))
+		    ((eq? request 'value) value)
+		    ((eq? request 'set-value!) set-my-value)
+		    ((eq? request 'forget) forget-my-value)
+		    ((eq? request 'connect) connect)
+		    (else
+		     (error "Unknown operation -- CONNECTOR" request))))
+	    me))
+#+END_SRC
+
+
+
+#+NAME: def:for-each-except
+#+BEGIN_SRC racket
+  (define (for-each-except exception procedure l)
+    (define (loop items)
+      (cond ((null? items) 'done)
+	    ((eq? (car items) exception) (loop (cdr items)))
+	    (else (procedure (car items))
+		  (loop (cdr items)))))
+    (loop l))
+#+END_SRC
+
+#+NAME: def:has-value?
+#+BEGIN_SRC racket
+  (define (has-value? connector)
+    (connector 'has-value?))
+#+END_SRC
+
+#+NAME: def:get-value
+#+BEGIN_SRC racket
+  (define (get-value connector)
+    (connector 'value))
+#+END_SRC
+
+#+NAME: def:set-value!
+#+BEGIN_SRC racket
+  (define (set-value! connector new-value informant)
+    ((connector 'set-value!) new-value informant))
+#+END_SRC
+
+#+NAME: def:forget-value!
+#+BEGIN_SRC racket
+  (define (forget-value! connector retractor)
+    ((connector 'forget) retractor))
+#+END_SRC
+
+#+NAME: def:connect
+#+BEGIN_SRC racket
+  (define (connect connector new-constraint)
+    ((connector 'connect) new-constraint))
+#+END_SRC
+
+*** Converter
+
+And, the C-F-contraint to test.
+(Here, probes have been added to the definition of the converter to supress the ~me~ return from making the probe.)
+
+#+NAME: def:c-to-f-converter
+#+BEGIN_SRC racket
+  (define (c-to-f-converter c f probe?)
+    <<def:make-connector>>
+    <<def:multiplier>>
+    <<def:adder>>
+    <<def:constant>>
+    <<def:probe>>
+    (let ((u (make-connector))
+	  (v (make-connector))
+	  (w (make-connector))
+	  (x (make-connector))
+	  (y (make-connector)))
+    (multiplier c w u)
+    (multiplier v x u)
+    (adder v y f)
+    (constant 9 w)
+    (constant 5 x)
+    (constant 32 y)
+    (cond (probe? (probe "Celsius temp" c)
+		  (probe "Fahrenheit temp" f)))
+    'ok
+    ))
+#+END_SRC
+
+
+#+BEGIN_SRC racket
+  <<def:make-connector>>
+  <<def:c-to-f-converter>>
+  <<def:set-value!>>
+  <<def:probe>>
+  <<def:make-probe>>
+
+  (define C (make-connector))
+  (define F (make-connector))
+
+  (c-to-f-converter C F #t)
+
+  (set-value! C 25 'user)
+#+END_SRC
+
+#+RESULTS:
+: ok
+: Probe: Celsius temp = 25
+: Probe: Fahrenheit temp = 77
+: done
 
