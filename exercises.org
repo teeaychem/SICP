@@ -1795,11 +1795,11 @@ Note, only asked to do with for non-negative integers.
 
 So…
 
-$0 = \lambda f \lambda x x$
+$ 0 = \lambda f \lambda x x $
 
-$1 = \lambda f \lambda x f x$
+$ 1 = \lambda f \lambda x f x $
 
-$2 = \lambda f \lambda x ff x$
+$ 2 = \lambda f \lambda x ff x $
 
 
 #+BEGIN_SRC racket
