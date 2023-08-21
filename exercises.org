@@ -8310,7 +8310,6 @@ These can take as much 'time' as they like, the time of the overall system is re
 If ~test-and-set!~ is implemented as an ordinary procedure, two distinct processes may both call ~test-and~set!~.
 In this case, concurrent execution of ~set-car!~ may raise and issue, but regardless of this two processes have aquired the mutex, and will run in parallel.
 
-
 ** 3.47
 
 *** First implementation: cells
@@ -8408,3 +8407,58 @@ And, when a call to ~clear!~ is made, the count is decrimented.
 #+END_SRC
 
 I guess the list approach may save some space, at the cost of additional work to check whether a cell is free.
+
+** 3.48
+
+The dead-lock problem introcued relies on introducing serialisation cycles.
+Procedure A under serialisation A calls procedure B uder serialisation B, which in turns calls for procedure A' under serialisation A.
+But, procedure A is already in process, so it is not possible for procedure A' to start.
+
+Put differently, if it is only possible to take on a procedure under some distinct serialisation then it is possible for the process to conitnue.
+
+Proof by induction works here, if you want all the details.
+
+Base case of 1 serialisation is straightforward.
+
+If it is possible to call the serialised procedure, the procedure will complete.
+For, call the procedure and you have something unserialised.
+
+Now, inductive hypothesis is that every serialisation is unique, and the (n -1)th procedure will terminate.
+
+We want to show: If you can call the nth procedure, you can all the (n-1)th procedure.
+
+Well, it's clear it's possible to call the nth, and then the (n - 1)th, as these are two distinct serialisations.
+
+Well, that's a little lax, but I take the idea to be sufficiently clear.
+Again: So long as you know each serialisation is unique, you can always reduce the layer of serialisation.
+
+** 3.49
+
+*** Keeping busy while waiting for you
+
+Procedure A is busy.
+
+Procedure B requires the result of procedure A which will be set to a term.
+However, while procedure B waits for procedure A to complete, procedure B can do other things.
+Procedure B may be interrupted, but wishes to only work on the result of procedure A.
+And, procedure B does not have information about procedure A's serialisation.
+So, procedure B sets any task they begin to work on to have the highest priority (i.e. simply ignores any other requests) and check in to see the status of A reguarly.
+
+When procedure A completes their result, they wish to ensure procedure B picks up on the value of the term immediately.
+But, to avoid waiting around, if procedure B is busy, they'll do their own thing.
+As with procedure B, procedure A wishes to avoid interruptions, so checks back on the status of procedure B periodically.
+
+Now, it's not possible for this to go anywhere.
+
+When checking on each other's status, both procedures are busy.
+And, when not checking on each others status, each procedure is busy.
+
+At some point, at least one of the procedures must be idle.
+
+However, even if each proccess is idle for some time it may be the case that:
+
+1. Both procecess are idle at exactly the same time.
+2. Each procedure is only idle when the other procedure is busy doing it's own thing.
+
+While typing this up I began thinking about the two generals problem, or alterantively common knowledge, etc…
+
