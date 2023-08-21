@@ -8095,4 +8095,32 @@ If we have:
 
 Then, as with 3.39, only the first two interleavings are possible.
 
+** 3.41
 
+A procedure for making and maintaing a bank account is serialised to it is not possible to withdraw and deposit concurrently.
+
+It is suggested reading the balance should be serialised to the same set.
+
+However, it is not clear why this should be done.
+There is clear motivation for serialising withdraw and deposit as these change the balance of the account.
+However, viewing the balance does not lead to any change.
+
+One concern is the user getting the wrong idea of the balance by viewing the balance just before or during a withdraw or deposit.
+However, serialisation doesn't help to prevent this, as seralisation only enforces order, and view balance may stil occur before withdraw or deposit if all three are serialisated and concurrently called.
+
+** 3.42
+
+This seems dangerous.
+
+If the calls to ~protected~ are done outside the ~dispatch~ procedure then only the calls are serialised.
+
+So, withdraw must be called before deposit, or vice-versa, but nothing prevents deposit being executed while withdraw is being exceuted.
+
+For example, we may have:
+
+1. Call to withdraw is made.
+2. Withdraw beings executing (but does not complete).
+3. As the call to withdraw has been made, a call to deposit is made.
+4. Deposit beings executing (while withdraw is exeucting).
+5. Deposit sets the balance.
+6. Withdraw sets the balance (ignoring the updated balance by deposit).
