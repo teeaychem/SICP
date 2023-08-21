@@ -8224,3 +8224,187 @@ Then, another call to ~serializer1~ is made.
 But, the call to the nested serialisers made ensures no other task beloning to ~serializer1~ can start.
 
 So, this emphasises the need to expose procedures without serialisation when one may wish to combine serialisers.
+
+** Serialisers
+
+#+BEGIN_SRC racket :tangle no
+  (define (make-serializer)
+    <<def:make-mutex>>
+    (let ((mutex (make-mutex)))
+      (lambda (p)
+	(define (serialized-p . args)
+	  (mutex 'aquire)
+	  (let ((val (apply p args)))
+	    (mutex 'release)
+	    val))
+	serealized-p)))
+#+END_SRC
+
+Note, here, the mutex is aquired until the process reutrns a value.
+
+Take in a procedure.
+Then, return something which returns a procedure sandwidched by aquiring and releasing the mutex at the base of the serialiser.
+
+At least going by style, it seems this should ensure the procedure is eventually run when called.
+It's just that it could take a while for ~(mutex 'acquire)~ to complete.
+
+I.e. this is not of the form:
+/If/ mutex is open to being immediately aquired /then/ go!
+
+We could, instead, aquire the mutex, evaluate all the arguments, and then release the mutex…
+
+#+NAME: def:make-mutex
+#+BEGIN_SRC racket
+  (define (make-mutex)
+    (let ((cell (list false)))
+      (define (the-mutex m)
+	<<def:test-and-set!>>
+	<<def:mutex-clear>>
+	(cond ((eq? m 'acquire)
+	       (if (test-and-set! cell)
+		   (the-mutex 'acquire)))
+	      ((eq? m 'release) (clear! cell))))
+      the-mutex))
+#+END_SRC
+
+~cell~ stores whether the mutex has been acquired, or is realeased.
+And a mutex takes two messages.
+What happens on ~'release~ seems clear: set ~cell~ to ~#f~.
+What happens on ~'acquire~ is less clear.
+So long as ~test-and-set!~ returns true, we'll enter a loop.
+In some respects, this is fine.
+~(mutex 'acquire)~ loops until some condition is satisfied.
+But, you can't 'just' create a loop, right?
+Don't we need some guarantee the process on other procedures happens while the loop runs?
+
+~clear~ just clears.
+
+#+NAME: def:mutex-clear
+#+BEGIN_SRC racket
+  (define (clear! cell)
+    (set-car! cell false))
+#+END_SRC
+
+~test-and-set!~ tests and sets! (This name isn't descriptive enough!)
+The procedure tests to seee if the mutex has been acquired.
+Otherwise, it sets the mutex as aquired and returns false.
+
+#+NAME: def:mutex-clear
+#+BEGIN_SRC racket
+  (define (test-and-set! cell)
+    (if (car cell)
+	true
+	(begin (set-car! cell true)
+	       false)))
+#+END_SRC
+
+Though, this should be a single instruction, in practice.
+
+I kind of feel as though time is the wrong way to think about concurrency.
+For, what matters is that we have the ability to execute procedures in parallel.
+And, the 'base units' of time are really just atomic processes.
+These can take as much 'time' as they like, the time of the overall system is relative to these.
+
+** 3.46
+
+If ~test-and-set!~ is implemented as an ordinary procedure, two distinct processes may both call ~test-and~set!~.
+In this case, concurrent execution of ~set-car!~ may raise and issue, but regardless of this two processes have aquired the mutex, and will run in parallel.
+
+
+** 3.47
+
+*** First implementation: cells
+
+For the first implementation of semaphores, we have a helper procedure to create a list of some value ~x~ ~n~ times.
+We'll use this to create a list of 'mutexs'.
+
+#+NAME: def:list-x-n-times
+#+BEGIN_SRC racket
+  (define (list-x-n-times x n)
+    (let ((l '()))
+      (define (add-times n)
+	(cond ((> n 0)
+	       (set! l (cons x l))
+	       (add-times (- n 1)))))
+      (add-times n)
+      l))
+#+END_SRC
+
+Now, ~make-semaphore~ starts by creating a list of unaquired mutexes.
+Key to this implementation is a procedure which finds the first occurence of ~#f~ in the list.
+
+In contrast to mutexes, a pointer to this first occurence is going to function as a ticket.
+This pointer is returned when ~'acquire~ completes, and is given when ~'release~ is called.
+
+Like ~make-mutex~, ~'acquire~ repeatedly calls ~get-free-cell~ until a ticket is acquired.
+
+#+BEGIN_SRC racket :tangle no
+  (define (make-semaphore n)
+    <<def:list-x-n-times>>
+    (let ((cells (list-x-n-times #f n)))
+      (define (get-free-cell)
+	(let ((free-cell cells))
+	  (cond ((eq? (car free-cell) #f) free-cell)
+		((eq? (free-cell) nil) #f)
+		((eq? (free-cell) #t)
+		 (set! free-cell (cdr free-cell))))))
+      (define (the-semaphore m)
+	(cond ((eq? m 'acquire)
+	      (if free-cell
+		  (begin
+		    (set-car! free-cell #t)
+		    free-cell)
+		  (get-free-cell)))
+	      ((eq? m 'release)
+	       (lambda (cell) (set-car! #f)))))
+      the-semaphore))
+#+END_SRC
+
+This procedure could be improved on by optimising the ~get-free-cell~ procedure.
+We don't really need to start the search from the start each time, we just need to loop around to where we started.
+But, this is for some other time!
+
+*** Second implementation: cells as mutexes
+
+Note, the first implementation could easily be reworked to use a list of mutexes.
+
+Rather than searching for a free cell as implemented, we could apply ~test-and-set!~ (as defined on mutexes) to each cell in the list.
+
+And, rather than giving a pointer to the cell as a ticket, we could simply search for the first ~#t~ cell and call ~clear!~ on that cell.
+(Note, nothing depends on any /particular/ mutex.)
+
+
+
+*** Third implementation: a count
+
+Though, I think even the above is excessive.
+The point of a semaphore is to allow $n$ procedures to run concurrently, so instead of storing a boolean, just store an integer.
+The count starts at 0.
+When a call to ~'acquire~ is made, the count increases if it's less than n, else another attempt is made.
+And, when a call to ~clear!~ is made, the count is decrimented.
+
+#+BEGIN_SRC racket :tangle no
+  (define (make-semaphore n)
+    (let ((cell (list 0)))
+      (define (the-mutex m)
+	(cond ((eq? m 'acquire)
+	       (if (test-and-set! cell)
+		   (the-mutex 'acquire)))
+	      ((eq? m 'release) (clear! cell))))
+      the-mutex))
+#+END_SRC
+
+#+BEGIN_SRC racket :tangle no
+  (define (clear! cell)
+    (set-car! cell (- cell 1)))
+#+END_SRC
+
+#+BEGIN_SRC racket :tangle no
+  (define (test-and-set! cell)
+    (if (car (< cell n))
+	true
+	(begin (set-car! cell (+ cell 1))
+	       false)))
+#+END_SRC
+
+I guess the list approach may save some space, at the cost of additional work to check whether a cell is free.
