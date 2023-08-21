@@ -7831,7 +7831,6 @@ And, the C-F-contraint to test.
 For, ~multiplier~ only has the capacity to determine one term given the other two terms.
 Hence, as ~a~ is given as an argument twice, it is not possible to use ~squarer~ to determine an unkown value (i.e. both values must be known in advance).
 
-
 ** 3.35
 
 To define ~squarer~ we make use of ~square~ and ~sqrt~, just as, e.g., ~adder~ makes use of ~+~ and ~-~.
@@ -8124,3 +8123,104 @@ For example, we may have:
 4. Deposit beings executing (while withdraw is exeucting).
 5. Deposit sets the balance.
 6. Withdraw sets the balance (ignoring the updated balance by deposit).
+
+** 3.43
+
+The revised deposit is:
+
+#+BEGIN_SRC racket :tangle no
+  (define (deposit account amount)
+    (let ((s (account 'serializer))
+	  (d (account 'deposit)))
+      ((s d) amount)))
+#+END_SRC
+
+So, we get the seraliser, and the deposit function, and defer the call to despoist after everything present in the serialised collection has been completed (though, really, this depends on the way the collection is managed --- deposit could be given priority).
+
+Now, the serialised exchange program is written:
+
+#+BEGIN_SRC racket :tangle no
+  (define (serialized-exchange account1 account2)
+    (let ((serializer1 (account1 'serializer))
+	  (serializer2 (account2 'serializer)))
+      ((serializer1 (serializer2 exchange))
+       account1
+       account2)))
+#+END_SRC
+
+Here, then, ~exchange~ is wrapped in two serialisers.
+
+There are four cases to consider:
+
+1. Something under ~serializer1~ is running, and a call to ~serialized-exchange~ is made.
+
+   - As ~serialized-exchange~ first checks ~serializer1~, an immediate call to ~exhange~ is blocked.
+
+2. Something under ~serializer2~ is running, and a call to ~serialized-exchange~ is made.
+
+   - As ~serialized-exchange~ checks ~serializer2~ before calling ~exchange~, an immediate call to ~exhange~ is blocked.
+
+3. ~serialized-exchange~ is running, and a call to something under ~serializer1~ is made.
+
+   - ~serialized-exchange~ is running, so a processed under ~serializer1~ is running.
+     This blocks any other procedure under ~serializer1~ running immediately.
+
+4. ~serialized-exchange~ is running, and a call to something under ~serializer2~ is made.
+
+    - ~serialized-exchange~ is running, so a processed under ~serializer2~ (also under ~serializer1~) is running.
+	This blocks any other procedure under ~serializer1~ running immediately.
+
+
+This covers everyhing.
+Note, also, the reasoning does not depend on the order of the serialisers enclosing ~exchange~.
+What matter is ~excahnge~ being guarded in both respects.
+
+And, we need both serialisers, as the purpose is to allow any procedures that do not cross accounts to run concurrently.
+
+** 3.44
+
+Transferring money from one account to another.
+
+Proposed is:
+
+#+BEGIN_SRC racket :tangle no
+  (define (transfer from-account to-account amount)
+    ((from-account 'withdraw) amount)
+    ((to-account) 'deposit) amount))
+#+END_SRC
+
+First up is the messages.
+These should both make calls to seralised procedures.
+For example:
+
+#+BEGIN_SRC racket :tangle no
+  (define (transfer from-account to-account amount)
+    (let ((from-s (account 'serializer))
+	  (from-p (from-account 'withdraw)))
+      ((s d) amount))
+    (let ((to-s (account 'serializer))
+	  (to-p (from-account 'deposit)))
+      ((s d) amount)))
+#+END_SRC
+
+Though, it may be the case that these are handled internally.
+
+Though, after this, no additional work is required, one would expect.
+
+One question is whether it is possible for the arguments to change in unexpected ways.
+Yet, there is plausibly no modification to ~transfer~ which would help here.
+For example, it would seem bad if amount changed mid transfer, but it's not clear ~transfer~ should make a copy of the arguments given.
+
+On the other hand, if transfer made use of some intermediate store and there were other ways to access the store, serliasation should be put in place to prevent any other access during the transfer.
+
+** 3.45
+
+Ah, this is cool.
+
+The key observation here is something like ~(serializer1 (serializer2 (serializer1 proc)))~ will fail to execute properly.
+For, when the call to this is made, a process under ~serializer1~ is running.
+Now, suppose ~serializer2~ is free.
+Then, another call to ~serializer1~ is made.
+But, the call to the nested serialisers made ensures no other task beloning to ~serializer1~ can start.
+
+So, this emphasises the need to expose procedures without serialisation when one may wish to combine serialisers.
