@@ -8027,3 +8027,72 @@ Still, to see all the different values that may be procudes we can write things 
 
 One thing to note is that the possibilities here are more general than those obtained by ignoring paretheses and then exploring all possible ways to re-add parentheses (assing plus, etc., are binary operations).
 For, e.g., the first row doesn't allow an operation to be performed on ~Base~ and ~Ma~, while the last row does.
+
+** 3.39
+
+The five options interleavings listed are:
+
+| 101 | P1 multiplies x, then P2 increments x.                                                               |
+| 121 | P2 incremenets x, then P1 multiplies x.                                                              |
+| 110 | P1 takes the first instance of x, P2 increments x, P1 takes the second instance of x and multiplies. |
+|  11 | P2 takes the instance of x, P1 mutliplies x, P2 sets x.                                              |
+| 100 | P1 takes both instances of x, P2 increments x, P1 sets x.                                            |
+
+If we have:
+
+#+BEGIN_SRC racket :tangle no
+  (define x 10)
+
+  (define s (make-serializer))
+
+  (parallel-execute (s (lambda (x) (set! x (* x x))))
+		    (s (lambda (x) (set! x (+ x 1)))))
+#+END_SRC
+
+Then, it is not possible for both P1 and P2 to execute at the same time.
+Hence, only the first two options (results 101 and 121) are possible.
+(I.e. P1 executes then P2 executes or P2 executes then P1 executes.)
+
+** 3.40
+
+If we have:
+
+#+BEGIN_SRC racket :tangle no
+  (define x 10)
+
+  (parallel-execute (lambda (x) (set! x (* x x)))
+		    (lambda (x) (set! x (* x x x))))
+#+END_SRC
+
+Then we have the following options, where execution patterns have not been collected under equivalent outputs.
+
+| (* 100  100 100) | P1 then P2                                                           |
+| (* 1000 1000)    | P2 then P1                                                           |
+| (* 10 1000)      | P1 takes first instance of x, P2 sets x, P1 takes second instance    |
+| (* 10 10)        | P1 takes both instances, P2 sets x, P1 sets x.                       |
+| (* 10 10 10)     | P2 takes instance of x, P1 sets x, P2 sets x                         |
+| (* 10 100 100)   | P2 takes first instance of x, P1 sets x, P2 takes second and third.  |
+| (* 10 10 100)    | P2 takes first and second instances of x, P1 sets x, P2 takes third. |
+
+Note, in particular, ~(* 10 100 10)~ is not a possible output.
+So long, that is, arguments are evaluated left to right.
+For, P2 must have set x to 100 in order for the second argument to be 100.
+Hence, the third argument must also be 100.
+
+Though, with evaluate by call, we can't be sure without looking into ~*~ further.
+Given a list ~*~ reverses the list, and the calls from left to right, etc.
+
+If we have:
+
+#+BEGIN_SRC racket :tangle no
+  (define x 10)
+
+  (define s (make-serializer))
+
+  (parallel-execute (lambda (x) (set! x (* x x)))
+		    (lambda (x) (set! x (* x x x))))
+#+END_SRC
+
+Then, as with 3.39, only the first two interleavings are possible.
+
+
