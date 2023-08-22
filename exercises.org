@@ -8751,3 +8751,31 @@ Hence, ~stream-cdr~ takes in ~(2 #promise)~.
 This means the third element is 4.
 
 As we're doubling by two each time, it should be the case the value of the $n$th element is $2^{n}$.
+
+#+NAME: def:add-streams
+#+BEGIN_SRC racket :tangle no
+  (define (add-streams s1 s2)
+    <<def:stream-map>>
+    (stream-map + s1 s2))
+#+END_SRC
+
+Quick test:
+
+#+BEGIN_SRC racket :tangle no
+  <<def:add-streams>>
+  <<def:sc-list-stream>>
+  (define s (cons-stream 1 (add-streams s s)))
+
+  (car s)
+  (car (stream-cdr s))
+  (car (stream-cdr (stream-cdr s)))
+  (car (stream-cdr (stream-cdr (stream-cdr s))))
+  (car (stream-cdr (stream-cdr (stream-cdr (stream-cdr s)))))
+#+END_SRC
+
+#+RESULTS:
+: 1
+: 2
+: 4
+: 8
+: 16
