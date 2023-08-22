@@ -8727,3 +8727,27 @@ For, ~z~ requires starting from the top of ~seq~.
 Hence, ~accum~ would be applied a second time.
 
 Uh, yeah, it's clear mixing assignment and sums is kind of delicate.
+
+** 3.53
+
+#+BEGIN_SRC racket :tangle no
+  (define s (cons-stream 1 (add-streams s s)))
+#+END_SRC
+
+~s~ is a stream which beings with 1.
+Then, we have ~add-streams~.
+So, the second element evaluates to:
+
+#+BEGIN_SRC racket :tangle no
+  (cons-stream
+   (apply + (map stream-car s s))
+   (apply stream-map (cons + (map stream-cdr s s))))
+#+END_SRC
+
+Currently, ~s~ is just 1, as the ~car~ element is 2.
+The second apply is deferred.
+By the time it's called, ~s~ has been updated to ~(1 2 #promise)~.
+Hence, ~stream-cdr~ takes in ~(2 #promise)~.
+This means the third element is 4.
+
+As we're doubling by two each time, it should be the case the value of the $n$th element is $2^{n}$.
