@@ -8827,3 +8827,52 @@ Quick test:
 : 6
 : 24
 : 120
+
+** 3.55
+
+Uh, partial sums are obtained exactly the same way as factorials, but with addition and a variable for the stream:
+
+#+BEGIN_SRC racket
+  <<def:add-streams>>
+
+  (define (partial-sums s)
+    (cons-stream 1 (add-streams (stream-cdr s) (partial-sums s))))
+#+END_SRC
+
+This works, but is surely not ideal.
+For, the recursive call to ~partial-sums~ leads to a distinct stream.
+Instead, we could do:
+
+#+NAME: def:partial-sums-stream
+#+BEGIN_SRC racket
+  <<def:add-streams>>
+
+  (define (partial-sums s)
+    (define v (cons-stream 1 (add-streams (stream-cdr s) v)))
+    v)
+#+END_SRC
+
+Which ensures we only have two streams in play (~s~ and ~v~).
+
+Some tests:
+
+#+BEGIN_SRC racket
+  <<def:partial-sums-stream>>
+  <<def:sc-list-stream>>
+  <<def:integers-stream>>
+
+  (define partial-sum-int (partial-sums integers))
+
+  (car partial-sum-int)
+  (car (stream-cdr partial-sum-int))
+  (car (stream-cdr (stream-cdr partial-sum-int)))
+  (car (stream-cdr (stream-cdr (stream-cdr partial-sum-int))))
+  (car (stream-cdr (stream-cdr (stream-cdr (stream-cdr partial-sum-int)))))
+#+END_SRC
+
+#+RESULTS:
+: 1
+: 3
+: 6
+: 10
+: 15
