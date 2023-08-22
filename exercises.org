@@ -8779,3 +8779,51 @@ Quick test:
 : 4
 : 8
 : 16
+
+** 3.54
+
+#+NAME: def:integers-stream
+#+BEGIN_SRC racket
+  (define (integers-starting-from n)
+      (cons-stream n (integers-starting-from (+ n 1))))
+
+  (define integers
+    (integers-starting-from 1))
+#+END_SRC
+
+#+NAME: def:mul-streams
+#+BEGIN_SRC racket :tangle no
+    (define (mul-streams s1 s2)
+      <<def:stream-map>>
+      (stream-map * s1 s2))
+#+END_SRC
+
+Pick up the next $n$ from the integers and $(n - 1)!$ as the previous element of ~factorials~.
+Multiply these to get $n!$
+
+#+NAME: def:factorials-stream
+#+BEGIN_SRC racket
+  <<def:mul-streams>>
+  <<def:integers-stream>>
+  (define factorials (cons-stream 1 (mul-streams (stream-cdr integers) factorials)))
+#+END_SRC
+
+Quick test:
+
+#+BEGIN_SRC racket
+  <<def:factorials-stream>>
+  <<def:sc-list-stream>>
+
+  (car factorials)
+  (car (stream-cdr factorials))
+  (car (stream-cdr (stream-cdr factorials)))
+  (car (stream-cdr (stream-cdr (stream-cdr factorials))))
+  (car (stream-cdr (stream-cdr (stream-cdr (stream-cdr factorials)))))
+#+END_SRC
+
+#+RESULTS:
+: 1
+: 2
+: 6
+: 24
+: 120
