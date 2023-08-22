@@ -8961,3 +8961,60 @@ So, am I missing something?
 If so, I don't see it.
 
 On my understanding, the promised procedure is continuously being built, and so if we don't memo elements, this promised procedure must be evaluated each time.
+
+** 3.58
+
+radix is the base.
+
+#+NAME: def:expand-stream
+#+BEGIN_SRC racket
+  (define (expand num den radix)
+    (cons-stream
+     (quotient (* num radix) den)
+     (expand (remainder (* num radix) den) den radix)))
+#+END_SRC
+
+| quotient 10 7 | 1 |
+| quotient 30 7 | 4 |
+| quotient 20 7 | 2 |
+
+etc.
+
+Here, we're providing the decimal expansion of ~(/ num den)~ in base ~radix~.
+
+#+BEGIN_SRC racket
+  <<def:stream-ref>>
+  <<def:expand-stream>>
+  (define expand1710 (expand 1 7 10))
+  (stream-ref expand1710 0)
+  (stream-ref expand1710 1)
+  (stream-ref expand1710 2)
+  (stream-ref expand1710 3)
+#+END_SRC
+
+#+RESULTS:
+: 1
+: 4
+: 2
+: 8
+
+$\frac{1}{7} \approx_{10} 0.14285
+
+#+BEGIN_SRC racket
+  <<def:stream-ref>>
+  <<def:expand-stream>>
+  (define expand1710 (expand 1 17 16))
+
+  (stream-ref expand1710 0)
+  (stream-ref expand1710 1)
+  (stream-ref expand1710 2)
+  (stream-ref expand1710 3)
+#+END_SRC
+
+#+RESULTS:
+: 0
+: 15
+: 0
+: 15
+
+$\frac{1}{17} \approx_{12} 0.0F0F0F$
