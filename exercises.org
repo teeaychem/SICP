@@ -8876,3 +8876,59 @@ Some tests:
 : 6
 : 10
 : 15
+
+** 3.56
+
+Hm, so I guess playing around with $2^i \times 3^j \times 5^k$ isn't going to help, as the order to increment $i$, $j$, and $k$ is unpredictable?
+Right, as you may need to example all lower exponents.
+
+Huh.
+
+#+NAME: def:scale-stream
+#+BEGIN_SRC racket
+  (define (scale-stream stream factor)
+    <<def:stream-map>>
+    (stream-map (lambda (x) (* x factor)) stream))
+#+END_SRC
+
+#+NAME: def:merge-stream
+#+BEGIN_SRC racket
+  (define (merge s1 s2)
+    (cond
+      ((stream-null? s1) s2)
+      (( stream-null? s2) s1)
+      (else
+       (let ((s1car (stream-car s1))
+	     (s2car (stream-car s2)))
+	 (cond ((< s1car s2car)
+		(cons-stream s1car (merge (stream-cdr s1 ) s2)))
+	       ((> s1car s2car)
+		(cons-stream s2car (merge s1 (stream-cdr s2))))
+	       (else
+		(cons-stream s1car (merge (stream-cdr s1) (stream-cdr s2)))))))))
+#+END_SRC
+
+We merge the streams:
+
+#+NAME: def:Hamming-stream
+#+BEGIN_SRC racket
+  <<def:scale-stream>>
+  <<def:sc-list-stream>>
+  <<def:merge-stream>>
+  (define S (cons-stream 1 (merge (scale-stream S 2) (merge (scale-stream S 3) (scale-stream S 5)))))
+#+END_SRC
+
+#+BEGIN_SRC racket
+  <<def:Hamming-stream>>
+  <<def:stream-ref>>
+  (stream-ref S 49)
+  (stream-ref S 50)
+  (stream-ref S 51)
+#+END_SRC
+
+#+RESULTS:
+: 243
+: 250
+: 256
+
+We can't use ~map~ to simplify this (i.e. map merge to the three streams) for ~map~ would always take the first elements of each of the streams, and the interesting thing here is that the speed each of the three streams is worked through is variable.
