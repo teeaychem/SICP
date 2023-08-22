@@ -8462,3 +8462,268 @@ However, even if each proccess is idle for some time it may be the case that:
 
 While typing this up I began thinking about the two generals problem, or alterantively common knowledge, etc…
 
+** 3.50
+
+The following instance of ~stream-map~ takes a procedure of $n$ arguments together with $n$ streams, and applies the procedure to all the $i$th elements of respective streams, resulting in a stream of streams.
+
+#+NAME: def:stream-map
+#+BEGIN_SRC racket
+  (define (stream-map proc . argstreams)
+    <<def:sc-list-stream>>
+    (if (stream-null? (car argstreams))
+	the-empty-stream
+	(cons-stream
+	 (apply proc (map stream-car argstreams))
+	 (apply stream-map (cons proc (map stream-cdr argstreams))))))
+#+END_SRC
+
+If there are no argument streams, it is not possible to apply the procedure, and so the empty stream is returned.
+(We assume argstreams contains streams equal to the arity of the procedure.)
+This isn't a base case.
+Rather, we're procuding a stream of elements, and this case accounts for the apperance of the stream when the argument streams have been exhausted --- it's empty.
+
+Else, we:
+
+1. Use ~map~ to apply ~stream-car~ to the list of streams, giving a list of the (relative-)first element of each of the streams, and apply the procedure.
+2. Use ~map~ to apply ~stream-cdr~ to the list of streams, giving a list of the streams (relative-)second element onwards.
+   Ideally, we'd like to defer further applications of ~stream-map~.
+   To do this, we need to combine the procedure with the list of streams, which is done via ~cons~ as the inputs to ~stream-map~ are a list.
+3. ~cons-stream~ (1) and (2).
+   So, we have the result of applying the procedure to the (relative-)first elements in the streams, and delayed evaluation of the remaining elements of the stream.
+
+** List-steam background
+
+Following the note at the bottom of page 320 / top of page 321, ~cons-stream~ and ~delay~ are special forms.
+Else, the arguments given to either are evaluated.
+(Uncomment the definition of ~cons-stream~ and see what happens!)
+
+#+NAME: def:sc-list-stream
+#+BEGIN_SRC racket
+  ;; (define (cons-stream a b)
+    ;; (define (delay x)
+      ;; (lambda () x))
+    ;; (cons a (delay b)))
+
+  (define (stream-car strm) (car strm))
+
+  (define (stream-cdr strm)
+      ;; (define (force elem)
+	;; (elem))
+    (force (cdr strm)))
+#+END_SRC
+
+#+NAME: def:stream-ref
+#+BEGIN_SRC racket
+  (define (stream-ref s n)
+    <<def:sc-list-stream>>
+    (if (= n 0)
+	(stream-car s)
+	(stream-ref (stream-cdr s) (- n 1))))
+#+END_SRC
+
+#+NAME: def:stream-enumerate-interval
+#+BEGIN_SRC racket
+  (define (stream-enumerate-interval l h)
+    <<def:sc-list-stream>>
+    (if (> l h)
+	the-empty-stream
+	(cons-stream
+	 l
+	 (stream-enumerate-interval (+ l 1) h))))
+#+END_SRC
+
+
+#+NAME: def:display-line
+#+BEGIN_SRC racket
+  (define (display-line x)
+    (display x)
+    (newline))
+#+END_SRC
+
+** 3.51
+
+#+NAME: def:stream-show
+#+BEGIN_SRC racket
+  (define (show x)
+    <<def:display-line>>
+    (display-line x)
+    x)
+#+END_SRC
+
+#+RESULTS: def:stream-show
+
+#+BEGIN_SRC racket
+  <<def:sc-list-stream>>
+  <<def:stream-show>>
+  <<def:stream-enumerate-interval>>
+  <<def:stream-map>>
+
+  (define x (stream-map show (stream-enumerate-interval 0 10)))
+
+  <<def:stream-ref>>
+
+  (display "(stream-ref x 5)")
+  (newline)
+
+  (stream-ref x 5)
+
+  (display "(stream-ref x 7)")
+  (newline)
+
+  (stream-ref x 7)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+0
+(stream-ref x 5)
+1
+2
+3
+4
+5
+5
+(stream-ref x 7)
+6
+7
+7
+#+end_example
+
+The basic observation here is that ~map~ is a one-time operation.
+So, when ~(stream-ref x 7)~ is called, ~map~ has already worked on the first five elements of x.
+Hence, only 6 and 7 are displayed.
+
+
+Here's ~memo-proc~ and the particular ~steam-map~.
+No use is made of these here.
+
+#+BEGIN_SRC racket
+  <<def:sc-list-stream>>
+  <<def:stream-show>>
+  <<def:stream-enumerate-interval>>
+  <<def:stream-ref>>
+
+  (define (memo-proc proc)
+      (let ((already-run? false)
+	    (result false))
+	(lambda ()
+	  (if (not already-run?)
+	      (begin (set! result (proc))
+		     (set! already-run? true)
+		     result)
+	      result))))
+
+  (define (stream-map proc s)
+      (if (stream-null? s)
+	  the-empty-stream
+	  (cons-stream (proc (stream-car s))
+		       (stream-map proc (stream-cdr s)))))
+
+  (define x (stream-map show (stream-enumerate-interval 5 10)))
+
+  (stream-ref x 5)
+#+END_SRC
+
+#+RESULTS:
+: 5
+: 6
+: 7
+: 8
+: 9
+: 10
+: 10
+
+
+** 3.52
+
+#+BEGIN_SRC racket :tangle no
+  (define sum 0)
+#+END_SRC
+
+~sum~ is 0, and as the following are definitions ~sum~ remains 0 throughout.
+
+#+BEGIN_SRC racket :tangle no
+  (define (accum x)
+    (set! sum (+ x sum))
+    sum)
+  (define seq (stream-map accum (stream-enumerate-interval 1 20)))
+  (define y (stream-filter even? seq))
+  (define z (stream-filter (lambda (x) (= (remainder x 5) 0))
+			   seq))
+#+END_SRC
+
+#+BEGIN_SRC racket :tangle no
+  (stream-ref y 7)
+#+END_SRC
+
+~y~ is constructed up to it's seventh element.
+So, as this requires seven even numbers, ~seq~ is constructed up to it's fourteenth element.
+In particular, this involves setting the current element to the accumulation of all previous elements.
+
+|  0 |   1 |
+|  1 |   3 |
+|  2 |   6 |
+|  3 |  10 |
+|  4 |  15 |
+|  5 |  21 |
+|  6 |  28 |
+|  7 |  36 |
+|  8 |  45 |
+|  9 |  55 |
+| 10 |  66 |
+| 11 |  78 |
+| 12 |  91 |
+| 13 | 105 |
+| 14 | 136 |
+
+#+BEGIN_SRC racket :tangle no
+  (display-stream z)
+#+END_SRC
+
+This requires displaying the value for every element in ~z~.
+The elements of ~z~ are derived from ~seq~, so we'd need to complete the above table.
+
+#+NAME: def:stream-filter
+#+BEGIN_SRC racket
+  (define (stream-filter pred stream)
+    (cond ((stream-null? stream) the-empty-stream)
+	  ((pred (stream-car stream))
+	   (cons-stream (stream-car stream)
+			(stream-filter pred (stream-cdr stream))))
+	  (else (stream-filter pred (stream-cdr stream)))))
+#+END_SRC
+
+Here's a test for ~y~.
+
+#+BEGIN_SRC racket :tangle no
+  <<def:sc-list-stream>>
+  <<def:stream-map>>
+  <<def:stream-enumerate-interval>>
+  <<def:stream-filter>>
+  <<def:stream-ref>>
+
+  (define sum 0)
+
+  (define (accum x)
+      (set! sum (+ x sum))
+      sum)
+
+  (define seq (stream-map accum (stream-enumerate-interval 1 20)))
+  (define y (stream-filter even? seq))
+  ;  (define z (stream-filter (lambda (x) (= (remainder x 5) 0))
+  ;			   seq))
+  (stream-ref y 7)
+  y
+  ;  (display-stream z)
+#+END_SRC
+
+#+RESULTS:
+: 136
+
+(This question would have been far less tedious if ~accum~ was just a counter for the number of times it was called.)
+
+The results would change without memoisation.
+For, ~z~ requires starting from the top of ~seq~.
+Hence, ~accum~ would be applied a second time.
+
+Uh, yeah, it's clear mixing assignment and sums is kind of delicate.
