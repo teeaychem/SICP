@@ -9178,6 +9178,9 @@ I would have liked a hint toward Cauchy sequences, though!
 
 ** 3.61
 
+This follows the suggestion in the book.
+
+
 #+NAME: def:invert-unit-series
 #+BEGIN_SRC racket
   (define (invert-unit-series s)
@@ -9190,8 +9193,8 @@ I would have liked a hint toward Cauchy sequences, though!
     X)
 #+END_SRC
 
-#+RESULTS: def:invert-unit-series
-
+We use ~eat~ to test.
+In short, ~eat~ is the result of evaluating the first ~n~ terms of a series.
 
 #+BEGIN_SRC racket
   <<def:sc-list-stream>>
@@ -9202,17 +9205,6 @@ I would have liked a hint toward Cauchy sequences, though!
     (cons-stream 1 (integrate-series exp-series)))
 
   <<def:stream-ref>>
-
-  (define (test n)
-    (display (stream-ref exp-series n))
-    (display " ~-~- ")
-    (display (stream-ref (invert-unit-series exp-series) n))
-    (newline))
-  (test 0)
-  (test 1)
-  (test 2)
-  (test 3)
-  (test 4)
 
   (define (eat l n)
     (if (or (null? l) (= n 0))
@@ -9227,11 +9219,6 @@ I would have liked a hint toward Cauchy sequences, though!
 #+END_SRC
 
 #+RESULTS:
-: 1 ~-~- 1
-: 1 ~-~- -1
-: 1/2 ~-~- 1/2
-: 1/6 ~-~- -1/6
-: 1/24 ~-~- 1/24
 : 2.7182815255731922
 : 0.3678791887125221
 : 1.0
