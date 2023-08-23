@@ -9154,7 +9154,7 @@ Okay, to test:
 		 (mul-series sine-series
 			     sine-series)))
 
-    <<def:stream-ref>>
+  <<def:stream-ref>>
 
   (stream-ref mul-sine-cosine 0)
   (stream-ref mul-sine-cosine 1)
@@ -9188,13 +9188,21 @@ This follows the suggestion in the book.
     <<def:mul-series>>
     <<def:sc-list-stream>>
 
-
     (define X (cons-stream 1 (stream-map - (mul-series (stream-cdr s) X))))
     X)
 #+END_SRC
 
 We use ~eat~ to test.
 In short, ~eat~ is the result of evaluating the first ~n~ terms of a series.
+
+#+NAME: def:eat-series
+#+BEGIN_SRC racket
+  (define (eat l n)
+  <<def:sc-list-stream>>
+    (if (or (null? l) (= n 0))
+	0.0
+	(+ (stream-car l) (eat (stream-cdr l) (- n 1)))))
+#+END_SRC
 
 #+BEGIN_SRC racket
   <<def:sc-list-stream>>
@@ -9205,13 +9213,8 @@ In short, ~eat~ is the result of evaluating the first ~n~ terms of a series.
     (cons-stream 1 (integrate-series exp-series)))
 
   <<def:stream-ref>>
-
-  (define (eat l n)
-    (if (or (null? l) (= n 0))
-	0.0
-	(+ (stream-car l) (eat (stream-cdr l) (- n 1)))))
-
   <<def:mul-series>>
+  <<def:eat-series>>
 
   (eat exp-series 10)
   (eat (invert-unit-series exp-series) 10)
@@ -9223,3 +9226,40 @@ In short, ~eat~ is the result of evaluating the first ~n~ terms of a series.
 : 0.3678791887125221
 : 1.0
 
+** 3.62
+
+Divides two series.
+
+#+BEGIN_SRC racket
+  (define (invert-series s)
+    <<def:scale-stream>>
+    (let ((carS (car s))
+	  (scale (/ 1 (car s))))
+      (scale-stream (invert-unit-series (scale-stream s scale)) carS)))
+
+
+  ;;<<def:integrate-series>>
+  <<def:invert-unit-series>>
+
+  (define exp-series
+    (cons-stream 1 (integrate-series exp-series)))
+
+  (invert-series exp-series)
+
+  (define (div-series s1 s2)
+    <<def:mul-series>>
+    (mul-series s1 (invert-series s2)))
+
+
+  <<def:co~sine-streams>>
+  <<def:eat-series>>
+
+  (eat (div-series sine-series cosine-series) 100)
+
+#+END_SRC
+
+#+RESULTS:
+: (1 . #<promise>)
+: 1.5574077246549023
+
+Alright, these exercises were interesting, but the majority of the work was figuring out series (again).
