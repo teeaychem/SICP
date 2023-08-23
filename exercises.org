@@ -8633,7 +8633,6 @@ No use is made of these here.
 : 10
 : 10
 
-
 ** 3.52
 
 #+BEGIN_SRC racket :tangle no
@@ -8782,13 +8781,18 @@ Quick test:
 
 ** 3.54
 
-#+NAME: def:integers-stream
+#+NAME: def:integers-starting-from
 #+BEGIN_SRC racket
   (define (integers-starting-from n)
-      (cons-stream n (integers-starting-from (+ n 1))))
+    (cons-stream n (integers-starting-from (+ n 1))))
+#+END_SRC
 
-  (define integers
-    (integers-starting-from 1))
+
+#+NAME: def:integers-stream
+#+BEGIN_SRC racket
+  <<def:integers-starting-from>>
+
+  (define integers (integers-starting-from 1))
 #+END_SRC
 
 #+NAME: def:mul-streams
@@ -8935,7 +8939,6 @@ Compare here: https://oeis.org/A051037
 
 We can't use ~map~ to simplify this (i.e. map merge to the three streams) for ~map~ would always take the first elements of each of the streams, and the interesting thing here is that the speed each of the three streams is worked through is variable.
 
-
 ** 3.57
 
 The Fibonacci stream of interset is:
@@ -8998,7 +9001,7 @@ Here, we're providing the decimal expansion of ~(/ num den)~ in base ~radix~.
 : 2
 : 8
 
-$`\frac{1}{7} \approx_{10} 0.14285`$
+$\frac{1}{7} \approx_{10} 0.14285$
 
 #+BEGIN_SRC racket
   <<def:stream-ref>>
@@ -9017,4 +9020,204 @@ $`\frac{1}{7} \approx_{10} 0.14285`$
 : 0
 : 15
 
-$`\frac{1}{17} \approx_{12} 0.0F0F0F`$
+$\frac{1}{17} \approx_{12} 0.0F0F0F$
+
+
+** 3.59
+
+To help solve this problem in an easily generalisable way, we make use of ~div-streams~, the partner of ~mul-streams~.
+
+#+NAME: def:div-streams
+#+BEGIN_SRC racket
+  (define (div-streams s1 s2)
+    <<def:stream-map>>
+    (stream-map / s1 s2))
+#+END_SRC
+
+*** a.
+
+#+NAME: def:integrate-series
+#+BEGIN_SRC racket
+  (define (integrate-series s)
+    (define ones (cons-stream 1 ones))
+    <<def:integers-starting-from>>
+    <<def:mul-streams>>
+    <<def:div-streams>>
+    (mul-streams s (div-streams ones (integers-starting-from 1))))
+#+END_SRC
+
+
+*** b.
+
+#+NAME: def:co~sine-streams
+#+BEGIN_SRC racket
+  <<def:integrate-series>>
+  <<def:stream-map>>
+  (define cosine-series (cons-stream 1 (integrate-series (stream-map - sine-series))))
+  (define sine-series (cons-stream 0 (integrate-series cosine-series)))
+#+END_SRC
+
+Tests for sine:
+
+#+BEGIN_SRC racket
+  <<def:co~sine-streams>>
+  <<def:stream-ref>>
+  (stream-ref sine-series 1)
+  (stream-ref sine-series 3)
+  (stream-ref sine-series 5)
+#+END_SRC
+
+#+RESULTS:
+: 1
+: -1/6
+: 1/120
+
+And tests for cosine:
+
+#+BEGIN_SRC racket
+  <<def:co~sine-streams>>
+  <<def:stream-ref>>
+  (stream-ref cosine-series 2)
+  (stream-ref cosine-series 4)
+  (stream-ref cosine-series 6)
+#+END_SRC
+
+#+RESULTS:
+: -1/2
+: 1/24
+: -1/720
+
+** 3.60
+
+Some background is required (I think, at least).
+
+Searching around, the Cauchy product is often used when multiplying two series.
+
+$$
+
+\left(\sum_{i = 0}^{\inf} a_{i}\right) \times \left(\sum_{j = 0}^{\inf} b_{j}\right) = \left(\sum_{k = 0}^{\inf} c_{k}\right)
+
+$$
+
+where!
+
+$$
+
+c_{k} = \sum_{l = 0}^{k} (a_{l} \times b_{k - 1})
+
+$$
+
+For example, we have:
+
+| c_0 | a_0 b_0                               |
+| c_1 | a_0 b_1 + a_1 b_0                     |
+| c_2 | a_0 b_2 + a_1 b_1 + a_2 b_0           |
+| c_3 | a_0 b_3 + a_1 b_2 + a_2 b_1 + a_3 b_0 |
+
+So, to multiply two streams, we can work in terms of the Cauchy product.
+
+After starting at this table for a while, you might start to look down.
+
+In particular, the first column is an infite sequence, where a_0 is fixed, and we're collecting elements from the b series.
+The second is a sequence where a_0 is fixed, and a_0 doesn't appear again.
+
+With this in hand, all we need to do for the next Cauchy product is to add a new stream.
+
+This is how ~mul-series~ has been set up.
+As we've already obtained the product of the first two elements, we add the remainder of the b series, scaled by the current a instance, and on the next call we'll add to this the b scaled by the next a instance, and so on.
+
+#+NAME: def:mul-series
+#+BEGIN_SRC racket
+  (define (mul-series s1 s2)
+    <<def:sc-list-stream>>
+    <<def:add-streams>>
+    <<def:scale-stream>>
+    (cons-stream (* (stream-car s1) (stream-car s2))
+		 (add-streams
+		  (scale-stream (stream-cdr s2) (stream-car s1))
+		  (mul-series (stream-cdr s1) s2))))
+#+END_SRC
+
+
+#+RESULTS: def:mul-series
+
+Okay, to test:
+
+#+BEGIN_SRC racket
+  <<def:mul-series>>
+  <<def:co~sine-streams>>
+  <<def:add-streams>>
+
+  (define mul-sine-cosine
+    (add-streams (mul-series cosine-series
+			     cosine-series)
+		 (mul-series sine-series
+			     sine-series)))
+
+    <<def:stream-ref>>
+
+  (stream-ref mul-sine-cosine 0)
+  (stream-ref mul-sine-cosine 1)
+  (stream-ref mul-sine-cosine 2)
+  (stream-ref mul-sine-cosine 3)
+  (stream-ref mul-sine-cosine 4)
+  (stream-ref mul-sine-cosine 5)
+#+END_SRC
+
+#+RESULTS:
+: 1
+: 0
+: 0
+: 0
+: 0
+: 0
+
+This seems to work.
+
+I would have liked a hint toward Cauchy sequences, though!
+
+** 3.61
+
+#+NAME: def:invert-unit-series
+#+BEGIN_SRC racket
+  (define (invert-unit-series s)
+    <<def:stream-map>>
+    <<def:mul-series>>
+    <<def:sc-list-stream>>
+
+
+    (define X (cons-stream 1 (stream-map - (mul-series (stream-cdr s) X))))
+    X)
+#+END_SRC
+
+#+RESULTS: def:invert-unit-series
+
+
+#+BEGIN_SRC racket
+  <<def:sc-list-stream>>
+  <<def:integrate-series>>
+  <<def:invert-unit-series>>
+
+  (define exp-series
+    (cons-stream 1 (integrate-series exp-series)))
+
+  <<def:stream-ref>>
+
+  (define (test n)
+    (display (stream-ref exp-series n))
+    (newline)
+    (display (stream-ref (invert-unit-series exp-series) n))
+    (newline))
+  (test 1)
+  (test 2)
+  (test 3)
+#+END_SRC
+
+#+RESULTS:
+: 1
+: -1
+: 1/2
+: 1/2
+: 1/6
+: -1/6
+
