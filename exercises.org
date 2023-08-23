@@ -9205,19 +9205,34 @@ I would have liked a hint toward Cauchy sequences, though!
 
   (define (test n)
     (display (stream-ref exp-series n))
-    (newline)
+    (display " ~-~- ")
     (display (stream-ref (invert-unit-series exp-series) n))
     (newline))
+  (test 0)
   (test 1)
   (test 2)
   (test 3)
+  (test 4)
+
+  (define (eat l n)
+    (if (or (null? l) (= n 0))
+	0.0
+	(+ (stream-car l) (eat (stream-cdr l) (- n 1)))))
+
+  <<def:mul-series>>
+
+  (eat exp-series 10)
+  (eat (invert-unit-series exp-series) 10)
+  (eat (mul-series exp-series (invert-unit-series exp-series)) 10)
 #+END_SRC
 
 #+RESULTS:
-: 1
-: -1
-: 1/2
-: 1/2
-: 1/6
-: -1/6
+: 1 ~-~- 1
+: 1 ~-~- -1
+: 1/2 ~-~- 1/2
+: 1/6 ~-~- -1/6
+: 1/24 ~-~- 1/24
+: 2.7182815255731922
+: 0.3678791887125221
+: 1.0
 
