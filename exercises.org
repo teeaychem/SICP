@@ -9228,38 +9228,44 @@ In short, ~eat~ is the result of evaluating the first ~n~ terms of a series.
 
 ** 3.62
 
-Divides two series.
+Two divide two series, we'll multiply the first by the inverse of the second.
 
+To do this, we need a general ~invert-series~ procedure.
+
+Luckily, it's easy to build such a procedure from ~invert-unit-series~ by scaling the stream to have unit constant and then scaling the stream back away from having unit constant.
+
+#+NAME: def:invert-series
 #+BEGIN_SRC racket
   (define (invert-series s)
     <<def:scale-stream>>
-    (let ((carS (car s))
-	  (scale (/ 1 (car s))))
-      (scale-stream (invert-unit-series (scale-stream s scale)) carS)))
+    <<def:invert-unit-series>>
+    (scale-stream (invert-unit-series (scale-stream s (/ 1 (car s)))) (car s)))
+#+END_SRC
 
+And, with ~invert-series~, ~div-series~ is quick!
 
-  ;;<<def:integrate-series>>
-  <<def:invert-unit-series>>
-
-  (define exp-series
-    (cons-stream 1 (integrate-series exp-series)))
-
-  (invert-series exp-series)
-
+#+NAME: def:div-series
+#+BEGIN_SRC racket
   (define (div-series s1 s2)
     <<def:mul-series>>
+    <<def:invert-series>>
     (mul-series s1 (invert-series s2)))
+#+END_SRC
 
+And, a test with tangent:
 
+#+BEGIN_SRC racket
   <<def:co~sine-streams>>
   <<def:eat-series>>
+  <<def:div-series>>
 
-  (eat (div-series sine-series cosine-series) 100)
+  (define tangent-series (div-series sine-series cosine-series))
 
+  (eat tangent-series 100)
 #+END_SRC
 
 #+RESULTS:
-: (1 . #<promise>)
 : 1.5574077246549023
 
-Alright, these exercises were interesting, but the majority of the work was figuring out series (again).
+These exercises were interesting, but the majority of the work was figuring out series (again).
+3.60 was a proper headache, but the insight was worth it!
