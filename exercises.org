@@ -9589,3 +9589,23 @@ Still, it's straightforward to add (j i) rather than (i j).
 #+end_example
 
 Further, I think it should be the case we have (i j) and (j i) before (j j), for all i < j.
+
+** 3.68
+
+The suggestion is:
+
+#+NAME: def:l-pairs-stream
+#+BEGIN_SRC racket
+  (define (l-pairs s t)
+    <<def:sc-list-stream>>
+    <<def:stream-map>>
+    <<def:interleave>>
+    (interleave (stream-map (lambda (x) (list (stream-car s) x)) (stream-cdr t))
+		  (l-pairs (stream-cdr s) (stream-cdr t))))
+#+END_SRC
+
+The problem is, we start with a call to ~interleave~.
+And, the second in the desired sequence is interwoven.
+
+But, a call to interleave requires elements of the two sequences to be accessible.
+This is not possible.
