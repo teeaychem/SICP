@@ -9348,8 +9348,6 @@ This procedure takes a stream and tolerance, and returns a stream formed of:
 
 #+NAME: def:stream-outside-tolerance
 #+BEGIN_SRC racket
-  <<def:sc-list-stream>>
-
   (define (stream-outside-tolerance s t)
     (define (tolerance a b t)
       <<def:sc-list-stream>>
@@ -9375,6 +9373,7 @@ Applying ~until-empty~ to ~stream-outside-tolerance~ offers a way to figure out 
 #+NAME: def:stream-limit
 #+BEGIN_SRC racket
   (define (stream-limit s t)
+    <<def:sc-list-stream>>
     <<def:until-empty>>
     <<def:stream-outside-tolerance>>
     (stream-car (until-empty (stream-outside-tolerance s t))))
@@ -9398,3 +9397,40 @@ A test with ~sqrt-stream~:
 
 My guess is there's a more elegant way to do this using something along the lines of the euler-transformation.
 Though, I liked the idea of diverting streams.
+
+** 3.65
+
+To define the series, we make use of ~integrate-series~ and a sequence which alterates signs.
+
+#+NAME: consts:ln2
+#+BEGIN_SRC racket
+  <<def:integrate-series>>
+  <<def:stream-map>>
+  ;  <<def:sc-list-stream>>
+  (define altSign (cons-stream 1 (stream-map - altSign)))
+  (define ln2 (integrate-series altSign))
+#+END_SRC
+
+Here we can check the first few elements of the definition:
+
+#+BEGIN_SRC racket
+  <<consts:ln2>>
+  <<def:stream-ref>>
+  (stream-ref ln2 0)
+  (stream-ref ln2 1)
+  (stream-ref ln2 2)
+  (stream-ref ln2 3)
+  (stream-ref ln2 4)
+  (stream-ref ln2 5)
+#+END_SRC
+
+#+RESULTS:
+: 1
+: -1/2
+: 1/3
+: -1/4
+: 1/5
+: -1/6
+
+The rest of this exercise amounts to typing out some procedures from the book and applying ~ln2~ to these.
+This, then, is for some other time.
