@@ -8836,6 +8836,7 @@ Quick test:
 
 Uh, partial sums are obtained exactly the same way as factorials, but with addition and a variable for the stream:
 
+#+NAME: def:partial-sums
 #+BEGIN_SRC racket
   <<def:add-streams>>
 
@@ -9194,6 +9195,7 @@ This follows the suggestion in the book.
 
 We use ~eat~ to test.
 In short, ~eat~ is the result of evaluating the first ~n~ terms of a series.
+This is very similar to ~partial-sums~ above, but instead of creating a stream and going to the nth element, we directly build the desired value.
 
 #+NAME: def:eat-series
 #+BEGIN_SRC racket
@@ -9269,3 +9271,130 @@ And, a test with tangent:
 
 These exercises were interesting, but the majority of the work was figuring out series (again).
 3.60 was a proper headache, but the insight was worth it!
+
+** 3.63
+
+#+NAME: def:sqrt-stream
+#+BEGIN_SRC racket :tangle no
+  (define (sqrt-stream x)
+  <<def:average>>
+  <<def:stream-map>>
+    (define (sqrt-improve guess x)
+    (average guess (/ x guess)))
+    (define guesses (cons-stream 1.0 (stream-map (lambda (guess) (sqrt-improve guess x)) guesses)))
+      guesses)
+#+END_SRC
+
+#+BEGIN_SRC racket :tangle no
+  (define (sqrt-stream x)
+    (cons-stream 1.0 (stream-map (lambda (guess) (sqrt-improve guess x)) (sqrt-stream x))))
+#+END_SRC
+
+We have two versions of ~sqrt-stream~.
+
+The first looks something like this, when expanded:
+
+#+BEGIN_SRC racket
+  (1.0 (sqrt-improve 1.0) (sqrt-improve (sqrt-improve 1.0)) (sqrt-improve (sqrt-improve (sqrt-improve 1.0))))
+#+END_SRC
+
+And, with memoisation, any 'inner-call' to ~sqrt-improve~ is found in a lookup table.
+So, really, the first looks something like this:
+
+#+BEGIN_SRC racket
+  (1.0 (sqrt-improve 1.0) (sqrt-improve m1) (sqrt-improve m2))
+#+END_SRC
+
+The second looks similar, but there is a subtle difference.
+For, rather than building on the current stream, the second (recursively) makes calls to ~sqrt-stream~.
+And, as this is a procedure, each evaluation of ~sqrt-stream~ is unique.
+Hence, while the calls to ~sqrt-stream~ are memoised, no call is accessed a second time in order for this memoisation to be of any use.
+
+To see the way the result of a procedure is unique, consider:
+
+#+BEGIN_SRC racket
+  (define (make a)
+    (cons a nil))
+
+  (define a1 (make 'a))
+  (define a2 (make 'a))
+  a1
+  a2
+  (set-car! a1 'b)
+  a1
+  a2
+#+END_SRC
+
+#+RESULTS:
+: (a)
+: (a)
+: (b)
+: (a)
+
+The two versions would still likely differ in efficiency to some degree without memoisation.
+For, the first version of ~sqrt-stream~ returns a pointer to a stream.
+So, a frame for the definition is made only once.
+However, the second requires further evaluation of ~sqrt-stream~, and so additional frames.
+
+** 3.64
+
+We begin by defining ~stream-outside-tolerance~.
+This procedure takes a stream and tolerance, and returns a stream formed of:
+
+1. The elements of the input stream where the ith and (i + 1)th elements are outside the tolerance until some pair of elements fall within the tolerance.
+2. The empty stream otherwise.
+
+(Note, this turns an infinite stream into a finite stream, if some pair of elements falls within the tolerance.)
+
+#+NAME: def:stream-outside-tolerance
+#+BEGIN_SRC racket
+  <<def:sc-list-stream>>
+
+  (define (stream-outside-tolerance s t)
+    (define (tolerance a b t)
+      <<def:sc-list-stream>>
+      (cond ((> t (abs (- (stream-car a) (stream-car b)))) the-empty-stream)
+	    (else (cons-stream (stream-car a) (tolerance (stream-cdr a) (stream-cdr b) t)))))
+    (define t-stream (cons-stream (stream-car s) (tolerance (stream-cdr s) t-stream t)))
+    t-stream)
+#+END_SRC
+
+With ~stream-outside-tolerance~ in hand, we can easily work through a stream until we find the last element before the stream becomes the empty stream.
+
+#+NAME: def:until-empty
+#+BEGIN_SRC racket
+  (define (until-empty s)
+    <<def:sc-list-stream>>
+    (if (stream-null? (stream-cdr s))
+	s
+	(until-empty (stream-cdr s))))
+#+END_SRC
+
+Applying ~until-empty~ to ~stream-outside-tolerance~ offers a way to figure out the limit of some process within some tolerance:
+
+#+NAME: def:stream-limit
+#+BEGIN_SRC racket
+  (define (stream-limit s t)
+    <<def:until-empty>>
+    <<def:stream-outside-tolerance>>
+    (stream-car (until-empty (stream-outside-tolerance s t))))
+#+END_SRC
+
+A test with ~sqrt-stream~:
+
+#+BEGIN_SRC racket
+  <<def:sqrt-stream>>
+  <<def:stream-limit>>
+
+  (stream-limit (sqrt-stream 2) 0.001)
+  (stream-limit (sqrt-stream 9) 0.01)
+  (stream-limit (sqrt-stream 28) 0.1)
+#+END_SRC
+
+#+RESULTS:
+: 1.4142156862745097
+: 3.00009155413138
+: 5.3147966118798795
+
+My guess is there's a more elegant way to do this using something along the lines of the euler-transformation.
+Though, I liked the idea of diverting streams.
