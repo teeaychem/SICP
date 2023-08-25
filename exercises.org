@@ -9741,7 +9741,6 @@ Here's a quick test:
 (3 4)
 #+end_example
 
-
 *** b.
 
 Our initial gol is to obtain the stream of all pairs of positive integers (i j) with i ≤ j such that neither i nor j is dividisible by 2, 3, or 5.
@@ -9864,3 +9863,74 @@ With the above in hand, we can define the not-Hamming stream, and order the resu
 (7 21)
 (11 14)
 #+end_example
+
+** 3.71
+
+To begin, we define a general procedure which finds consecutive elements of a sequence according to some transformation:
+
+#+NAME: def:consecutive-by
+#+BEGIN_SRC racket
+  (define (consecutive-by s transform)
+    <<def:sc-list-stream>>
+    (if (eq? (apply transform (stream-car s)) (apply transform (stream-car (stream-cdr s))))
+	(cons-stream (list (stream-car s) (stream-car (stream-cdr s))) (consecutive-by (stream-cdr s) transform))
+	(consecutive-by (stream-cdr s) transform)))
+#+END_SRC
+
+With ~consecutive-by~ in hand, we create a procedure for the desired transformation:
+
+#+NAME: def:cubeSum
+#+BEGIN_SRC racket
+  (define (cubeSum i j)
+    (+ (* i i i) (* j j j)))
+#+END_SRC
+
+Now, we create the sequences.
+First, all the pairs ordered by the transformation.
+Then, all the consectuive pairs which have the same transformation.
+And, finally, we create a sequence of the result of the transformation:
+
+#+NAME: consts:3.71
+#+BEGIN_SRC racket
+  <<def:ordered-by-w-pairs>>
+   <<def:integers-starting-from>>
+   <<def:stream-ref>>
+   <<def:cubeSum>>
+   <<def:consecutive-by>>
+
+   (define integers (integers-starting-from 1))
+
+   (define pairsByCubesum (ordered-by-w-pairs integers integers cubeSum))
+
+
+   (define consecutivePairsByCubesum (consecutive-by pairsByCubesum cubeSum))
+
+   <<def:stream-map>>
+
+   (define Ramanujan-stream (stream-map (lambda (x) (apply cubeSum (car x))) consecutivePairsByCubesum))
+#+END_SRC
+
+Finally, some tests:
+
+#+BEGIN_SRC racket
+  <<consts:3.71>>
+  (stream-ref Ramanujan-stream 0)
+  (stream-ref Ramanujan-stream 1)
+  (stream-ref Ramanujan-stream 2)
+  (stream-ref Ramanujan-stream 3)
+  (stream-ref Ramanujan-stream 4)
+  (stream-ref Ramanujan-stream 5)
+
+  (stream-ref consecutivePairsByCubesum 2)
+  (stream-ref consecutivePairsByCubesum 3)
+#+END_SRC
+
+#+RESULTS:
+: 1729
+: 4104
+: 13832
+: 20683
+: 32832
+: 39312
+: ((18 20) (2 24))
+: ((19 24) (10 27))
