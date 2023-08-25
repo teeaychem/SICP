@@ -10087,3 +10087,48 @@ We compare the input-stream to whatever the current smoothed stream is.
     (cons-stream (sign-change-detector (stream-car input-stream) (stream-car smoothed))
 		 (make-zero-crossings (stream-cdr input-stream) (stream-cdr smoothed))))
 #+END_SRC
+
+** 3.77
+
+The modified ~integral~:
+
+#+NAME: def:integral-delay
+#+BEGIN_SRC racket
+  (define (integral delayed-integrand initial-value dt)
+    <<def:sc-list-stream>>
+    (cons-stream initial-value
+		 (let ((integrand (force delayed-integrand)))
+		   (if (stream-null? integrand) the-empty-stream
+		       (integral (delay (stream-cdr integrand))
+				 (+ (* dt
+				       (stream-car integrand))
+				    initial-value)
+				 dt)))))
+#+END_SRC
+
+To test this, we modify ~solve~ from the book with the suggestion of how to construct simultanous definitions from section 4.16:
+
+#+NAME: def:solve-integral
+#+BEGIN_SRC racket
+  (define (solve f y0 dt)
+  <<def:integral-delay>>
+  <<def:sc-list-stream>>
+  <<def:stream-map>>
+  (let ((y 'x)
+	(dy 'x))
+    (set! y (integral (delay dy) y0 dt))
+    (set! dy (stream-map f y))
+  y))
+#+END_SRC
+
+And, the test with $e$:
+
+#+BEGIN_SRC racket
+  <<def:solve-integral>>
+  <<def:stream-ref>>
+
+  (stream-ref (solve (lambda (x) x) 1 0.001) 1000)
+#+END_SRC
+
+#+RESULTS:
+: 2.716923932235896
