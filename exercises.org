@@ -1,4 +1,4 @@
-stream-map#+STARTUP: Overview
+#+STARTUP: Overview
 #+PROPERTY: header-args :noweb eval :results output :tangle tangle.rkt :prologue "#lang sicp"
 #+TITLE: SICP Exercises
 
@@ -8894,7 +8894,7 @@ Huh.
   (define (merge s1 s2)
     (cond
       ((stream-null? s1) s2)
-      (( stream-null? s2) s1)
+      ((stream-null? s2) s1)
       (else
        (let ((s1car (stream-car s1))
 	     (s2car (stream-car s2)))
@@ -8913,15 +8913,15 @@ We merge the streams:
   <<def:scale-stream>>
   <<def:sc-list-stream>>
   <<def:merge-stream>>
-  (define S (cons-stream 1 (merge (scale-stream S 2) (merge (scale-stream S 3) (scale-stream S 5)))))
+  (define Hamming-Stream (cons-stream 1 (merge (scale-stream Hamming-Stream 2) (merge (scale-stream Hamming-Stream 3) (scale-stream Hamming-Stream 5)))))
 #+END_SRC
 
 #+BEGIN_SRC racket
   <<def:Hamming-stream>>
   <<def:stream-ref>>
-  (stream-ref S 49)
-  (stream-ref S 50)
-  (stream-ref S 51)
+  (stream-ref Hamming-Stream 49)
+  (stream-ref Hamming-Stream 50)
+  (stream-ref Hamming-Stream 51)
 #+END_SRC
 
 #+RESULTS:
@@ -9452,8 +9452,6 @@ This, then, is for some other time.
       (pairs (stream-cdr s) (stream-cdr t)))))
 #+END_SRC
 
-
-
 #+BEGIN_SRC racket
   <<def:sc-list-stream>>
   <<def:pairs-stream>>
@@ -9656,4 +9654,213 @@ Anyway, some quick tests:
 : (12 16 20)
 : (15 20 25)
 
+** 3.70
 
+~merge-weighted~ is like ~merge~.
+
+There are only three significant differences.
+
+1. The use of weight to determine which stream to take an element from.
+2. The else condition being changed to include the elements from both streams if weights are equal, so long as the elements are distinct.
+3. And additional test condition for when both weights and elements are the same, to avoid the else condition adding duplicates.
+
+#+NAME: def:merge-weighted
+#+BEGIN_SRC racket
+  (define (merge-weighted s1 s2 weight)
+    <<def:sc-list-stream>>
+    (cond
+      ((stream-null? s1) s2)
+      ((stream-null? s2) s1)
+      (else
+       (let ((s1car (stream-car s1))
+	     (s2car (stream-car s2)))
+	 (let ((s1carW (apply weight s1car))
+	       (s2carW (apply weight s2car)))
+	   (cond ((< s1carW s2carW)
+		  (cons-stream s1car (merge-weighted (stream-cdr s1) s2 weight)))
+		 ((> s1carW s2carW)
+		  (cons-stream s2car (merge-weighted s1 (stream-cdr s2) weight)))
+		 ((and (= s1carW s2carW) (eq? s1car s2car)
+		       (cons-stream s1car (merge-weighted (stream-cdr s1) (stream-cdr s2) weight))))
+		 (else
+		  (cons-stream s1car (cons-stream s2car (merge-weighted (stream-cdr s1) (stream-cdr s2) weight))))))))))
+#+END_SRC
+
+*** a.
+
+With ~merge-weighted~ in hand, the steam of all positive integers (i j) with i ≤ j ordered by (i + j) amounts to using ~lambda (x y) (+ x y)~ as our weight function.
+However, this can be simplified (and generalised a little) by simply using ~+~.
+
+#+NAME: def:ordered-by-sum-pairs
+#+BEGIN_SRC racket
+  (define (ordered-by-sum-pairs s t)
+    <<def:sc-list-stream>>
+    <<def:stream-map>>
+    <<def:merge-weighted>>
+    (cons-stream
+     (list (stream-car s) (stream-car t))
+     (merge-weighted
+      (ordered-by-sum-pairs (stream-cdr s) (stream-cdr t))
+      (stream-map (lambda (x) (list (stream-car s) x)) (stream-cdr t))
+      +)))
+#+END_SRC
+
+Here's a quick test:
+
+#+BEGIN_SRC racket
+  <<def:ordered-by-sum-pairs>>
+  <<def:sc-list-stream>>
+  <<def:integers-starting-from>>
+  <<def:stream-ref>>
+
+  (define integers (integers-starting-from 1))
+  (define X (ordered-by-sum-pairs integers integers))
+  (stream-ref X 0)
+  (stream-ref X 1)
+  (stream-ref X 2)
+  (stream-ref X 3)
+  (stream-ref X 4)
+  (stream-ref X 5)
+  (stream-ref X 6)
+  (stream-ref X 7)
+  (stream-ref X 8)
+  (stream-ref X 9)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+(1 1)
+(1 2)
+(2 2)
+(1 3)
+(2 3)
+(1 4)
+(3 3)
+(1 5)
+(2 4)
+(3 4)
+#+end_example
+
+
+*** b.
+
+Our initial gol is to obtain the stream of all pairs of positive integers (i j) with i ≤ j such that neither i nor j is dividisible by 2, 3, or 5.
+
+Earlier, we considered the Hamming numbers.
+And, we created the stream of all positive integers which were divisible by exactly 2, 3, or 5.
+So, to obtain the desired stream, we need only find every positive integer which does not appear in the Hamming sequence.
+
+The relative complement of two lists is easy to determine, so long as the lists are ordered.
+For, we take from the base list until to elements are the same, and ignore these elements, and repeat.
+
+#+NAME: def:ordered-relative-complement
+#+BEGIN_SRC racket
+  (define (ordered-relative-complement s1 s2)
+    <<def:sc-list-stream>>
+    (cond
+      ((stream-null? s2) s1)
+      ((stream-null? s2) (error "need relative list"))
+      (else
+       (let ((s1car (stream-car s1))
+	     (s2car (stream-car s2)))
+	 (cond ((< s1car s2car)
+		(cons-stream s1car (ordered-relative-complement (stream-cdr s1) s2)))
+	       (else
+		(ordered-relative-complement (stream-cdr s1) (stream-cdr s2))))))))
+#+END_SRC
+
+To test, we define the odds in terms of the intgers and the evens:
+
+#+BEGIN_SRC racket
+  <<def:ordered-by-sum-pairs>>
+  <<def:sc-list-stream>>
+  <<def:integers-starting-from>>
+  <<def:stream-ref>>
+  <<def:scale-stream>>
+  <<def:ordered-relative-complement>>
+
+  (define integers (integers-starting-from 1))
+  (define evens (scale-stream integers 2))
+  (define odds (ordered-relative-complement integers evens))
+  (stream-ref odds 0)
+  (stream-ref odds 1)
+  (stream-ref odds 2)
+  (stream-ref odds 3)
+  (stream-ref odds 4)
+  (stream-ref odds 5)
+  (stream-ref odds 6)
+  (stream-ref odds 7)
+  (stream-ref odds 8)
+  (stream-ref odds 9)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+1
+3
+5
+7
+9
+11
+13
+15
+17
+19
+#+end_example
+
+Second, we generalise ~ordered-by-sum-pairs~ to take arbitrary weights:
+
+#+NAME: def:ordered-by-w-pairs
+#+BEGIN_SRC racket
+  (define (ordered-by-w-pairs s t w)
+    <<def:sc-list-stream>>
+    <<def:stream-map>>
+    <<def:merge-weighted>>
+    (cons-stream
+     (list (stream-car s) (stream-car t))
+     (merge-weighted
+      (ordered-by-w-pairs (stream-cdr s) (stream-cdr t) w)
+      (stream-map (lambda (x) (list (stream-car s) x)) (stream-cdr t))
+      w)))
+#+END_SRC
+
+With the above in hand, we can define the not-Hamming stream, and order the results as requested:
+
+#+BEGIN_SRC racket
+  <<def:Hamming-stream>>
+  <<def:integers-starting-from>>
+  <<def:ordered-relative-complement>>
+  <<def:ordered-by-w-pairs>>
+  <<def:stream-ref>>
+
+  (define integers (integers-starting-from 1))
+
+  (define not-Hamming (ordered-relative-complement integers Hamming-Stream))
+
+  (define X (ordered-by-w-pairs not-Hamming not-Hamming (lambda (i j) (+ (* 2 i) (* 3 j) (* 5 i j)))))
+
+  (stream-ref X 0)
+  (stream-ref X 1)
+  (stream-ref X 2)
+  (stream-ref X 3)
+  (stream-ref X 4)
+  (stream-ref X 5)
+  (stream-ref X 6)
+  (stream-ref X 7)
+  (stream-ref X 8)
+  (stream-ref X 9)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+(7 7)
+(7 11)
+(7 13)
+(7 14)
+(11 11)
+(7 17)
+(7 19)
+(11 13)
+(7 21)
+(11 14)
+#+end_example
