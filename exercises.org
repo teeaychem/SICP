@@ -9463,7 +9463,6 @@ This, then, is for some other time.
   (define integers (integers-starting-from 1))
   (define X (pairs integers integers))
 
-
   (stream-ref X 0)
   (stream-ref X 1)
   (stream-ref X 2)
@@ -9556,37 +9555,21 @@ Still, it's straightforward to add (j i) rather than (i j).
   (stream-ref X 3)
   (stream-ref X 4)
   (stream-ref X 5)
-  (stream-ref X 6)
   (stream-ref X 7)
-  (stream-ref X 8)
-  (stream-ref X 9)
-  (stream-ref X 10)
   (stream-ref X 11)
-  (stream-ref X 12)
-  (stream-ref X 13)
-  (stream-ref X 14)
   (stream-ref X 15)
 #+END_SRC
 
 #+RESULTS:
-#+begin_example
-(1 1)
-(1 2)
-(2 1)
-(2 2)
-(3 1)
-(1 3)
-(4 1)
-(2 3)
-(5 1)
-(1 4)
-(6 1)
-(3 2)
-(7 1)
-(1 5)
-(8 1)
-(3 3)
-#+end_example
+: (1 1)
+: (1 2)
+: (2 1)
+: (2 2)
+: (3 1)
+: (1 3)
+: (2 3)
+: (3 2)
+: (3 3)
 
 Further, I think it should be the case we have (i j) and (j i) before (j j), for all i < j.
 
@@ -9609,3 +9592,68 @@ And, the second in the desired sequence is interwoven.
 
 But, a call to interleave requires elements of the two sequences to be accessible.
 This is not possible.
+
+** 3.69
+
+(Si Tj Uk) such that i ≤ j ≤ k:
+
+#+NAME: def:triples-stream
+#+BEGIN_SRC racket
+  (define (triples s t u)
+    <<def:sc-list-stream>>
+    <<def:stream-map>>
+    <<def:interleave>>
+    <<def:pairs-stream>>
+    (cons-stream
+     (list (stream-car s) (stream-car t) (stream-car u))
+     (interleave
+      (stream-map (lambda (x) (list (stream-car s) (car x) (cadr x))) (pairs t u))
+      (triples (stream-cdr s) (stream-cdr t) (stream-cdr u)))))
+#+END_SRC
+
+Not sure if order is nice as with ~pairs~, but this works.
+In short, we repeat the exact process as with ~pairs~.
+
+In longer, the process with ~pairs~ is to take each element of s and create a stream where that element is paired with each element of j.
+Then, interleave these streams.
+
+With triples, we take an element from s and and create a stream where that element is paired with elements from t and u such that t ≤ u.
+So, we've now reduced the problem one step.
+To create triples, we just need to pair elements of s with the sequence obtained by pairing t and u (and then flatten the result).
+
+In hindsight, this is intuitive.
+Admittedly, it took me some headaches to figure things out.
+
+Anyway, some quick tests:
+
+#+BEGIN_SRC racket
+  <<def:sc-list-stream>>
+  <<def:triples-stream>>
+  <<def:integers-starting-from>>
+  <<def:stream-ref>>
+
+  (define integers (integers-starting-from 1))
+  (define X (triples integers integers integers))
+
+  <<def:square>>
+  <<def:stream-filter>>
+  (define pythag-triples (stream-filter (lambda (x) (= (+ (square (car x)) (square (cadr x))) (square (caddr x)))) X))
+  (stream-ref pythag-triples 0)
+  (stream-ref pythag-triples 1)
+  (stream-ref pythag-triples 2)
+  (stream-ref pythag-triples 3)
+  (stream-ref pythag-triples 4)
+  (stream-ref pythag-triples 5)
+  (stream-ref pythag-triples 6)
+#+END_SRC
+
+#+RESULTS:
+: (3 4 5)
+: (6 8 10)
+: (5 12 13)
+: (9 12 15)
+: (8 15 17)
+: (12 16 20)
+: (15 20 25)
+
+
