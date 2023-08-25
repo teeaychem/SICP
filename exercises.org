@@ -9893,21 +9893,20 @@ And, finally, we create a sequence of the result of the transformation:
 #+NAME: consts:3.71
 #+BEGIN_SRC racket
   <<def:ordered-by-w-pairs>>
-   <<def:integers-starting-from>>
-   <<def:stream-ref>>
-   <<def:cubeSum>>
-   <<def:consecutive-by>>
+  <<def:integers-starting-from>>
+  <<def:stream-ref>>
+  <<def:cubeSum>>
+  <<def:consecutive-by>>
 
-   (define integers (integers-starting-from 1))
+  (define integers (integers-starting-from 1))
 
-   (define pairsByCubesum (ordered-by-w-pairs integers integers cubeSum))
+  (define pairsByCubesum (ordered-by-w-pairs integers integers cubeSum))
 
+  (define consecutivePairsByCubesum (consecutive-by pairsByCubesum cubeSum))
 
-   (define consecutivePairsByCubesum (consecutive-by pairsByCubesum cubeSum))
+  <<def:stream-map>>
 
-   <<def:stream-map>>
-
-   (define Ramanujan-stream (stream-map (lambda (x) (apply cubeSum (car x))) consecutivePairsByCubesum))
+  (define Ramanujan-stream (stream-map (lambda (x) (apply cubeSum (car x))) consecutivePairsByCubesum))
 #+END_SRC
 
 Finally, some tests:
@@ -9955,9 +9954,9 @@ Otherwise, everything is the same as with Ex. 3.71.
     (+ (* i i) (* j j)))
 
   <<def:ordered-by-w-pairs>>
-   <<def:integers-starting-from>>
-   <<def:stream-ref>>
-   <<def:consecutive-by>>
+  <<def:integers-starting-from>>
+  <<def:stream-ref>>
+  <<def:consecutive-by>>
 
   (define integers (integers-starting-from 1))
 
@@ -9966,7 +9965,6 @@ Otherwise, everything is the same as with Ex. 3.71.
 
   (define consecutivePairsByCubesum (consecutive-three-by pairsBySqauresum squareSum))
 
-   <<def:stream-map>>
   (stream-ref consecutivePairsByCubesum 0)
   (stream-ref consecutivePairsByCubesum 1)
   (stream-ref consecutivePairsByCubesum 2)
@@ -9982,6 +9980,110 @@ Otherwise, everything is the same as with Ex. 3.71.
 : ((14 23) (7 26) (10 25))
 : ((19 22) (2 29) (13 26))
 : ((15 25) (3 29) (11 27))
-: 325
-: 325
-: 325
+
+** 3.73
+
+#+BEGIN_SRC racket
+  (define (RC R C dt)
+    <<def:add-streams>>
+    <<def:scale-stream>>
+    (lambda (i v0)
+      (define v
+	(cons-stream v0
+		     (add-streams (scale-stream i R)
+				  (scale-stream (scale-stream v dt) C))))
+      v))
+
+  (define RC1 (RC 5 1 0.5))
+#+END_SRC
+
+Maybe?
+
+** 3.74
+
+I think the suggestion is:
+
+#+BEGIN_SRC racket
+  (define zero-crossings
+    (stream-map sign-change-detector sense-data (stream-cdr sense-data)))
+#+END_SRC
+
+For, the original procedure compares the current value of sense-data to the previous value of sense-data.
+In this respect, we're just comparing the same stream shifted by a ~stream-cdr~.
+And, we need to wait for at least two elements for this to be of interest anyway.
+
+** 3.75
+
+#+BEGIN_SRC racket :tangle no
+    (define (make-zero-crossings input-stream last-value)
+      (let ((avpt (/ (+ (stream-car input-stream) last-value) 2)))
+	(cons-stream (sign-change-detector avpt last-value)
+		     (make-zero-crossings (stream-cdr input-stream) avpt))))
+#+END_SRC
+
+At the very leaast, ~sign-change-detector~ requires ~last-value~, so this should be preserved.
+However, this is a simply edit from ~avpt~ to ~(stream-car input-stream)~, and the suggestion is an increase to the number of arguments to ~make-zero-crossings~ is required.
+
+I read the plan is to average the last value with the current value.
+However, as ~avpt~ is passed as an argument above, the averages accumulate.
+
+Here, then, we do need an additional argumnet, as ~avpt~ cannot be calculated from ~last-valued~ alone.
+
+Both edits:
+
+#+BEGIN_SRC racket :tangle no
+  (define (make-zero-crossings input-stream average last-value)
+    (let ((avpt (/ (+ (stream-car input-stream) average) 2)))
+      (cons-stream (sign-change-detector avpt last-value)
+		   (make-zero-crossings (stream-cdr input-stream) avpt (stream-car input-stream)))))
+#+END_SRC
+
+** 3.76
+
+For a general method, we start with ~consecutive-transform~, which applies some transformation to consecutive elements in a stream:
+
+#+NAME: def:consecutive-transform
+#+BEGIN_SRC racket
+  (define (consecutive-transform s transform)
+    <<def:sc-list-stream>>
+    (cons-stream (apply transform (list (stream-car s) (stream-car (stream-cdr s))))
+		 (consecutive-transform (stream-cdr s) transform)))
+#+END_SRC
+
+To see this in action:
+
+#+BEGIN_SRC racket
+  <<def:consecutive-transform>>
+  <<def:integers-starting-from>>
+  <<def:stream-ref>>
+  <<def:scale-stream>>
+  (define integers (integers-starting-from 1))
+  (define X (consecutive-transform (scale-stream integers 2) +))
+
+  (stream-ref X 0)
+  (stream-ref X 1)
+  (stream-ref X 2)
+  (stream-ref X 3)
+#+END_SRC
+
+#+RESULTS:
+: 6
+: 10
+: 14
+: 18
+
+With ~consecutive-transform~, the smoothed stream as described amounts to specifying taking the average as the transformation:
+
+#+BEGIN_SRC racket :tangle no
+  (define (smoothed s)
+    (consecutive-transform s (lambda (x y) (/ (+ x y) 2))))
+#+END_SRC
+
+Now, it seems to me the following should work.
+We compare the input-stream to whatever the current smoothed stream is.
+
+#+BEGIN_SRC racket :tangle no
+  (define (make-zero-crossings input-stream smoothed)
+    (cons-stream (sign-change-detector (stream-car input-stream) (stream-car smoothed))
+		 (make-zero-crossings (stream-cdr input-stream) (stream-cdr smoothed))))
+#+END_SRC
