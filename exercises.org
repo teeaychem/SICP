@@ -10132,3 +10132,62 @@ And, the test with $e$:
 
 #+RESULTS:
 : 2.716923932235896
+
+** 3.78
+
+#+BEGIN_SRC racket
+  (define (solve a b dy0 y0 dt)
+    <<def:integral-delay>>
+    <<def:add-streams>>
+    <<def:scale-stream>>
+    (let ((y nil)
+	  (dy nil)
+	  (ddy nil))
+      (set! y (integral (delay dy) y0 dt))
+      (set! dy (integral (delay ddy) dy0 dt))
+      (set! ddy (add-streams (scale-stream dy a) (scale-stream y b)))
+      y))
+
+  <<def:stream-ref>>
+
+  (stream-ref (solve 1 1 1 1 0.001) 1000)
+#+END_SRC
+
+#+RESULTS:
+: 3.793448578735687
+
+
+#+BEGIN_SRC racket
+  (define (solve a b dy0 y0 dt)
+    (define y integral (delay dy) y0 dt)
+    (define dy integral (delay ddy) dy0 dt)
+    (define ddy (stream-add (stream-scale dy a) (stream-scale y b)))
+#+END_SRC
+
+** 3.79
+
+Going by vague intuition as to what a natural answer should be:
+
+#+BEGIN_SRC racket
+  (define (solve f dy0 y0 dt)
+    <<def:integral-delay>>
+    <<def:stream-map>>
+    (define dt-stream (cons-stream dt dt-stream))
+    (let ((y nil)
+	  (dy nil)
+	  (ddy nil))
+      (set! y (integral (delay dy) y0 dt))
+      (set! dy (integral (delay ddy) dy0 dt))
+      (set! ddy (stream-map f dy y))
+      y))
+#+END_SRC
+
+I'm not sure how to test this.
+
+** TODO 3.80
+
+This seems really cool, but I have no idea how to self evaluate.
+
+Hopefully, I'll have the time to learn the appropriate background material and will return to this.
+
+For the moment, I don't think taking a guess and seeing if it worked out is the right call.
