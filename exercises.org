@@ -9877,6 +9877,9 @@ To begin, we define a general procedure which finds consecutive elements of a se
 	(consecutive-by (stream-cdr s) transform)))
 #+END_SRC
 
+(Looking back after reaching  3.5.5 where a similar procedure is defined in the book, I shuffle forward by ~(stream-cdr s)~ rather than ~(stream-cdr (stream-cdr s))~.
+My reasoning is moving one element at a time still creates unique pairs.)
+
 With ~consecutive-by~ in hand, we create a procedure for the desired transformation:
 
 #+NAME: def:cubeSum
@@ -10191,3 +10194,71 @@ This seems really cool, but I have no idea how to self evaluate.
 Hopefully, I'll have the time to learn the appropriate background material and will return to this.
 
 For the moment, I don't think taking a guess and seeing if it worked out is the right call.
+
+** 3.81
+
+This one I might come back to.
+
+As before, we have a placeholder ~rand-update~.
+
+The following works fine:
+
+#+NAME: def:rand-requests-stream
+#+BEGIN_SRC racket
+  (define (rand-requests this-rand requests)
+    (define (rand-update x) (+ x 1))
+    (if (stream-null? requests)
+	the-empty-stream
+	(let ((new-rand (cond
+			  ((eq? (car requests) 'generate) (rand-update this-rand))
+			  ((eq? (car requests) 'reset) 0))))
+	  (cons-stream this-rand (rand-requests new-rand (stream-cdr requests))))))
+#+END_SRC
+
+#+RESULTS: def:rand-requests-stream
+: /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-bKThFJ/org-babel-GQSnJn.rkt:7:57: rand-update: unbound identifier
+:   in: rand-update
+:   location...:
+:    /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-bKThFJ/org-babel-GQSnJn.rkt:7:57
+
+In short, we generate the random sequence in the same way we generate numbers from n.
+The roll of the requests screen is to determine how the next number is generated.
+
+And, in parallel to the solution I gave to Ex. 3.6, requests could be expanded so each element is a list, and in the case of a reset a new base value could be provided.
+
+And, of course, this procedure can be wrapped in a procedure which just takes the requests sequence and supplies an initial number.
+(Note, this would also set the reset value, if it's hardcoded.)
+
+Here's a quick test:
+
+#+BEGIN_SRC racket
+  <<def:rand-requests-stream>>
+  <<def:sc-list-stream>>
+  <<def:stream-ref>>
+  (define testSeq (cons-stream 'generate
+			       (cons-stream 'generate
+					    (cons-stream 'reset
+							 (cons-stream 'generate testSeq)))))
+
+  (stream-ref (rand-requests 0 testSeq) 0)
+  (stream-ref (rand-requests 0 testSeq) 1)
+  (stream-ref (rand-requests 0 testSeq) 2)
+  (stream-ref (rand-requests 0 testSeq) 3)
+  (stream-ref (rand-requests 0 testSeq) 4)
+  (stream-ref (rand-requests 0 testSeq) 5)
+  (stream-ref (rand-requests 0 testSeq) 6)
+  (stream-ref (rand-requests 0 testSeq) 7)
+  (stream-ref (rand-requests 0 testSeq) 8)
+#+END_SRC
+
+#+RESULTS:
+: 0
+: 1
+: 2
+: 0
+: 1
+: 2
+: 3
+: 0
+: 1
+
