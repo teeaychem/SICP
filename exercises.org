@@ -10621,3 +10621,48 @@ Oh, this is exactly what the question describes.
 
 These definitions work for derived definitions.
 And, they also work, I guess, for direct installation, where, e.g., ~(and a b c)~ is the list ~(a b c)~ tagged with ~'and~.
+
+** 4.5
+
+#+BEGIN_SRC racket
+  (define (expand-clauses clauses)
+    (if (null? clauses) 'false ; no else clause
+	(let ((first (car clauses))
+	      (rest (cdr clauses)))
+	  (if (cond-else-clause? first)
+	      (if (null? rest)
+		  (sequence->exp (cond-actions first))
+		  (error " ELSE clause isn't last -- COND->IF" clauses))
+	      (make-if (cond-predicate first)
+		       (sequence->exp (cond-actions first))
+		       (expand-clauses rest))))))
+#+END_SRC
+
+Well, it's not clear what we're testing for.
+What exactly does ~(cond-actions (test => recipient))~ return?
+Is it ~(cond-actions (=> recipient))~?
+If so, is this a list?
+Is there any syntactic sugar involved?
+
+The place to look is ~sequence->exp~.
+For, this is where the evaluation takes place.
+We'd like to hijack this to first test for this expression, and then proceed as before.
+
+For example, we'd have something like:
+
+#+BEGIN_SRC racket
+  (define (hijack-sequence->exp predicate actions)
+    (if (arrow? actions)
+	(sequence-exp (apply (arrow-end actions) (eval predicate)))
+	(sequence-exp actions)))
+#+END_SRC
+
+And, then replace the calls to ~sequence->exp~ with:
+
+#+BEGIN_SRC racket
+  (hijack-sequence->exp (cond-predicate first) (cond-actions first))
+#+END_SRC
+
+I would expect ~arrow?~ tests for a tagged list with the tag ~'=>~, and then ~arrow-end~ would just be ~cadr~.
+But, hard to be sure.
+(Is this the point at the moment?)
