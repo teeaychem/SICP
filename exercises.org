@@ -10624,20 +10624,6 @@ And, they also work, I guess, for direct installation, where, e.g., ~(and a b c)
 
 ** 4.5
 
-#+BEGIN_SRC racket
-  (define (expand-clauses clauses)
-    (if (null? clauses) 'false ; no else clause
-	(let ((first (car clauses))
-	      (rest (cdr clauses)))
-	  (if (cond-else-clause? first)
-	      (if (null? rest)
-		  (sequence->exp (cond-actions first))
-		  (error " ELSE clause isn't last -- COND->IF" clauses))
-	      (make-if (cond-predicate first)
-		       (sequence->exp (cond-actions first))
-		       (expand-clauses rest))))))
-#+END_SRC
-
 Well, it's not clear what we're testing for.
 What exactly does ~(cond-actions (test => recipient))~ return?
 Is it ~(cond-actions (=> recipient))~?
@@ -10666,3 +10652,87 @@ And, then replace the calls to ~sequence->exp~ with:
 I would expect ~arrow?~ tests for a tagged list with the tag ~'=>~, and then ~arrow-end~ would just be ~cadr~.
 But, hard to be sure.
 (Is this the point at the moment?)
+
+Wait.
+There's an issue here.
+~make-if~ leads to an instance of ~eval-if~, and in turn this leads to evaluating the predicate.
+And, the first instance of ~sequence->exp~ triggers on an ~else~ clause, so the ~=>~ does not obtain, for sure.
+
+Still, why wait to evaluate the predicate?
+We can do it now! (edit: this seems misguided, as we'd want to take an env argument, rather than assuming the argument is always called in the scope of some env --- in particular, this is bad if the variable gets renamed.)
+But, that's going to cause an issue.
+At the moment, we're trying to transform ~cond~ into nested ~if~.
+It seems like a bad idea to evaluate the predicate.
+As, for example, the particular ~cond~ instance may only eval given the failure of previous instances.
+
+It would be nice to memo the predicate with ~delay~.
+But, we'd then also need to ~force~ the result somewhere.
+
+So, okay, without redefining ~eval-if~ there's no way to consider the evaluation of the predicate as linked to the argument.
+
+This means our only option is to either use something other than and if statement or…
+
+Well, we know how we're breaking things down, so in principle we can reverse things.
+We can build an expresion in the object language via the meta-language.
+So, the following is just longhand for ~lambda (x y z) (if x (y x) (expand-clauses z))~:
+
+#+BEGIN_SRC racket
+  (cons (make-lambda (list 'x 'y 'z) (make-if 'x ('y 'x) 'z)) (list (cond-predicate first) (cadr (cond-actions first)) (expand-clauses rest)))
+#+END_SRC
+
+So, we just branch to the above if some predicate ~cond-arrow-clause?~ returns true.
+
+#+BEGIN_SRC racket
+  (define (expand-clauses clauses)
+    (if (null? clauses) 'false ; no else clause
+	(let ((first (car clauses))
+	      (rest (cdr clauses)))
+	  (if (cond-else-clause? first)
+	      (if (null? rest)
+		  (sequence->exp (cond-actions first))
+		  (error " ELSE clause isn't last -- COND->IF" clauses))
+	      (if (cond-arrow-clause? first)
+		  (cons (make-lambda (list 'x 'y 'z)
+				     (make-if 'x ('y 'x) 'z))
+			(list (cond-predicate first) (cadr (cond-actions first)) (expand-clauses rest)))
+		  (make-if (cond-predicate first)
+			   (sequence->exp (cond-actions first))
+			   (expand-clauses rest))))))
+#+END_SRC
+
+Maybe this works?
+I think the solution should be something along these lines, as the point of this procedure is to write object language expressions in the meta-langauge (now very obvious, but a little lost on me before…)
+
+** 4.6
+
+We have:
+
+#+BEGIN_SRC racket
+  (define (make-lambda parameters body)
+    (cons 'lambda (cons parameters body)))
+#+END_SRC
+
+The idea is the expression is made up of two parts.
+First, a list of variable and expression pairs, and second the body.
+
+If we extract the variables, these can be passed to ~make-lambda~.
+Then, we have the application of the lambda expression.
+
+To get the list of variable expression pairs, then, we take ~cadr~ of the expression (as ~'let~ is ~car~).
+And, using ~map car~ will get the list of all the variables.
+
+Likewise, ~caddr~ gets us the body of the let expression, and hence the body of the lambda expression.
+
+#+BEGIN_SRC racket
+    (define (let->combination exp)
+      (apply (make-lambda (map car (cadr exp)) (caddr exp))
+	     (map cdr (map car (cadr exp)))))
+#+END_SRC
+
+To ~eval~ we add:
+
+#+BEGIN_SRC racket
+  ((let? exp) (eval (let->combination exp) env))
+#+END_SRC
+
+The second call to ~eval~ will then led to ~application?~ being called, etc.
