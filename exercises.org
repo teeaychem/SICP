@@ -10402,3 +10402,38 @@ And, some tests:
 : 3.132867132867133
 : 3.156084391560844
 : 3.1459285407145927
+
+
+
+* Chapter 4
+
+** 4.1
+
+One approach, which doesn't seem quite right is to make use of ~let~.
+
+#+BEGIN_SRC racket :tangle no
+  (define (list-of-values exps env)
+    (if (no-operands? exps)
+	nil
+	(let ((currentEval (eval (first-operand exps) env)))
+	  (cons currentEval (list-of-values (rest-operands exps) env)))))
+#+END_SRC
+
+Then, right to left evaluation is acheived by:
+
+#+BEGIN_SRC racket :tangle no
+  (define (list-of-values exps env)
+    (if (no-operands? exps)
+	nil
+	(let ((currentEval nil))
+	  (begin
+	  (cons currentEval (list-of-values (rest-operands exps) env))
+	  (set! currentEval (eval (first-operand exps) env))))))
+#+END_SRC
+
+Though, I'm not sure this is intended.
+In particular, this is relying on different aspects of the underlying lisp evaluation.
+Of course, it's easier to argue ~currentEval~ must be evaluated before the main part of the ~let~ construction is complete.
+Still, the same likely holds for ~cons~.
+In general, as the underlying lisp is all we have, there's no way to write something that's independent of the underlying lisp.
+(Unless we're focusing on specific implementation details, where ~let~ is fixed by the specification while ~cons~ is left open by the spec.)
