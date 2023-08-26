@@ -10547,4 +10547,77 @@ Of course, given these abstractions we could separate a table of known tags from
 And, as ~cond~ is really just nested ~if~ statments there's no need to convert a found procedure to ~#t~.
 Though, neither change is particularly substantial.
 
+** 4.4
 
+binary and and or are easy to define with a pair of if conditions.
+
+or returns true when a evals to true (really, not false) and otherwise checks to see whether b evals to true.
+
+#+BEGIN_SRC racket
+  (define (binary-or a b)
+    (if a
+	#t
+	(if b
+	    #t
+	    #f)))
+#+END_SRC
+
+and return true just in case a evaled to true and b also evals to true.
+
+#+BEGIN_SRC racket
+  (define (binary-and a b)
+    (if a
+	(if b
+	    #t
+	    #f)
+	#f))
+#+END_SRC
+
+These operators are generalised to lists as follows:
+
+#+BEGIN_SRC racket
+  (define (general-or list)
+    (cond ((null? list) #f)
+	  ((null? (cdr list)) (binary-or (car list) #f))
+	  (else (binary-or (car list) (general-or (cdr list))))))
+#+END_SRC
+
+#+BEGIN_SRC racket
+  (define (general-and list)
+    (cond ((null? list) #f)
+	  ((null? (cdr list)) (binary-and (car list) #t))
+	  (else (binary-and (car list) (general-and (cdr list))))))
+#+END_SRC
+
+Though, to be honest, the recursive approach isn't particularly efficient.
+Instead, we can do:
+
+#+BEGIN_SRC racket
+  (define (general-or list)
+    (cond ((null? list) #f)
+	  ((car list) #t)
+	  (else (general-or (cdr list)))))
+#+END_SRC
+
+And:
+
+#+BEGIN_SRC racket
+  (define (general-and list)
+    (cond ((null? list) #f)
+	  ((null? (cdr list)) (car list))
+	  ((car list) (general-and (cdr list)))
+	  (else #f)))
+#+END_SRC
+
+For or, we work through the elements of a list and stop with ~#t~ just in case one of the elements is true (not false).
+If the list is exhausted, we return false.
+
+For and, we work through a list as with and.
+If the list is empty, we return false.
+But on a non-empty initial list, the base case is last element.
+For, the (n + 1)th element is reached only if the previous n elements all evaluated to true, and hence so long as this is true, all the elements were true.
+
+Oh, this is exactly what the question describes.
+
+These definitions work for derived definitions.
+And, they also work, I guess, for direct installation, where, e.g., ~(and a b c)~ is the list ~(a b c)~ tagged with ~'and~.
