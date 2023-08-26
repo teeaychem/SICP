@@ -10437,3 +10437,32 @@ Of course, it's easier to argue ~currentEval~ must be evaluated before the main 
 Still, the same likely holds for ~cons~.
 In general, as the underlying lisp is all we have, there's no way to write something that's independent of the underlying lisp.
 (Unless we're focusing on specific implementation details, where ~let~ is fixed by the specification while ~cons~ is left open by the spec.)
+
+** 4.2
+
+*** a.
+
+Each clause of eval applies a test to an expression.
+The ~application?~ test simply checks to see whether the expression is a pair.
+And, any list which contains at least one elemenet is a pair.
+See:
+
+#+BEGIN_SRC racket
+  (pair? (list 1))
+  (pair? (list 1 2))
+#+END_SRC
+
+#+RESULTS:
+: #t
+: #t
+
+Further, many of the other expressions are implemented as tagged lists.
+I.e., a list which begins with a tag and then contains the rest of the expression.
+
+From the previous observation, we can see any tagged list will be recognised as a pair.
+So, e.g., if the application is moved before ~definition?~ or ~begin?~, these tagged lists will be interpreted as applications.
+
+*** b.
+
+The suggestion is to make applications tagged lists, where the tag used is 'call'.
+The relevant ~operator~ and ~operands~ prcoedures would then search one further down the expression.
