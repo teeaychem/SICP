@@ -5621,8 +5621,6 @@ To start, some provided procedures:
       (+ low (random range))))
 #+END_SRC
 
-#+RESULTS: def:random-in-range
-
 #+NAME: def:monte-carlo
 #+BEGIN_SRC racket
   (define (monte-carlo trials experiment)
@@ -5651,7 +5649,7 @@ To start, some provided procedures:
 
 This task is a bit of a headache.
 We want to estimate the area of a circle by a unit circle.
-However, range only returns integers.
+However, range only returns integers. (Later note: This isn't true. What I missed is that you need to pass in floats --- e.g 0.0 and 1.0.)
 
 One option is to try to modify range.
 Alterantively, we can scale a unit circle as desired.
@@ -10164,7 +10162,7 @@ And, the test with $e$:
   (define (solve a b dy0 y0 dt)
     (define y integral (delay dy) y0 dt)
     (define dy integral (delay ddy) dy0 dt)
-    (define ddy (stream-add (stream-scale dy a) (stream-scale y b)))
+    (define ddy (stream-add (stream-scale dy a) (stream-scale y b))))
 #+END_SRC
 
 ** 3.79
@@ -10199,13 +10197,14 @@ For the moment, I don't think taking a guess and seeing if it worked out is the 
 
 This one I might come back to.
 
-As before, we have a placeholder ~rand-update~.
+As before, we have a placeholder ~rand-update~ (~random~ isn't deterministic).
 
 The following works fine:
 
 #+NAME: def:rand-requests-stream
 #+BEGIN_SRC racket
   (define (rand-requests this-rand requests)
+    <<def:sc-list-stream>>
     (define (rand-update x) (+ x 1))
     (if (stream-null? requests)
 	the-empty-stream
@@ -10214,12 +10213,6 @@ The following works fine:
 			  ((eq? (car requests) 'reset) 0))))
 	  (cons-stream this-rand (rand-requests new-rand (stream-cdr requests))))))
 #+END_SRC
-
-#+RESULTS: def:rand-requests-stream
-: /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-bKThFJ/org-babel-GQSnJn.rkt:7:57: rand-update: unbound identifier
-:   in: rand-update
-:   location...:
-:    /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-bKThFJ/org-babel-GQSnJn.rkt:7:57
 
 In short, we generate the random sequence in the same way we generate numbers from n.
 The roll of the requests screen is to determine how the next number is generated.
@@ -10262,3 +10255,150 @@ Here's a quick test:
 : 0
 : 1
 
+** 3.82
+
+The key idea here is a stream which records the outcomes of an experiment:
+
+#+BEGIN_SRC racket
+  (define (experiment-outcomes experiment)
+    (cons-stream (experiment) (experiment-outcomes experiment)))
+#+END_SRC
+
+With a little work, we can extend ~experiment-outcomes~ to a culminative count of passed experiments:
+
+#+NAME: def:experiment-outcomes-count
+#+BEGIN_SRC racket
+  (define (experiment-outcomes-count experiment count)
+    (cons-stream count (experiment-outcomes-count experiment (+ count (if (experiment) 1 0)))))
+#+END_SRC
+
+Some example tests:
+
+#+BEGIN_SRC racket
+  <<def:experiment-outcomes-count>>
+  <<def:random-in-range>>
+  <<def:stream-ref>>
+  (define (positive) (> 0 (random-in-range -1.0 1.0)))
+
+  (define positive-stream (experiment-outcomes-count positive 0))
+
+  (stream-ref positive-stream 0)
+  (stream-ref positive-stream 1)
+  (stream-ref positive-stream 2)
+  (stream-ref positive-stream 3)
+  (stream-ref positive-stream 4)
+#+END_SRC
+
+#+RESULTS:
+: 0
+: 1
+: 1
+: 2
+: 3
+
+Now, the monte carlo stream for an experiment is just a matter of taking the stream of culminative passed experiments and a stream recording the number of trials, and dividing each element of the former by the latter.
+
+(Note, the ~def-fix~ is used to ensure the referenced definitions are executed before the additional definitions.)
+
+#+NAME: def:monte-carlo-stream
+#+BEGIN_SRC racket
+
+  (define (monte-carlo-stream experiment)
+    <<def:integers-starting-from>>
+    <<def:stream-map>>
+    <<def:experiment-outcomes-count>>
+    (let ((def-fix nil))
+      (define outcome-stream (experiment-outcomes-count experiment (if (experiment) 1 0)))
+      (define trial-count (integers-starting-from 1))
+      (stream-map / outcome-stream trial-count)
+      ))
+#+END_SRC
+
+
+#+BEGIN_SRC racket
+  <<def:random-in-range>>
+  <<def:stream-ref>>
+  <<def:monte-carlo-stream>>
+  (define (positive) (> 0 (random-in-range -1.0 1.0)))
+
+  (define monte-carlo-stream-a (monte-carlo-stream positive))
+
+  (stream-ref monte-carlo-stream-a 0)
+  (stream-ref monte-carlo-stream-a 1)
+  (stream-ref monte-carlo-stream-a 2)
+  (stream-ref monte-carlo-stream-a 3)
+  (stream-ref monte-carlo-stream-a 4)
+#+END_SRC
+
+#+RESULTS:
+: 0
+: 1/2
+: 2/3
+: 1/2
+: 3/5
+
+With the above in hand, we move on to estimating $\pi$
+
+*** estimating $\pi$
+
+The changes to the procedures are minor, though everything is a little more streamlined as I learnt ~random-in-range~ returns rationals given the right arguments, so there's no need to scale the unit circle.
+
+First, ~estimate-integral-stream~ amounts to modifying the experiment with random arguments and passing the now null-ary experiment to ~monte-carlo-stream~:
+
+#+NAME: def:estimate-integral-stream
+#+BEGIN_SRC racket
+    (define (estimate-integral-stream P xl xh yl yh)
+      <<def:monte-carlo-stream>>
+      (define (P-test)
+	<<def:random-in-range>>
+	<<def:square>>
+	(P (random-in-range xl xh) (random-in-range yl yh)))
+      (monte-carlo-stream P-test))
+#+END_SRC
+
+Our experiment tests whether an (x y) is within the unit circle (very streamlined):
+
+#+NAME: def:inside-unit-circle?
+#+BEGIN_SRC racket
+  (define (inside-unit-circle? x y)
+    <<def:square>>
+      (>= 1 (sqrt (+ (square x) (square y)))))
+#+END_SRC
+
+To obtain the stream of estimates, we apply ~estimate-integral-stream~ with appropriate ranges, and then scale the elements of the resulting stream by 4 (see 3.5 for why this is necessary).
+
+To keep things clean, we collect procedures the stream depends on within a ~make-stream~ procedure, which is then called to get the desired stream.
+I.e., focus on the ~let~ statement!
+
+#+NAME: def:estimate-pi-circle-stream
+#+BEGIN_SRC racket
+  (define (make-estimate-pi-circle-stream)
+    <<def:scale-stream>>
+    <<def:inside-unit-circle?>>
+    <<def:estimate-integral-stream>>
+    (let ((stream (scale-stream (estimate-integral-stream inside-unit-circle? -1.0 1.0 -1.0 1.0) 4.0)))
+      stream))
+
+  (define estimate-pi-circle-stream (make-estimate-pi-circle-stream))
+#+END_SRC
+
+And, some tests:
+
+#+BEGIN_SRC racket
+  <<def:estimate-pi-circle-stream>>
+  <<def:stream-ref>>
+  (stream-ref estimate-pi-circle-stream 1)
+  (stream-ref estimate-pi-circle-stream 10)
+  (stream-ref estimate-pi-circle-stream 100)
+  (stream-ref estimate-pi-circle-stream 1000)
+  (stream-ref estimate-pi-circle-stream 10000)
+  (stream-ref estimate-pi-circle-stream 100000)
+#+END_SRC
+
+#+RESULTS:
+: 4.0
+: 3.6363636363636362
+: 3.485148514851485
+: 3.132867132867133
+: 3.156084391560844
+: 3.1459285407145927
