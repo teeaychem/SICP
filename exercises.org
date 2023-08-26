@@ -10466,3 +10466,85 @@ So, e.g., if the application is moved before ~definition?~ or ~begin?~, these ta
 
 The suggestion is to make applications tagged lists, where the tag used is 'call'.
 The relevant ~operator~ and ~operands~ prcoedures would then search one further down the expression.
+
+** 4.3
+
+The original ~eval~ looks like this:
+
+#+BEGIN_SRC racket
+  (define (eval exp env)
+  (cond ((self-evaluating? exp) exp)
+	((variable? exp) (lookup-variable-value exp env))
+	((quoted? exp) (text-of-quotation exp))
+	((assignment? exp) (eval-assignment exp env))
+	((definition? exp) (eval-definition exp env))
+	((if? exp) (eval-if exp env))
+	((lambda? exp) (make-procedure (lambda-parameters exp) (lambda-body exp) env))
+	((begin? exp) (eval-sequence (begin-actions exp) env))
+	((cond? exp) (eval (cond->if exp) env))
+	((application? exp) (apply (eval (operator exp) env) (list-of-values (operands exp) env)))
+	(else (error "Unknown expression type -- EVAL" exp))))
+#+END_SRC
+
+Most of the tests check to see whether the expression is a tagged-list (this includes as an argument the relevant tag).
+
+| self-evaluating | number? or string? |
+| variable        | symbol?            |
+| quoted          | tagged-list        |
+| assignment      | tagged-list        |
+| definition      | tagged-list        |
+| if              | tagged-list        |
+| begin           | tagged-list        |
+| cond            | tagged-list        |
+| application     | pair?              |
+
+We can reduce all the tagged-list queries to a single query for a known tag and a get to the appropriate procedure from a table which specifies how to evaluate the tagged object:
+
+#+BEGIN_SRC racket
+  (define (eval exp env)
+    (cond ((self-evaluating? exp) exp)
+	  ((variable? exp) (lookup-variable-value exp env))
+	  ((known-procedure? exp) (apply (get 'tag-eval-procs (car exp)) (cdr exp)))
+	  ((application? exp) (apply (eval (operator exp) env) (list-of-values (operands exp) env)))
+	  (else (error "Unknown expression type -- EVAL" exp))))
+#+END_SRC
+
+Known tag searches a table of known procedures indexed by tag:
+
+#+BEGIN_SRC racket
+  (define (known-procedure? exp)
+    (if (pair? exp)
+	(if (get 'tag-eval-procs (car exp))
+	    #t)))
+#+END_SRC
+
+Note, ~get~ returns the proc or ~#f~ if no entry is found in the table, and ~if~ returns the true value so long as the predicate is not evaluated to be false.
+See here:
+
+#+BEGIN_SRC racket
+      (if 0
+	  2
+	  1)
+#+END_SRC
+
+#+RESULTS:
+: 2
+
+And to add a tag we have a the procedure:
+
+#+BEGIN_SRC racket
+  (define (add-tagged-list-eval tag proc)
+    (put 'tag-eval-procs tag proc))
+#+END_SRC
+
+So, for example, we would add the condition for quotation by:
+
+#+BEGIN_SRC racket
+  (add-tagged-list-eval 'quotation text-of-quotation)
+#+END_SRC
+
+Of course, given these abstractions we could separate a table of known tags from the table of procedures.
+And, as ~cond~ is really just nested ~if~ statments there's no need to convert a found procedure to ~#t~.
+Though, neither change is particularly substantial.
+
+
