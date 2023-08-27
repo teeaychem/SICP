@@ -10697,7 +10697,7 @@ So, we just branch to the above if some predicate ~cond-arrow-clause?~ returns t
 			(list (cond-predicate first) (cadr (cond-actions first)) (expand-clauses rest)))
 		  (make-if (cond-predicate first)
 			   (sequence->exp (cond-actions first))
-			   (expand-clauses rest))))))
+			   (expand-clauses rest)))))))
 #+END_SRC
 
 Maybe this works?
@@ -10723,11 +10723,31 @@ And, using ~map car~ will get the list of all the variables.
 
 Likewise, ~caddr~ gets us the body of the let expression, and hence the body of the lambda expression.
 
+Though, to help keep things general and clear, we define a handful of helper procedures:
+
 #+BEGIN_SRC racket
-    (define (let->combination exp)
-      (apply (make-lambda (map car (cadr exp)) (caddr exp))
-	     (map cdr (map car (cadr exp)))))
+  (define (let-var-terms exp)
+    (map car (cadr exp)))
+
+  (define (let-var-values exp)
+    (map cdr (map car (cadr exp))))
+
+  (define (let-body exp)
+    (caddr exp))
 #+END_SRC
+
+With this, ~let->combination~ is simple:
+
+#+BEGIN_SRC racket
+  (define (let->combination exp)
+    (cons (make-lambda (let-var-terms exp)
+		       (let-body exp))
+	  (let-var-values exp)))
+#+END_SRC
+
+(And earlier version used ~apply~ rather than ~cons~, but this isn't right.
+For, at the moment our goal is only to rewrite expressions and ~apply~ makes stuff happen.
+(It's not like ~make-if~. I.e. ~(apply x y)~ does not return ~(list 'apply x y)~.))
 
 To ~eval~ we add:
 
@@ -10736,3 +10756,6 @@ To ~eval~ we add:
 #+END_SRC
 
 The second call to ~eval~ will then led to ~application?~ being called, etc.
+
+** 4.7
+
