@@ -10703,6 +10703,7 @@ So, we just branch to the above if some predicate ~cond-arrow-clause?~ returns t
 Maybe this works?
 I think the solution should be something along these lines, as the point of this procedure is to write object language expressions in the meta-langauge (now very obvious, but a little lost on me before…)
 
+
 ** 4.6
 
 We have:
@@ -10852,3 +10853,47 @@ For, otherwise we have no guarantee of execution for any compound procedure.
 
 ~apply~ on a complex expression just evaluates the body of the procedure within an extended environment.
 So, whether or not we need to explicity expand ~let*~ is going to depend on the way this is evaluated, no?
+
+** 4.8
+
+This is cool.
+In short, this allows us to specify default values for variables.
+This means we set up an environment where the terms of the bindings are fixed.
+And, then define the procedure and execute the procedure on the default values.
+
+In other words, we rewrite this:
+
+#+BEGIN_SRC racket
+  (define (fib n)
+    (let fib-iter ((a 1)
+		   (b 0)
+		   (count n))
+      (if (= count 0)
+	  b
+	  (fib-iter (+ a b) a (- count 1)))))
+#+END_SRC
+
+To this:
+
+#+BEGIN_SRC racket
+  (define (fib n)
+    (let ((a 1)
+	  (b 0)
+	  (count n))
+      (define (fib-iter a b count)
+	(if (= count 0)
+	    b
+	    (fib-iter (+ a b) a (- count 1))))
+      (fib-iter a b n)))
+#+END_SRC
+
+To test which case we're in, we can see if the ~cadr~ of the ~let~ is a list.
+If so, this is a standard ~let~ construction.
+Otherwise, if it's a symbol, we have a named let construction.
+
+Then, it's just about parsing everything and piecing it back together.
+
+In particular, we create a ~let~ statement, a definition, and a procedure.
+
+If this is needed for anything, I'll return.
+Otherwise, I think the task is sufficiently clear and there isn't enough to be gained by working through it.
