@@ -10407,6 +10407,7 @@ And, some tests:
 
 * Chapter 4
 
+
 ** 4.1
 
 One approach, which doesn't seem quite right is to make use of ~let~.
@@ -10439,12 +10440,11 @@ In general, as the underlying lisp is all we have, there's no way to write somet
 (Unless we're focusing on specific implementation details, where ~let~ is fixed by the specification while ~cons~ is left open by the spec.)
 
 ** 4.2
-
 *** a.
 
 Each clause of eval applies a test to an expression.
 The ~application?~ test simply checks to see whether the expression is a pair.
-And, any list which contains at least one elemenet is a pair.
+And, any list which contains at least one element is a pair.
 See:
 
 #+BEGIN_SRC racket
@@ -10703,7 +10703,6 @@ So, we just branch to the above if some predicate ~cond-arrow-clause?~ returns t
 Maybe this works?
 I think the solution should be something along these lines, as the point of this procedure is to write object language expressions in the meta-langauge (now very obvious, but a little lost on me before…)
 
-
 ** 4.6
 
 We have:
@@ -10899,7 +10898,6 @@ If this is needed for anything, I'll return.
 Otherwise, I think the task is sufficiently clear and there isn't enough to be gained by working through it.
 
 ** 4.9
-
 *** while
 
 The form is ~(while condition procedure)~.
@@ -11061,7 +11059,6 @@ Redundant arguments are discarded as needed.
       (act-on-global-bound-val var (lambda (vars vals env) (car vals)) env))
 #+END_SRC
 
-
 By contrast, ~define-variable!~ works on the local frame only and doesn't require a bound variable:
 
 #+BEGIN_SRC racket
@@ -11147,6 +11144,9 @@ And, the found prcoedure removes the current var and val from the lists.
 		      (lambda (vars vals frame) (#f))
 		      (lambda (vars vals frame) (begin
 						  (remove-next vars)
-						  (remove-next vals)))
+						  (remove-next vals)
+						  #t))
 		      env))
 #+END_SRC
+
+
