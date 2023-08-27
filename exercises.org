@@ -10897,3 +10897,41 @@ In particular, we create a ~let~ statement, a definition, and a procedure.
 
 If this is needed for anything, I'll return.
 Otherwise, I think the task is sufficiently clear and there isn't enough to be gained by working through it.
+
+** 4.9
+
+*** while
+
+The form is ~(while condition procedure)~.
+
+Intuitively, this reduces to:
+
+#+NAME: def:while-basic
+#+BEGIN_SRC racket
+  (define (while condition procedure)
+    (if (condition)
+	(begin (procedure)
+	       (while condition procedure))))
+#+END_SRC
+
+However, we need to check the condition on each pass, so we need to pass in a procedure.
+Likewise, we only want to evaluate the procedure when the condition is met, so this procedure should be wrapped in a procedure to.
+This means a basic instance of while will involve a pair of lambdas (or something equivalent):
+
+#+BEGIN_SRC racket
+  <<def:while-basic>>
+  (define x 1)
+  (while (lambda () (< x 4)) (lambda () (display x) (newline) (set! x (+ x 1))))
+#+END_SRC
+
+#+RESULTS:
+: 1
+: 2
+: 3
+
+We can do much better with a derived expression, as when evaluating ~while~ we can substitute a plain condition and body for the lambda wrapped versions.
+
+For now, I think the observed derivation idea is sufficient.
+
+** 4.10
+
