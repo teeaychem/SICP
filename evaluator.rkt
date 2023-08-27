@@ -27,7 +27,7 @@
         ((cond? exp)
          (eval (cond->if exp) env))
         ((application? exp)
-         (apply (eval (operator exp) env)
+         (meta-apply (eval (operator exp) env)
                 (list-of-values
                  (operands exp)
                  env)))
@@ -37,7 +37,7 @@
 
 ;; apply
 
-(define (apply procedure arguments)
+(define (meta-apply procedure arguments)
   (cond ((primitive-procedure? procedure)
          (apply-primitive-procedure
           procedure
@@ -354,6 +354,7 @@
         (list 'cdr cdr)
         (list 'cons cons)
         (list 'null? null?)
+        (list '+ +)
         ; ⟨more primitives⟩
         ))
 
@@ -366,10 +367,10 @@
        primitive-procedures))
 
 (define (apply-primitive-procedure proc args)
-  (apply-in-underlying-scheme
+  (apply
    (primitive-implementation proc) args))
 
-(define apply-in-underlying-scheme apply)
+
 
 (define input-prompt  ";;; M-Eval input:")
 (define output-prompt ";;; M-Eval value:")
@@ -414,4 +415,4 @@
 (define the-global-environment
   (setup-environment))
 
-(driver-loop)
+ (driver-loop)
