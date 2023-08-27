@@ -10921,13 +10921,14 @@ This means a basic instance of while will involve a pair of lambdas (or somethin
 #+BEGIN_SRC racket
   <<def:while-basic>>
   (define x 1)
-  (while (lambda () (< x 4)) (lambda () (display x) (newline) (set! x (+ x 1))))
+  (while (lambda () (< x 5)) (lambda () (display x) (newline) (set! x (+ x 1))))
 #+END_SRC
 
 #+RESULTS:
 : 1
 : 2
 : 3
+: 4
 
 We can do much better with a derived expression, as when evaluating ~while~ we can substitute a plain condition and body for the lambda wrapped versions.
 
@@ -11054,7 +11055,7 @@ Redundant arguments are discarded as needed.
     (env-loop env))
 
   (define (set-variable-value! var val env)
-    (act-on-global-bound-val var (lambda (vars vals env) (set-car! vals val)) env)
+    (act-on-global-bound-val var (lambda (vars vals env) (set-car! vals val)) env))
 
     (define (lookup-variable-value var env)
       (act-on-global-bound-val var (lambda (vars vals env) (car vals)) env))
@@ -11064,7 +11065,7 @@ Redundant arguments are discarded as needed.
 By contrast, ~define-variable!~ works on the local frame only and doesn't require a bound variable:
 
 #+BEGIN_SRC racket
-  (define (act-on-local-val var found-action not-found-action env)
+  (define (act-on-local-var var found-action not-found-action env)
     (let ((frame (first-frame env)))
       (define (scan vars vals)
 	(cond ((null? vars)
@@ -11077,11 +11078,75 @@ By contrast, ~define-variable!~ works on the local frame only and doesn't requir
 	    (frame-values frame))))
 
   (define (define-variable! var val env)
-    (act-on-local-val var
+    (act-on-local-var var
 		      (lambda (vars vals frame) (set-car! vals val))
 		      (lambda (vars vals frame) (add-binding-to-frame! var val frame))
-		      env)
+		      env))
 #+END_SRC
 
 Things could be generalised further.
 Though, thing requres configuring whether or not to run the ~env-loop~ of ~act-on-global-bound-val~.
+
+** 4.13
+
+We bind variables locally, and so we should also unbind variables locally.
+
+Though, really, there's no way to really justify the choice, as there's no mention of what the goal of this procedure is.
+In some cases, a complete removal of the binding may be useful.
+However, I susspect being able to access an overwritten variable might be nice.
+
+We'll make use of ~act-on-local-var~ to implement this.
+And, in particular, we'll make use of a general procedure which removes the 'current' (or relative first) element from a list.
+
+The removal procedure:
+
+#+NAME: def:remove-current-elem
+#+BEGIN_SRC racket
+  (define (remove-current-elem l)
+    (cond
+      ((null? l) #f)
+      ((null? (cdr l)) #f)
+      ((null? (cddr l)) (set-cdr! l nil))
+      (else (set-car! l (cadr l))
+	    (set-cdr! l (cddr l))
+	    #t)))
+#+END_SRC
+
+Some tests:
+
+#+BEGIN_SRC racket
+  <<def:remove-current-elem>>
+  (define test-list (list 1 2 3 4 5))
+  (remove-current-elem test-list)
+  test-list
+  (remove-current-elem (cdr test-list))
+  test-list
+  (remove-current-elem (cddr test-list))
+  test-list
+
+  (define empty-list (list ))
+  (remove-current-elem empty-list)
+#+END_SRC
+
+#+RESULTS:
+: #t
+: (2 3 4 5)
+: #t
+: (2 4 5)
+: #f
+: (2 4 5)
+: #f
+
+And, now ~make-unbound!~ via ~act-on-local-var~.
+The not-found procedure doesn't do anything (though could return an error).
+And, the found prcoedure removes the current var and val from the lists.
+
+#+BEGIN_SRC racket
+  (define (make-unbound! var env)
+    (act-on-local-var var
+		      (lambda (vars vals frame) (#f))
+		      (lambda (vars vals frame) (begin
+						  (remove-next vars)
+						  (remove-next vals)))
+		      env))
+#+END_SRC
