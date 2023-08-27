@@ -10954,3 +10954,69 @@ But, this requires us to check each of the tests to ensure an infix expression w
 As things stand, I think it should be easy to insert prior to the application case, though.
 
 I leave the details to some other time.
+
+** 4.11
+
+#+NAME: def:frame-pairs
+#+BEGIN_SRC racket
+  (define (make-frame variables values)
+    (if (null? variables)
+	(cons nil nil)
+	(map cons variables values)))
+
+  (define (frame-variables frame)
+    (if (null? (car frame))
+	nil
+	(map car frame)))
+
+  (define (frame-values frame)
+    (if (null? (car frame))
+	nil
+	(map cdr frame)))
+
+  (define (add-binding-to-frame! var val frame)
+    (cond ((null? (frame-variables frame))
+	   (set-car! frame (cons var val)))
+	  (else
+	   (set-cdr! frame (cons (car frame) (cdr frame)))
+	   (set-car! frame (cons var val)))))
+#+END_SRC
+
+I think I understand why this isn't ideal.
+
+The problem is, updating the frame.
+To do this, frame needs to be a pointer to something, so that in the local binding the value of ~frame~ doesn't change.
+This rules out the empty frame being ~nil~.
+
+Hence, if no variables and values are given, we need an list which contains nil, rather than an empty list.
+
+Of course, it may be there are guarantees this won't happen.
+Though, Ex. 4.13 suggests this isn't a given.
+
+Anyway, some tests:
+
+#+BEGIN_SRC racket
+  <<def:frame-pairs>>
+  (define test-frame-nil (make-frame (list ) (list )))
+  test-frame-nil
+  (frame-variables test-frame-nil)
+  (add-binding-to-frame! 'x 'y test-frame-nil)
+  test-frame-nil
+  (add-binding-to-frame! 'x2 'y2 test-frame-nil)
+  test-frame-nil
+  (define test-frame (make-frame (list 'a 'b 'c) (list 1 2 3)))
+  (frame-variables test-frame)
+  (frame-values test-frame)
+  (add-binding-to-frame! 'd 4 test-frame)
+  test-frame
+#+END_SRC
+
+#+RESULTS:
+: (())
+: ()
+: ((x . y))
+: ((x2 . y2) (x . y))
+: (a b c)
+: (1 2 3)
+: ((d . 4) (a . 1) (b . 2) (c . 3))
+
