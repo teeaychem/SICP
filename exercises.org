@@ -11020,3 +11020,68 @@ Anyway, some tests:
 : (1 2 3)
 : ((d . 4) (a . 1) (b . 2) (c . 3))
 
+
+A different approach would be use ~make-frame~ as a way to unfold a a message passing system.
+Though, this isn't ideal given the arguments passed to ~make-frame~.
+Ideally, message passing procedure wouldn't store anything other than the frame.
+
+With ~make-unbound!~ from Ex. 4.13 this could be achieved.
+Though, I think this is good for now.
+
+** 4.12
+
+We can see both ~set-variable-value!~ and ~lookup-variable-value~ as instances of performing some action relative to a globally (i.e. trace back through to the global env, if needed) bound term.
+
+To keep things very general, the action is given three arguments: the current vars pointer, the current vals pointer, and the current env.
+Redundant arguments are discarded as needed.
+
+#+BEGIN_SRC racket
+  (define (act-on-global-bound-val var action env)
+    (define (env-loop env)
+      (define (scan vars vals)
+	(cond ((null? vars)
+	       (env-loop
+		(enclosing-environment env)))
+	      ((eq? var (car vars))
+	       (action vars vals env))
+	      (else (scan (cdr vars)
+			  (cdr vals)))))
+      (if (eq? env the-empty-environment)
+	  (error "Unbound variable" var)
+	  (let ((frame (first-frame env)))
+	    (scan (frame-variables frame)
+		  (frame-values frame)))))
+    (env-loop env))
+
+  (define (set-variable-value! var val env)
+    (act-on-global-bound-val var (lambda (vars vals env) (set-car! vals val)) env)
+
+    (define (lookup-variable-value var env)
+      (act-on-global-bound-val var (lambda (vars vals env) (car vals)) env))
+#+END_SRC
+
+
+By contrast, ~define-variable!~ works on the local frame only and doesn't require a bound variable:
+
+#+BEGIN_SRC racket
+  (define (act-on-local-val var found-action not-found-action env)
+    (let ((frame (first-frame env)))
+      (define (scan vars vals)
+	(cond ((null? vars)
+	       (not-found-action vars vals frame))
+	      ((eq? var (car vars))
+	       (found-action vars vals frame))
+	      (else (scan (cdr vars)
+			  (cdr vals)))))
+      (scan (frame-variables frame)
+	    (frame-values frame))))
+
+  (define (define-variable! var val env)
+    (act-on-local-val var
+		      (lambda (vars vals frame) (set-car! vals val))
+		      (lambda (vars vals frame) (add-binding-to-frame! var val frame))
+		      env)
+#+END_SRC
+
+Things could be generalised further.
+Though, thing requres configuring whether or not to run the ~env-loop~ of ~act-on-global-bound-val~.
