@@ -10725,13 +10725,20 @@ Likewise, ~caddr~ gets us the body of the let expression, and hence the body of 
 
 Though, to help keep things general and clear, we define a handful of helper procedures:
 
+#+NAME: def:let-var-terms
 #+BEGIN_SRC racket
   (define (let-var-terms exp)
     (map car (cadr exp)))
+#+END_SRC
 
+#+NAME: def:let-var-values
+#+BEGIN_SRC racket
   (define (let-var-values exp)
-    (map cdr (map car (cadr exp))))
+    (map car (map cdr (cadr exp))))
+#+END_SRC
 
+#+NAME: def:let-body
+#+BEGIN_SRC racket
   (define (let-body exp)
     (caddr exp))
 #+END_SRC
@@ -10759,3 +10766,89 @@ The second call to ~eval~ will then led to ~application?~ being called, etc.
 
 ** 4.7
 
+Huh, the following works fine:
+
+#+BEGIN_SRC racket
+  (let* ((x 3)
+	 (y (+ x 2))
+	 (z (+ x y 5)))
+    (* x z))
+#+END_SRC
+
+#+RESULTS:
+: 39
+
+This can be used to tidy up some of the earlier procedures!
+
+The expanded version is:
+
+#+BEGIN_SRC racket
+  (let ((x 3))
+    (let ((y (+ x 2)))
+      (let ((z (+ x y 5)))
+	(* x z))))
+#+END_SRC
+
+#+RESULTS:
+: 39
+
+And, transformed into lambda's we'd get:
+
+#+BEGIN_SRC racket
+  ((lambda (x)
+     ((lambda (y)
+	((lambda (z) (* x z)) (+ x y 5)))
+     (+ x 2)))
+   3)
+#+END_SRC
+
+#+RESULTS:
+: 39
+
+For a reduction, the idea is to recursively apply ~make-let~ until the vars have been exhasted:
+
+#+NAME: def:make-let
+#+BEGIN_SRC racket
+  (define (make-let vars body)
+    (list 'let vars body))
+#+END_SRC
+
+#+NAME: def:let*->nested-lets
+#+BEGIN_SRC racket
+  (define (let*->nested-lets exp)
+    <<def:let-var-terms>>
+    <<def:let-var-values>>
+    <<def:let-body>>
+    <<def:make-let>>
+    (define (nested-lets var-terms var-values body)
+      (if (null? (cdr var-terms))
+	  (make-let (cons (car var-terms) (car var-values)) body)
+	  (make-let (cons (car var-terms) (car var-values)) (nested-lets (cdr var-terms) (cdr var-values) body))))
+    (nested-lets (let-var-terms exp) (let-var-values exp) (let-body exp)))
+#+END_SRC
+
+Here's a test:
+
+#+BEGIN_SRC racket
+  <<def:let*->nested-lets>>
+  (define test (list 'let* (list (list 'a 1) (list 'b 2)) (list '* 'a 'b)))
+  test
+  (let*->nested-lets test)
+#+END_SRC
+
+#+RESULTS:
+: (let* ((a 1) (b 2)) (* a b))
+: (let (a . 1) (let (b . 2) (* a b)))
+
+One worry is that eval is recursive.
+Hence, it may appear the inner-most lambda is evaluated prior to any other.
+However, this isn't clearly a problem.
+For, with a compound procedure the process is evaluating the body of the procedure inside an environment extended by the parameters.
+So, as long as the parameters have been evaluated, everything should be fine.
+
+So, I think the question is whether we have any guarantee the environment has already been extended.
+And, I think we do.
+For, otherwise we have no guarantee of execution for any compound procedure.
+
+~apply~ on a complex expression just evaluates the body of the procedure within an extended environment.
+So, whether or not we need to explicity expand ~let*~ is going to depend on the way this is evaluated, no?
