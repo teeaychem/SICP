@@ -10935,3 +10935,22 @@ For now, I think the observed derivation idea is sufficient.
 
 ** 4.10
 
+As we're only implementing a new syntax, this amounts to updating the test conditions.
+
+So, for example, we could write:
+
+#+BEGIN_SRC racket :tangle no
+  (define (definition? exp)
+    (tagged-list? exp ' def))
+#+END_SRC
+
+which would allow us to write ~(def …)~ rather than ~(define …)~.
+
+Or, we could reverse the order of every expression, by calling reverse on the evaluation of every expression.
+
+Some things require more care.
+For example, changing to infix notation for binary operators would be nice.
+But, this requires us to check each of the tests to ensure an infix expression would not be misclassified.
+As things stand, I think it should be easy to insert prior to the application case, though.
+
+I leave the details to some other time.
