@@ -3,6 +3,7 @@
 ;; Changes to the eval:
 ;; * Added support for let expressions as derived
 ;; * Added support for let* expressions
+;; * Added support for named let expressions
 
 (define (append list1 list2)
   (if (null? list1)
@@ -147,6 +148,9 @@
 (define (definition? exp)
   (tagged-list? exp 'define))
 
+(define (make-definition name params body)
+    (list 'define (cons name params) body))
+
 (define (definition-variable exp)
   (if (symbol? (cadr exp))
       (cadr exp)
@@ -270,14 +274,20 @@
   (cddr exp))
 
 (define (let->combination exp)
-  (display "displayed: ")
-  (display (let-var-values exp))
-  (newline)
-  (cons (make-lambda (let-var-terms exp)
-                     (let-body exp))
-        (let-var-values exp)))
+  (cond ((named-let? exp)
+         (cons (make-lambda (named-let-var-terms exp)
+                            (list
+                             (make-definition (named-let-name exp)
+                                              (named-let-var-terms exp)
+                                              (named-let-body exp))
+                             (cons (named-let-name exp)
+                           (named-let-var-terms exp))))
+	       (named-let-var-vals exp)))
+        (else (cons (make-lambda (let-var-terms exp)
+                                 (let-body exp))
+                    (let-var-values exp)))))
 
-;; named let's
+;; star let's
 
 (define (let*? exp)
   (tagged-list? exp 'let*))
@@ -296,6 +306,25 @@
 				    body)))))
   (expand-to-lets (let-var-terms exp) (let-var-values exp) (let-body exp)))
 
+;; named let's
+
+  (define (named-let? exp)
+    (variable? (car exp)))
+
+  (define (named-let-vars exp)
+    (caddr exp))
+
+  (define (named-let-name exp)
+    (cadr exp))
+
+  (define (named-let-var-terms exp)
+    (map car (caddr exp)))
+
+  (define (named-let-var-vals exp)
+    (map cadr (caddr exp)))
+
+  (define (named-let-body exp)
+    (cadddr exp))
 
 ;; evaluator data structures
 
@@ -407,6 +436,8 @@
         (list 'list list)
         (list '+ +)
         (list '* *)
+        (list '= =)
+        (list '- -)
         ; ⟨more primitives⟩
         ))
 

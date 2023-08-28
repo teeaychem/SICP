@@ -10922,8 +10922,7 @@ Then, it's just about parsing everything and piecing it back together.
 
 In particular, we create a ~let~ statement, a definition, and a procedure.
 
-If this is needed for anything, I'll return.
-Otherwise, I think the task is sufficiently clear and there isn't enough to be gained by working through it.
+This is implemented in the evaluator.
 
 ** 4.9
 *** while
@@ -11206,3 +11205,4 @@ Though, I don't think this is a good exercise.
 For, this relies on knowing the meta-language is distinct from the object language.
 Specifically, in the handling of procedures.
 And, I don't think there's any way to be sure of this without some experimentation.
+
