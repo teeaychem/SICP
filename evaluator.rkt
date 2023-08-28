@@ -5,7 +5,7 @@
 ;; * Added support for let* expressions
 ;; * Added support for named let expressions
 ;; * Added support for while constructs
-
+;; * Added support for scan-out-defines.
 
 (define (append list1 list2)
   (if (null? list1)
@@ -339,7 +339,7 @@
   (eq? x false))
 
 (define (make-procedure parameters body env)
-  (list 'procedure parameters body env))
+  (list 'procedure parameters (scan-out-defines body) env))
 
 (define (compound-procedure? p)
   (tagged-list? p 'procedure))
@@ -383,7 +383,10 @@
              (env-loop
               (enclosing-environment env)))
             ((eq? var (car vars))
-             (car vals))
+             (let ((val (car vals)))
+               (if (eq? '*unassigned* val)
+                   (error "Unassigned variable")
+                   val)))
             (else (scan (cdr vars)
                         (cdr vals)))))
     (if (eq? env the-empty-environment)
@@ -526,6 +529,22 @@
         (eval (while-body exp) env)
         (eval-while exp env))
       'false))
+
+
+;; scan-out-defines
+    (define (scan-out-defines body)
+      (let* ((term-list (cons 'terms nil))
+	     (last-term term-list))
+	(define (collect-replace exp)
+	  (cond ((and (definition? exp) (symbol? (cadr exp)))
+		 (let ((cell (cons (definition-variable exp) nil)))
+		   (set-cdr! last-term cell)
+		   (set! last-term cell))
+		 (set-car! exp 'set!)
+		 exp)
+		(else exp)))
+	(let ((new-bod (map collect-replace body)))
+	  (make-let (map (lambda (t) (cons t '*undefined*)) (cdr term-list)) (list new-bod)))))
 
 
 

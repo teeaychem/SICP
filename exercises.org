@@ -11207,3 +11207,104 @@ For, this relies on knowing the meta-language is distinct from the object langua
 Specifically, in the handling of procedures.
 And, I don't think there's any way to be sure of this without some experimentation.
 
+** 4.15
+
+#+BEGIN_SRC racket :tangle
+    (define (try p)
+      (if (halts? p p)
+	  (run-forever)
+	  'halted))
+#+END_SRC
+
+Consider:
+
+#+BEGIN_SRC racket
+  (try try)
+#+END_SRC
+
+The ~if~ condition checks to see whether the execution of the procedure ~try~ halts when given the procedure ~try~ as an argument.
+
+Suppose ~(halts? try try)~ is true.
+Then ~(try try)~ runs forever.
+A contradiction.
+
+Suppose ~(halts? try try)~ is false.
+Then, ~(try try)~ returns ~'halted~.
+A contradiction.
+
+Constructing a universal turing machine within a language is enough to show the language is turing complete.
+And, if you can construct a universal turing machine, then you have a way of treating procedures as data.
+So, for any turing complete language, there's some way to consider procedures both as instructions and as data.
+
+We haven't done too much with reading and writing data so far.
+Though, with the discussion of environments it's clear to see we can construct a tape for a turing machine of arbitrary length by defining either variables or a list.
+
+Hm.
+
+** 4.16
+
+*** a.
+
+#+BEGIN_SRC racket
+  (define (lookup-variable-value var env)
+    (define (env-loop env)
+      (define (scan vars vals)
+	(cond ((null? vars)
+	       (env-loop
+		(enclosing-environment env)))
+	      ((eq? var (car vars))
+	       (let ((val (car vals)))
+		 (if (eq? '*unassigned* val)
+		     (error "Unassigned variable")
+		     val)))
+	      (else (scan (cdr vars)
+			  (cdr vals)))))
+      (if (eq? env the-empty-environment)
+	  (error "Unbound variable" var)
+	  (let ((frame (first-frame env)))
+	    (scan (frame-variables frame)
+		  (frame-values frame)))))
+    (env-loop env))
+#+END_SRC
+
+*** b.
+
+It's a little messy, though today it's too late for improvements.
+
+In short, we set up a list for the terms, and a pointer to the last element of the list in order to easily add new elements.
+Then, the core of the procedure is the 'destructive' ~collect-replace~.
+This adds elements to the list, and rewrites the body.
+We apply this to each expression in the body by ~map~.
+As ~collect-replace~ builds the term list, we store the output and then make a call to ~make-let~.
+
+Could parse and replace separately, but that's two scans of the body.
+So, while conceptually nice, is fairly inefficient.
+
+Could also do something more involved for procedure definitions, as these are rewritten.
+Though, I don't see this as expected, and it's not super interesting.
+
+#+BEGIN_SRC racket
+    (define (scan-out-defines body)
+      (let* ((term-list (cons 'terms nil))
+	     (last-term term-list))
+	(define (collect-replace exp)
+	  (cond ((and (definition? exp) (symbol? (cadr exp)))
+		 (let ((cell (cons (definition-variable exp) nil)))
+		   (set-cdr! last-term cell)
+		   (set! last-term cell))
+		 (set-car! exp 'set!)
+		 exp)
+		(else exp)))
+	(let ((new-bod (map collect-replace body)))
+	  (make-let (map (lambda (t) (cons t '*undefined*)) (cdr term-list)) (list new-bod)))))
+#+END_SRC
+
+
+*** c.
+
+~make-procedure~ is only invoked when a lambda expression is evaluated.
+Though, ~procedure-body~ is only evaluated given a compound-procedure.
+
+So, at the core, the only non-primitve application is beta reduction.
+
+In this respect, it seems preferable to include ~scan-out-defines~ in ~make-procedure~, as we won't then need to reapply the transformation every time the procedure is evaluated.
