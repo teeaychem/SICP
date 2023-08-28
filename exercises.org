@@ -10743,7 +10743,10 @@ Though, to help keep things general and clear, we define a handful of helper pro
     (cddr exp))
 #+END_SRC
 
-With this, ~let->combination~ is simple:
+#+RESULTS:
+: 30
+
+  With this, ~let->combination~ is simple:
 
 #+BEGIN_SRC racket
   (define (let->combination exp)
@@ -10809,9 +10812,12 @@ For a reduction, the idea is to recursively apply ~make-let~ until the vars have
 
 #+NAME: def:make-let
 #+BEGIN_SRC racket
-  (define (make-let vars body)
-    (list 'let vars body))
+  (define (make-let list-of-vars body)
+    (append (list 'let list-of-vars) body))
 #+END_SRC
+
+Note, when making a let we can't assume the body is a single expression.
+So, we need to append the body, rather than include it in the list.
 
 #+NAME: def:let*->nested-lets
 #+BEGIN_SRC racket
@@ -10820,25 +10826,47 @@ For a reduction, the idea is to recursively apply ~make-let~ until the vars have
     <<def:let-var-values>>
     <<def:let-body>>
     <<def:make-let>>
-    (define (nested-lets var-terms var-values body)
+    (define (expand-to-lets var-terms var-values body)
       (if (null? (cdr var-terms))
-	  (make-let (cons (car var-terms) (car var-values)) body)
-	  (make-let (cons (car var-terms) (car var-values)) (nested-lets (cdr var-terms) (cdr var-values) body))))
-    (nested-lets (let-var-terms exp) (let-var-values exp) (let-body exp)))
+	  (make-let (list (list (car var-terms) (car var-values)))
+		    body)
+	  (make-let (list (list (car var-terms) (car var-values)))
+		    (list (expand-to-lets (cdr var-terms)
+					  (cdr var-values)
+					  body)))))
+    (expand-to-lets (let-var-terms exp) (let-var-values exp) (let-body exp)))
 #+END_SRC
 
-Here's a test:
+
+Note, the recursive case.
+We don't want a let expression.
+Rather, we want the body of a let expression, which is a sequence of expressions.
+In our case, this is a single expression, but it's key to keep the distinction in mind.
+
+
+Here's two tests:
 
 #+BEGIN_SRC racket
   <<def:let*->nested-lets>>
-  (define test (list 'let* (list (list 'a 1) (list 'b 2)) (list '* 'a 'b)))
+  (define test (list 'let* (list (list 'a 1) (list 'b 2) (list 'c (list '* 'a 'b))) (list '* 'a 'b)))
   test
   (let*->nested-lets test)
+
+  (define other-test '(let* ((x 3)
+			     (y (+ x 2))
+			     (z (+ x y 5)))
+			(* x z)))
+  (let*->nested-lets other-test)
 #+END_SRC
 
 #+RESULTS:
-: (let* ((a 1) (b 2)) (* a b))
-: (let (a . 1) (let (b . 2) (* a b)))
+: (let* ((a 1) (b 2) (c (* a b))) (* a b))
+: (let ((a 1)) (let ((b 2)) (let ((c (* a b))) (* a b))))
+: (let ((x 3)) (let ((y (+ x 2))) (let ((z (+ x y 5))) (* x z))))
+
+#+BEGIN_SRC racket
+  (let ((x 3)) (let ((y (+ x 2))) (let ((z (+ x y 5))) (* x z))))
+#+END_SRC
 
 One worry is that eval is recursive.
 Hence, it may appear the inner-most lambda is evaluated prior to any other.

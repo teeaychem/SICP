@@ -1,5 +1,15 @@
 #lang sicp
 
+;; Changes to the eval:
+;; * Added support for let expressions as derived
+;; * Added support for let* expressions
+
+(define (append list1 list2)
+  (if (null? list1)
+      list2
+      (cons (car list1) (append (cdr list1) list2))))
+
+
 ;; eval
 
 (define (eval exp env)
@@ -28,6 +38,8 @@
          (eval (cond->if exp) env))
         ((let? exp)
          (eval (let->combination exp) env))
+        ((let*? exp)
+         (eval (let*->nested-lets exp) env))
         ((application? exp)
          (meta-apply (eval (operator exp) env)
                 (list-of-values
@@ -265,6 +277,25 @@
                      (let-body exp))
         (let-var-values exp)))
 
+;; named let's
+
+(define (let*? exp)
+  (tagged-list? exp 'let*))
+
+(define (make-let vars body)
+  (append (list 'let vars) body))
+
+(define (let*->nested-lets exp)
+    (define (expand-to-lets var-terms var-values body)
+      (if (null? (cdr var-terms))
+	  (make-let (list (list (car var-terms) (car var-values)))
+		    body)
+	  (make-let (list (list (car var-terms) (car var-values)))
+		    (list (expand-to-lets (cdr var-terms)
+				    (cdr var-values)
+				    body)))))
+  (expand-to-lets (let-var-terms exp) (let-var-values exp) (let-body exp)))
+
 
 ;; evaluator data structures
 
@@ -375,6 +406,7 @@
         (list 'null? null?)
         (list 'list list)
         (list '+ +)
+        (list '* *)
         ; ⟨more primitives⟩
         ))
 
@@ -435,7 +467,7 @@
 (define the-global-environment
   (setup-environment))
 
- (driver-loop)
+(driver-loop)
 
 
 
