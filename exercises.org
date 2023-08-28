@@ -11308,3 +11308,18 @@ Though, ~procedure-body~ is only evaluated given a compound-procedure.
 So, at the core, the only non-primitve application is beta reduction.
 
 In this respect, it seems preferable to include ~scan-out-defines~ in ~make-procedure~, as we won't then need to reapply the transformation every time the procedure is evaluated.
+
+** 4.17
+
+There's an extra frame as the ~let~ construction hides the evaluation of a lambda expression, where the terms of the let placed in the created frame.
+
+Definitions, by contrast, simply add a term to the current frame.
+
+This never makes a difference as the frame introduced by ~let~ is transparent with respect to everything but the terms defined.
+Though, this could be a problem if there is checking for term collision.
+Generally speaking, this is probably why procedures aren't easily included in let statements.
+
+I'm not sure why we'd want to do this.
+But, we could introduce a parallel of the lambda construction which writes directly to the current frame.
+
+(Note, there's no need to make this public.a)
