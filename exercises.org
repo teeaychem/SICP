@@ -11322,4 +11322,74 @@ Generally speaking, this is probably why procedures aren't easily included in le
 I'm not sure why we'd want to do this.
 But, we could introduce a parallel of the lambda construction which writes directly to the current frame.
 
-(Note, there's no need to make this public.a)
+(Note, there's no need to make this public.)
+
+
+** 4.18
+
+So, u and v now point to terms of a sub-frame.
+However, we make this assigment in the sub-frame, where we have access to u, v, and the terms of the sub-frame.
+
+So, this should work so long as we're not evaluating anything.
+
+Here's a quick test:
+
+#+BEGIN_SRC racket
+  (let ((a 3))
+    (let ((b 4))
+      (set! a b)
+      (display "inner a call: ")
+      (display a)
+      (newline))
+    (display "outer a call: ")
+    (display a)
+    (newline))
+#+END_SRC
+
+#+RESULTS:
+: inner a: 4
+: outer a: 4
+
+However, with cross reference, there's an issue.
+For example:
+
+#+BEGIN_SRC racket
+  (let ((a1 0)
+	(a2 0))
+    (let ((a 3)
+	  (b (+ a 1)))
+      (set! a1 a)
+      (set! a2 b)
+      a)
+    a)
+#+END_SRC
+
+Here, we'd apply ~(+ a 1)~ as an argument to the lambda expression obtained by transforming the inner let.
+But, ~a~ is not in the outer frame.
+
+In the text a delay is involved:
+
+#+BEGIN_SRC racket :tangle no
+  (define (solve f yO dt)
+    (define y (integral (delay dy)))
+    (define dy (stream-map f y))
+    y)
+#+END_SRC
+
+Here, we don't need the value of ~dy~ to evaluate ~y~.
+However, what to make of the delay?
+Plausibly, we still want a link to ~dy~ in order to know what to ~force~.
+Though, I guess in principle ~delay~ could add a new variable to the frame, and then store the un-evaluated input.
+Which, maybe, makes more sense, for a 'true' delay.
+I mean, nothing about the environment should change in a way that matters (so long as we don't allow unassignment).
+
+So, maybe this works…
+
+** 4.19
+
+Yeah, Eva's view makes sense.
+
+The definitions are meant to be simultaneous, then when evaluating ~b~ the question is what is the value of ~a~ now?
+And, right now ~a~ has the value 5, as at the same time as ~b~ is set, ~a~ is also set.
+
+I guess you'd want to figure out a unique (maybe up to value assigned isomorphism) dag, and return an error if none exists.
