@@ -4,6 +4,8 @@
 ;; * Added support for let expressions as derived
 ;; * Added support for let* expressions
 ;; * Added support for named let expressions
+;; * Added support for while constructs
+
 
 (define (append list1 list2)
   (if (null? list1)
@@ -26,6 +28,8 @@
          (eval-definition exp env))
         ((if? exp)
          (eval-if exp env))
+        ((while? exp)
+         (eval-while exp env))
         ((lambda? exp)
          (make-procedure
           (lambda-parameters exp)
@@ -438,6 +442,9 @@
         (list '* *)
         (list '= =)
         (list '- -)
+        (list '< <)
+        (list 'display display)
+        (list 'newline newline)
         ; ⟨more primitives⟩
         ))
 
@@ -494,6 +501,33 @@
     (define-variable! 'true true initial-env)
     (define-variable! 'false false initial-env)
     initial-env))
+
+
+
+;; while
+
+;;   (define (while condition procedure)
+;;    (if (condition)
+;;	(begin (procedure)
+;;	       (while condition procedure))))
+
+(define (while? exp)
+  (tagged-list? exp 'while))
+
+(define (while-cond exp)
+  (cadr exp))
+
+  (define (while-body exp)
+    (cons 'begin (cddr exp)))
+
+(define (eval-while exp env)
+  (if (true? (eval (while-cond exp) env))
+      (begin
+        (eval (while-body exp) env)
+        (eval-while exp env))
+      'false))
+
+
 
 (define the-global-environment
   (setup-environment))

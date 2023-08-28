@@ -10959,6 +10959,8 @@ We can do much better with a derived expression, as when evaluating ~while~ we c
 
 For now, I think the observed derivation idea is sufficient.
 
+This is implemented in the evaluator
+
 ** 4.10
 
 As we're only implementing a new syntax, this amounts to updating the test conditions.
@@ -11175,7 +11177,6 @@ And, the found prcoedure removes the current var and val from the lists.
 						  #t))
 		      env))
 #+END_SRC
-
 
 ** 4.14
 
