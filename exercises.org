@@ -10734,13 +10734,13 @@ Though, to help keep things general and clear, we define a handful of helper pro
 #+NAME: def:let-var-values
 #+BEGIN_SRC racket
   (define (let-var-values exp)
-    (map car (map cdr (cadr exp))))
+    (map cadr (cadr exp)))
 #+END_SRC
 
 #+NAME: def:let-body
 #+BEGIN_SRC racket
   (define (let-body exp)
-    (caddr exp))
+    (cddr exp))
 #+END_SRC
 
 With this, ~let->combination~ is simple:
@@ -11150,3 +11150,31 @@ And, the found prcoedure removes the current var and val from the lists.
 #+END_SRC
 
 
+** 4.14
+
+~map~ applies a procedure to elements of a list.
+
+#+BEGIN_SRC racket :tangle no
+    (define (map proc items)
+      (if (null? items)
+	  nil
+	  (cons (proc (car items))
+		(map proc (cdr items)))))
+#+END_SRC
+
+We've evaluated everything in sub-environments of the meta-global-environment.
+
+So, in particular, the evaluation of everything happens outside the metacircular evaluator.
+
+Focus on proc.
+This is evaluated by the metacircular evaluator.
+As we have a definition, this leads to a compound procedure.
+
+If the compound procedures differ between the evaluator and the metacircular evaluator, then map fails to apply the procedure to the arguments.
+
+Testing things out, this seems to be the issue.
+
+Though, I don't think this is a good exercise.
+For, this relies on knowing the meta-language is distinct from the object language.
+Specifically, in the handling of procedures.
+And, I don't think there's any way to be sure of this without some experimentation.

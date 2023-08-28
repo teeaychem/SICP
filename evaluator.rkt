@@ -26,6 +26,8 @@
           env))
         ((cond? exp)
          (eval (cond->if exp) env))
+        ((let? exp)
+         (eval (let->combination exp) env))
         ((application? exp)
          (meta-apply (eval (operator exp) env)
                 (list-of-values
@@ -206,7 +208,6 @@
 
 ;; derived expressions
 
-
 (define (cond? exp)
   (tagged-list? exp 'cond))
 
@@ -242,9 +243,30 @@
                      (expand-clauses
                       rest))))))
 
+; let's
+
+(define (let? exp)
+  (tagged-list? exp 'let))
+
+(define (let-var-terms exp)
+  (map car (cadr exp)))
+
+(define (let-var-values exp)
+  (map cadr (cadr exp)))
+
+(define (let-body exp)
+  (cddr exp))
+
+(define (let->combination exp)
+  (display "displayed: ")
+  (display (let-var-values exp))
+  (newline)
+  (cons (make-lambda (let-var-terms exp)
+                     (let-body exp))
+        (let-var-values exp)))
+
 
 ;; evaluator data structures
-
 
 (define (true? x)
   (not (eq? x false)))
@@ -340,9 +362,6 @@
 ;; running the evaluator as a program
 
 
-
-
-
 (define (primitive-procedure? proc)
   (tagged-list? proc 'primitive))
 
@@ -354,6 +373,7 @@
         (list 'cdr cdr)
         (list 'cons cons)
         (list 'null? null?)
+        (list 'list list)
         (list '+ +)
         ; ⟨more primitives⟩
         ))
@@ -371,8 +391,8 @@
    (primitive-implementation proc) args))
 
 
-
 (define input-prompt  ";;; M-Eval input:")
+
 (define output-prompt ";;; M-Eval value:")
 
 (define (driver-loop)
@@ -416,3 +436,6 @@
   (setup-environment))
 
  (driver-loop)
+
+
+
