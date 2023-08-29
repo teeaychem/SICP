@@ -11480,3 +11480,98 @@ Ah well…
 
 This is highlighting how let statements involve evaluation due to really being lambda expressions, no?
 I figure this should be clear by now…
+
+** 4.21
+
+*** a.
+
+We have:
+
+#+BEGIN_SRC racket
+  ((lambda (n)
+     ((lambda (fact) (fact fact n))
+      (lambda (ft k)
+	(if (= k 1)
+	    1
+	    (* k (ft ft (- k 1))))))) 5)
+#+END_SRC
+
+#+RESULTS:
+: 120
+
+Following this pattern, the Fibonacci numbers is straightforward:
+
+#+BEGIN_SRC racket
+  ((lambda (n)
+     ((lambda (fib) (fib fib n))
+      (lambda (fb k)
+	(cond ((= k 0) 0)
+	      ((= k 1) 1)
+	      (else (+ (fb fb (- k 2)) (fb fb (- k 1))))))))
+   6)
+#+END_SRC
+
+#+RESULTS:
+: 8
+
+*** aside.
+
+This is a fixed point combinator, right?
+
+Mostly.
+
+It's quite nice.
+
+After setup we have ~(fb lambda.fb n)~.
+So, the first instance of ~fb~ is evaluated fully.
+If ~k~ is not a base case, then this results in repeat instances, with a different ~k~.
+
+Right, this is just a fixed point combinator, where a base case is included.
+Ignoring the base case, ~lambda.fb~ is of the form ~(lambda (x) (f x x))~.
+
+*** b.
+
+#+BEGIN_SRC racket
+  (define (f x)
+    (define (even? n)
+      (if (= n 0)
+	  true
+	  (odd? (- n 1))))
+    (define (odd? n)
+      (if (= n 0)
+	  false
+	  (even? (- n 1))))
+    (even? x))
+
+  (f 17)
+  (f 26)
+#+END_SRC
+
+#+RESULTS:
+: #f
+: #t
+
+
+#+BEGIN_SRC racket
+  (define (f x)
+    ((lambda (even? odd?)
+       (even? even? odd? x))
+     (lambda (ev? od? n)
+       (if (= n 0)
+	   true
+	   (od? ev? od? (- n 1))))
+     (lambda (ev? od? n)
+       (if (= n 0)
+	   false
+	   (ev? ev? od? (- n 1))))))
+
+  (f 17)
+  (f 26)
+#+END_SRC
+
+#+RESULTS:
+: #f
+: #t
+
+Right, and a fixed points of two mutually defined functions.
+Neat.
