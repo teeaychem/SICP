@@ -547,7 +547,7 @@
     (if (> 1 (length term-list))
         (let ((new-bod (map collect-replace body)))
           (make-let
-           (map (lambda (t) (cons t '*undefined*)) (cdr term-list))
+           (map (lambda (t) (cons t '*unassigned*)) (cdr term-list))
            (list new-bod)))
         body)))
 
@@ -593,7 +593,7 @@
 	(change-to-set! (letrec-assignments exp))
 	(merge-sets-body exp)
 	(cons (make-lambda outervars (cadr exp))
-	      (map (lambda (x) '*undefined*) outervars))))
+	      (map (lambda (x) '*unassigned*) outervars))))
 
 
 ;; driver

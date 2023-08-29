@@ -11417,6 +11417,8 @@ I guess you'd want to figure out a unique (maybe up to value assigned isomorphis
 
 ** 4.20
 
+*** a.
+
 #+BEGIN_SRC racket
   (letrec ((fact
 	    (lambda (n)
@@ -11462,8 +11464,19 @@ This is implemnted in the evaluator, with the key procedures reproduced here:
 	(change-to-set! (letrec-assignments exp))
 	(merge-sets-body exp)
 	(cons (make-lambda outervars (cadr exp))
-	      (map (lambda (x) ''*undefined*) outervars))))
+	      (map (lambda (x) ''*unassigned*) outervars))))
 #+END_SRC
 
 Note the double quotation of ~*undefined*~.
 I'll figure out why this is the case some other time…
+In contrast to the use of ~*unassigned*~ in ~scan-out-defines~, we're evaluating each ~*unassigned*~, given these are passed as arguments to a lambda term.
+Though, I'm not sure why this would lead to the term being understood as a variable…
+
+To be honest, I think a non-destructive approach would have been easier.
+Only need to map the terms and varibles to a set! expression and then append the body.
+Ah well…
+
+*** b.
+
+This is highlighting how let statements involve evaluation due to really being lambda expressions, no?
+I figure this should be clear by now…
