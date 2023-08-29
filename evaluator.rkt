@@ -5,7 +5,8 @@
 ;; * Added support for let* expressions
 ;; * Added support for named let expressions
 ;; * Added support for while constructs
-;; * Added support for scan-out-defines.
+;; * Added support for scan-out-defines (I think).
+;; * Added support for letrec.
 
 (define (append list1 list2)
   (if (null? list1)
@@ -45,6 +46,8 @@
          (eval (let->combination exp) env))
         ((let*? exp)
          (eval (let*->nested-lets exp) env))
+        ((letrec? exp)
+         (eval (letrec->let exp) env))
         ((application? exp)
          (meta-apply (eval (operator exp) env)
                 (list-of-values
@@ -285,11 +288,12 @@
                                               (named-let-var-terms exp)
                                               (named-let-body exp))
                              (cons (named-let-name exp)
-                           (named-let-var-terms exp))))
-	       (named-let-var-vals exp)))
-        (else (cons (make-lambda (let-var-terms exp)
-                                 (let-body exp))
-                    (let-var-values exp)))))
+                                   (named-let-var-terms exp))))
+               (named-let-var-vals exp)))
+        (else
+         (cons (make-lambda (let-var-terms exp)
+                            (let-body exp))
+               (let-var-values exp)))))
 
 ;; star let's
 
@@ -313,7 +317,7 @@
 ;; named let's
 
   (define (named-let? exp)
-    (variable? (car exp)))
+    (variable? (cadr exp)))
 
   (define (named-let-vars exp)
     (caddr exp))
@@ -339,7 +343,9 @@
   (eq? x false))
 
 (define (make-procedure parameters body env)
-  (list 'procedure parameters (scan-out-defines body) env))
+  (list 'procedure parameters
+        (scan-out-defines body)
+        env))
 
 (define (compound-procedure? p)
   (tagged-list? p 'procedure))
@@ -387,14 +393,14 @@
                (if (eq? '*unassigned* val)
                    (error "Unassigned variable")
                    val)))
-            (else (scan (cdr vars)
-                        (cdr vals)))))
-    (if (eq? env the-empty-environment)
-        (error "Unbound variable" var)
-        (let ((frame (first-frame env)))
-          (scan (frame-variables frame)
-                (frame-values frame)))))
-  (env-loop env))
+             (else (scan (cdr vars)
+                         (cdr vals)))))
+      (if (eq? env the-empty-environment)
+          (error "Unbound variable" var)
+          (let ((frame (first-frame env)))
+            (scan (frame-variables frame)
+                  (frame-values frame)))))
+    (env-loop env))
 
 (define (set-variable-value! var val env)
   (define (env-loop env)
@@ -509,11 +515,6 @@
 
 ;; while
 
-;;   (define (while condition procedure)
-;;    (if (condition)
-;;	(begin (procedure)
-;;	       (while condition procedure))))
-
 (define (while? exp)
   (tagged-list? exp 'while))
 
@@ -532,21 +533,70 @@
 
 
 ;; scan-out-defines
-    (define (scan-out-defines body)
-      (let* ((term-list (cons 'terms nil))
-	     (last-term term-list))
-	(define (collect-replace exp)
-	  (cond ((and (definition? exp) (symbol? (cadr exp)))
-		 (let ((cell (cons (definition-variable exp) nil)))
-		   (set-cdr! last-term cell)
-		   (set! last-term cell))
-		 (set-car! exp 'set!)
-		 exp)
-		(else exp)))
-	(let ((new-bod (map collect-replace body)))
-	  (make-let (map (lambda (t) (cons t '*undefined*)) (cdr term-list)) (list new-bod)))))
+(define (scan-out-defines body)
+  (let* ((term-list (cons 'terms nil))
+         (last-term term-list))
+    (define (collect-replace exp)
+      (cond ((and (definition? exp) (symbol? (cadr exp)))
+             (let ((cell (cons (definition-variable exp) nil)))
+               (set-cdr! last-term cell)
+               (set! last-term cell))
+             (set-car! exp 'set!)
+             exp)
+            (else exp)))
+    (if (> 1 (length term-list))
+        (let ((new-bod (map collect-replace body)))
+          (make-let
+           (map (lambda (t) (cons t '*undefined*)) (cdr term-list))
+           (list new-bod)))
+        body)))
+
+;; letrec
+
+    (define (letrec? exp)
+    (tagged-list? exp 'letrec))
 
 
+  (define (letrec-var-terms exp)
+		 (map car (cadr exp)))
+
+  (define (letrec-vars exp)
+    (cadr exp))
+
+  (define (letrec-assignments exp)
+    (cadr exp))
+
+  (define (change-to-set! assignments)
+    (if (not (null? assignments))
+	(begin
+	  (let ((assignment (car assignments))
+		(insert (cons 'set! nil)))
+	    (set-cdr! insert assignment)
+	    (set-car! assignments insert))
+	  (change-to-set! (cdr assignments)))))
+
+  (define (merge-sets-body exp)
+    (let ((end-of-assingments (letrec-assignments exp)))
+      (define (ensure-end)
+	(if (not (null? (cdr end-of-assingments)))
+	    (begin
+	      (set! end-of-assingments (cdr end-of-assingments))
+	      (ensure-end))))
+      (ensure-end)
+      (set-cdr! end-of-assingments (cddr exp)))
+    (set-cdr! exp (cons (cadr exp) nil)))
+
+
+
+  (define (letrec->let exp)
+      (let ((outervars (letrec-var-terms exp)))
+	(change-to-set! (letrec-assignments exp))
+	(merge-sets-body exp)
+	(cons (make-lambda outervars (cadr exp))
+	      (map (lambda (x) '*undefined*) outervars))))
+
+
+;; driver
 
 (define the-global-environment
   (setup-environment))

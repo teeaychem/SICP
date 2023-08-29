@@ -11242,7 +11242,6 @@ Though, with the discussion of environments it's clear to see we can construct a
 Hm.
 
 ** 4.16
-
 *** a.
 
 #+BEGIN_SRC racket
@@ -11283,22 +11282,44 @@ So, while conceptually nice, is fairly inefficient.
 Could also do something more involved for procedure definitions, as these are rewritten.
 Though, I don't see this as expected, and it's not super interesting.
 
+Update: I'm not clear on whether this /actually/ works.
+The output is as expected in tests, but it causes some issues if applied to any body.
+For the moment, this is modified to only make the transformation if an internal definiton is found.
+
 #+BEGIN_SRC racket
-    (define (scan-out-defines body)
+  (define (scan-out-defines body)
       (let* ((term-list (cons 'terms nil))
-	     (last-term term-list))
-	(define (collect-replace exp)
-	  (cond ((and (definition? exp) (symbol? (cadr exp)))
-		 (let ((cell (cons (definition-variable exp) nil)))
-		   (set-cdr! last-term cell)
-		   (set! last-term cell))
-		 (set-car! exp 'set!)
-		 exp)
-		(else exp)))
-	(let ((new-bod (map collect-replace body)))
-	  (make-let (map (lambda (t) (cons t '*undefined*)) (cdr term-list)) (list new-bod)))))
+	   (last-term term-list))
+      (define (collect-replace exp)
+	(cond ((and (definition? exp) (symbol? (cadr exp)))
+	       (let ((cell (cons (definition-variable exp) nil)))
+		 (set-cdr! last-term cell)
+		 (set! last-term cell))
+	       (set-car! exp 'set!)
+	       exp)
+	      (else exp)))
+      (if (> 1 (length term-list))
+	  (let ((new-bod (map collect-replace body)))
+	    (make-let
+	     (map (lambda (t) (cons t '*undefined*)) (cdr term-list))
+	     (list new-bod)))
+	  body)))
 #+END_SRC
 
+The following evaluates fine:
+
+#+BEGIN_SRC racket
+  (define (f x)
+    (define (even? n)
+      (if (= n 0)
+	  true
+	  (odd? (- n 1))))
+    (define (odd? n)
+      (if (= n 0)
+	  false
+	  (even? (- n 1))))
+    (even? x))
+#+END_SRC
 
 *** c.
 
@@ -11393,3 +11414,56 @@ The definitions are meant to be simultaneous, then when evaluating ~b~ the quest
 And, right now ~a~ has the value 5, as at the same time as ~b~ is set, ~a~ is also set.
 
 I guess you'd want to figure out a unique (maybe up to value assigned isomorphism) dag, and return an error if none exists.
+
+** 4.20
+
+#+BEGIN_SRC racket
+  (letrec ((fact
+	    (lambda (n)
+	      (if (= n 1)
+		  1
+		  (* n (fact (- n 1)))))))
+    (fact 10))
+#+END_SRC
+
+#+RESULTS:
+: 3628800
+
+As with other let transformations, it's easy to get a list of the terms.
+And, this time the transformation is highly descrtuctive.
+First, we change all the assignemnts to set.
+Second, as these are now procedures to execute, we merge the assignments with the body of the letrec expression.
+
+This is implemnted in the evaluator, with the key procedures reproduced here:
+
+#+BEGIN_SRC racket
+  (define (change-to-set! assignments)
+    (if (not (null? assignments))
+	(begin
+	  (let ((assignment (car assignments))
+		(insert (cons 'set! nil)))
+	    (set-cdr! insert assignment)
+	    (set-car! assignments insert))
+	  (change-to-set! (cdr assignments)))))
+
+  (define (merge-sets-body exp)
+    (let ((end-of-assingments (letrec-assignments exp)))
+      (define (ensure-end)
+	(if (not (null? (cdr end-of-assingments)))
+	    (begin
+	      (set! end-of-assingments (cdr end-of-assingments))
+	      (ensure-end))))
+      (ensure-end)
+      (set-cdr! end-of-assingments (cddr exp)))
+    (set-cdr! exp (cons (cadr exp) nil)))
+
+  (define (letrec->let exp)
+      (let ((outervars (letrec-var-terms exp)))
+	(change-to-set! (letrec-assignments exp))
+	(merge-sets-body exp)
+	(cons (make-lambda outervars (cadr exp))
+	      (map (lambda (x) ''*undefined*) outervars))))
+#+END_SRC
+
+Note the double quotation of ~*undefined*~.
+I'll figure out why this is the case some other time…
