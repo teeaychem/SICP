@@ -11594,3 +11594,46 @@ As, looping on ~analyze-while~ would require re-analysis every time.
     (lambda (env) (a-while env))))
 
 #+END_SRC
+
+
+** 4.23
+
+Contrast:
+
+#+BEGIN_SRC racket :tangle no
+  (define (analyze-sequence exps)
+    (define (execute-sequence procs env)
+      (cond ((null? (cdr procs))
+	     ((car procs) env))
+	    (else ((car procs) env)
+		  (execute-sequence
+		   (cdr procs) env))))
+    (let ((procs (map analyze exps)))
+      (if (null? procs)
+	  (error "Empty sequence:
+		ANALYZE"))
+      (lambda (env)
+	(execute-sequence procs env))))
+#+END_SRC
+
+To:
+
+#+BEGIN_SRC racket :tangle no
+  (define (analyze-sequence exps)
+    (define (sequentially proc1 proc2)
+      (lambda (env) (proc1 env) (proc2 env)))
+    (define (loop first-proc rest-procs)
+      (if (null? rest-procs)
+	  first-proc
+	  (loop (sequentially first-proc
+			      (car rest-procs))
+		(cdr rest-procs))))
+    (let ((procs (map analyze exps)))
+      (if (null? procs)
+	  (error "Empty sequence: ANALYZE"))
+      (loop (car procs) (cdr procs))))
+#+END_SRC
+
+This is the same issue as ~while~.
+If procedures are internal to ~execute-sequence~, then these are analysed on every recursive call.
+Hence, we need an internal loop procedure.
