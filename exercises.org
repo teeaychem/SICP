@@ -10407,7 +10407,6 @@ And, some tests:
 
 * Chapter 4
 
-
 ** 4.1
 
 One approach, which doesn't seem quite right is to make use of ~let~.
@@ -11345,7 +11344,6 @@ But, we could introduce a parallel of the lambda construction which writes direc
 
 (Note, there's no need to make this public.)
 
-
 ** 4.18
 
 So, u and v now point to terms of a sub-frame.
@@ -11482,7 +11480,6 @@ This is highlighting how let statements involve evaluation due to really being l
 I figure this should be clear by now…
 
 ** 4.21
-
 *** a.
 
 We have:
@@ -11575,3 +11572,25 @@ Ignoring the base case, ~lambda.fb~ is of the form ~(lambda (x) (f x x))~.
 
 Right, and a fixed points of two mutually defined functions.
 Neat.
+
+** 4.22
+
+There's very little to do here, as let (and all the variations of let considered) are derived.
+
+So, for something a little more involved, ~while~ is also updated.
+
+Here, the idea is to save both the analysis of the predicate and body, then create an internal if-then-loop which only works with the evaluated expressions.
+As, looping on ~analyze-while~ would require re-analysis every time.
+
+#+BEGIN_SRC racket :tangle no
+(define (analyze-while exp)
+  (let ((w-p (analyze (while-cond exp)))
+        (w-b (analyze (while-body exp))))
+    (define (a-while env)
+      (if (true? (w-p env))
+          (begin (w-b env)
+                 (a-while env))
+          'false))
+    (lambda (env) (a-while env))))
+
+#+END_SRC
