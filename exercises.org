@@ -11595,6 +11595,8 @@ As, looping on ~analyze-while~ would require re-analysis every time.
 
 #+END_SRC
 
+Note, it would be nice to extend this to allow specifying a post condition.
+Another extension would be to specify local variables with initial values.
 
 ** 4.23
 
@@ -11637,3 +11639,62 @@ To:
 This is the same issue as ~while~.
 If procedures are internal to ~execute-sequence~, then these are analysed on every recursive call.
 Hence, we need an internal loop procedure.
+
+** 4.24
+
+Some other time!
+
+At the moment, all interaction with the evaluator is direct.
+To do some tests, I'd like some way to automate everything.
+
+** 4.25
+
+Consider:
+
+#+BEGIN_SRC racket :tangle no
+  (define (unless condition
+	    usual-value
+	    exceptional-value)
+    (if condition
+	exceptional-value
+	usual-value))
+
+  (define (factorial n)
+    (unless (= n 1)
+      (* n (factorial (- n 1)))
+      1))
+
+  (factorial 5)
+#+END_SRC
+
+If ~unless~ simply passed the arguments through to ~if~, then things would be fine.
+
+Still, as ~unless~ is a definition, both arguments are evaluated in applicative-order.
+The condition is easy, as it's just a predicate.
+The usual value is a problem, as this triggers further calls to factorial.
+In particalar, we'll escape the base case when ~n~ is 1.
+And, there's nothing that can be done to avoid this.
+Even if the condition is triggered for any n < 2, it will still be evaluated for each n.
+
+In normal order, arguments are evaluated as needed, and so ~unless~ becomes transparent to the underlying ~if~.
+
+To help see this, evaluate the following syntactic rewrite:
+
+#+BEGIN_SRC racket
+  (define (factorial n)
+    (if (= n 1)
+	1
+	(* n (factorial (- n 1)))))
+
+  (factorial 5)
+#+END_SRC
+
+#+RESULTS:
+: 120
+
+** 4.26
+
+The observation that ~unless~ may be implemented as a special form was made in the previous exercise.
+
+I can't think of any case in which you'd want both ~unless~ and ~if~.
+The only difference is the order of the arguments.
