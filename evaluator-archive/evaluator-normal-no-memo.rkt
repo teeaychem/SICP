@@ -155,6 +155,7 @@
 (define (eval-definition exp env)
   (define-variable!
     (definition-variable exp)
+    ; (delay-it (definition-value exp) env) ; defer eval of definitions
     (eval (definition-value exp) env)
     env)
   'ok)

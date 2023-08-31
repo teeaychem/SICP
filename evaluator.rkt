@@ -124,16 +124,15 @@
   (cadr evaluated-thunk))
 
 (define (force-it obj)
-  (cond ((thunk? obj)
-         (let ((result
+  (cond ((thunk? obj) ; if thunk, goal is to memo
+         (let ((result ; result stores result of evaluating the thunk
                 (actual-value
                  (thunk-exp obj)
                  (thunk-env obj))))
-           (set-car! obj 'evaluated-thunk)
-           ;; replace exp with its value:
-           (set-car! (cdr obj) result)
-           ;; forget unneeded env:
-           (set-cdr! (cdr obj) '())
+           (set-car! obj 'evaluated-thunk) ; change the current tag.
+           (set-car! (cdr obj) result) ; update the result
+           (set-cdr! (cdr obj) '()) ; env is no longer needed, as no more calls to eval.
+                                    ; could leave, but I guess forgetting will help clean-up
            result))
         ((evaluated-thunk? obj)
          (thunk-value obj))
@@ -171,6 +170,7 @@
 (define (eval-definition exp env)
   (define-variable!
     (definition-variable exp)
+    ; (delay-it (definition-value exp) env) ; defer eval of definitions
     (eval (definition-value exp) env)
     env)
   'ok)

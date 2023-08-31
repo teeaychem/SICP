@@ -11698,3 +11698,45 @@ The observation that ~unless~ may be implemented as a special form was made in t
 
 I can't think of any case in which you'd want both ~unless~ and ~if~.
 The only difference is the order of the arguments.
+
+** 4.27
+
+We evaluate the following:
+
+#+BEGIN_SRC racket
+  (define count 0)
+
+  (define (id x) (set! count (+ count 1)) x)
+
+  (define w (id (id 10)))
+#+END_SRC
+
+When something is defined, the value of the definition is evaluated.
+
+In the case of ~id~ we have a lambda expression.
+So, a procedure is created.
+
+In the case of ~w~, we have ~(id (id 10))~.
+This is an application, so the value is forced.
+I.e., ~count~ is incremented by 1, as ~x~ is considered.
+In this case, ~x~ is delayed ~(id 10)~, as an argument is delayed unless forced.
+
+So, ~count~ is ~1~.
+
+Further, as everything is memoised, the value of ~w~ is nw the delayed ~(id 10)~.
+
+So, when ~w~ is called, ~(id 10)~ is evalauted, which increments ~count~ by 1 and returns ~x~.
+In this case, ~x~ is ~10~, and ~10~ is primitive, so ~10~ is returned.
+And, given memoisation, the value of ~w~ is now ~10~.
+
+Without memoisation, the value of ~w~ is fixed at ~(int 10)~, so ~count~ is incremeneted with every call of ~w~.
+
+
+I guess definitions involve evaluation as we're thinking of these as passing an argument to a procedure, where the procedure then does some work.
+
+The issue I have is the status of ~if~.
+There's nothing to distinguish the behaviour of ~if~ from any other procedure, but evaluation is selective.
+And, it seems reasonable to treat ~define~ similarly.
+
+(Indeed, this works out, and ~count~ is incremented twice with ever call of ~w~
+Having an evaluator is very nice!)
