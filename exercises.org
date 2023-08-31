@@ -11740,3 +11740,150 @@ And, it seems reasonable to treat ~define~ similarly.
 
 (Indeed, this works out, and ~count~ is incremented twice with ever call of ~w~
 Having an evaluator is very nice!)
+
+** 4.28
+
+Consider:
+
+#+BEGIN_SRC racket
+  ((lambda (a b c) (a b c)) + 1 2)
+#+END_SRC
+
+Without ~actual-value~, what would be ~+~ is a thunk, and the evaluation fails.
+With ~actual-value~ the ~a~ arg is evaluated as ~+~ and everything follows through.
+
+** 4.29
+
+I'd expect any procedure which reapeatedly takes the same complex argument to do worse.
+
+For example, a sequence of conditions testing whether some argument sstisfies one of many predicates:
+
+#+BEGIN_SRC racket
+  (define (test a)
+    (cond ((test-one? a) …)
+	  ((test-two? a) …))
+#+END_SRC
+
+There's no need to force the thunk every time the argument is tested.
+
+When the evaluator memoises, the count only ever reaches 2.
+Otherwise, ~(id 10)~ is called every time ~w~ is called, and the count may be increased arbitrarily.
+
+** 4.30
+
+*** a.
+
+In the evaluator ~eval-sequence~ reads:
+
+#+BEGIN_SRC racket :tangle no
+  (define (eval-sequence exps env)
+    (cond ((last-exp? exps)
+	   (eval (first-exp exps) env))
+	  (else
+	   (eval (first-exp exps) env)
+	   (eval-sequence (rest-exps exps)
+			  env))))
+#+END_SRC
+
+So, ~eval~ is appled to each element in the sequence.
+
+There's no real surprise ~for-each~ given by:
+
+#+BEGIN_SRC racket :tangle no
+  define (for-each proc items)
+  (if (null? items)
+      'done
+      (begin (proc (car items))
+	     (for-each proc
+		       (cdr items)))))
+#+END_SRC
+
+Handles things correctly when ~proc~ is a lambda expression, as the expression is evaluated and applied to each of the items.
+
+*** b.
+
+#+BEGIN_SRC racket
+  (define (p1 x)
+    (set! x (cons x '(2))) x)
+
+  (define (p2 x)
+    (define (p e) e x)
+    (p (set! x (cons x '(2)))))
+#+END_SRC
+
+#+BEGIN_SRC racket
+  (p1 1) -> (1 2)
+  (p2 1) -> 1
+#+END_SRC
+
+~p1~ updates the value of the argument term, and returns the vale of the term.
+
+~p2~ calls ~p~ which performs some expression and then returns the value of the term.
+Here, the result is as Cy's predicted.
+However, it's not due to sequences.
+Rather, it's due to ~set!~ being passed as the argument of a procedure.
+For example, the following procuces a pair:
+
+#+BEGIN_SRC racket
+  (define (p2 x)
+    (define (p e) (set! x (cons x '(2))) x)
+    (p #f))
+#+END_SRC
+
+The issue is, everything that is passed as an argument needs to be either a primitive or forced to be evaluated.
+Otherwise, apply just looks up the think associated with the term representing the argument.
+
+With the proposed changes, ~p2~ produces a pair, in particular, because the value of the term ~e~ is forced.
+
+*** c.
+
+Why would it?
+~force-it~ is transparent unless the object to which it is applied is either a thunk or evaluated thunk.
+
+*** d.
+
+So, one possible change is to ~lookup-variable-value~.
+Here, we'd check to see if any variable (i.e. term) we'e trying to access is a thunk, and force the evaluation if it is.
+
+#+BEGIN_SRC racket
+  (define (lookup-variable-value var env)
+    (define (env-loop env)
+      (define (scan vars vals)
+	(cond ((null? vars)
+	       (env-loop
+		(enclosing-environment env)))
+	      ((eq? var (car vars))
+	       (let ((val (car vals)))
+		 (cond ((eq? '*unassigned* val)
+			(error "Unassigned variable"))
+		       ((tagged-list? val 'thunk)
+			(force-it val))
+		       (else val)
+		     )))
+	       (else (scan (cdr vars)
+			   (cdr vals)))))
+	(if (eq? env the-empty-environment)
+	    (error "Unbound variable" var)
+	    (let ((frame (first-frame env)))
+	      (scan (frame-variables frame)
+		    (frame-values frame)))))
+      (env-loop env))
+#+END_SRC
+
+With this change, ~p2~ produces a pair.
+
+** TODO 4.31
+
+There are at least two ways to go here.
+
+First, we could keep lazy evaluation as the fundamental menthod, but default to forcing terms.
+
+I think this is a minor change, as it just amounts to a check on ~lookup-variable-value~.
+At the moment we have can add in ~force-it~ which is memoised, but it's easy to add an additional option.
+
+Second, we could extend a applicative order base.
+A kind of easy way to do this is with lambdas.
+Whenever ~lazy~ appended to an argument, the argument is wrapped in a lambda expression.
+And, whenever ~lazy-memo~ is appended to an argument, the argument is wrapped in a memod lambda expression.
+
+The latter seems nice, but I'll leave this for a rainy day.

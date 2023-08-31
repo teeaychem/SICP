@@ -105,7 +105,6 @@
              (rest-operands exps)
              env))))
 
-
 ;; thunks
 
 (define (delay-it exp env)
@@ -443,9 +442,12 @@
               (enclosing-environment env)))
             ((eq? var (car vars))
              (let ((val (car vals)))
-               (if (eq? '*unassigned* val)
-                   (error "Unassigned variable")
-                   val)))
+               (cond ((eq? '*unassigned* val)
+                      (error "Unassigned variable"))
+                     ((tagged-list? val 'thunk)
+                      (force-it val))
+                     (else val)
+                   )))
              (else (scan (cdr vars)
                          (cdr vals)))))
       (if (eq? env the-empty-environment)
