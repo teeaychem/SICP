@@ -7,7 +7,7 @@
 ;; * Added support for while constructs
 ;; * Added support for scan-out-defines (I think).
 ;; * Added support for letrec.
-;; * Changed to normal order evaluation, with memoisation
+;; * Changed to normal order evaluation, without memoisation.
 
 (define (append list1 list2)
   (if (null? list1)
@@ -117,27 +117,11 @@
 
 (define (thunk-env thunk) (caddr thunk))
 
-(define (evaluated-thunk? obj)
-  (tagged-list? obj 'evaluated-thunk))
-
-(define (thunk-value evaluated-thunk)
-  (cadr evaluated-thunk))
-
 (define (force-it obj)
-  (cond ((thunk? obj)
-         (let ((result
-                (actual-value
-                 (thunk-exp obj)
-                 (thunk-env obj))))
-           (set-car! obj 'evaluated-thunk)
-           ;; replace exp with its value:
-           (set-car! (cdr obj) result)
-           ;; forget unneeded env:
-           (set-cdr! (cdr obj) '())
-           result))
-        ((evaluated-thunk? obj)
-         (thunk-value obj))
-        (else obj)))
+  (if (thunk? obj)
+      (actual-value (thunk-exp obj)
+                    (thunk-env obj))
+      obj))
 
 
 ;; conditionals
