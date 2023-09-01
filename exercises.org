@@ -11972,3 +11972,24 @@ And, ~text-of-quotation~ is updated to:
 #+END_SRC
 
 There's no need to apply quotation to the elements of the quote when doing this, as at present, the elements are uninterpreted.
+
+** 4.34
+
+This exercise… is something I'll return to.
+
+In retrospect, it makes far more sense to implement lazy pairs directly in the eval loop.
+We'd then have somethign tagged with 'cons' which would allow modifying user-print easily.
+
+I don't think there's a good general solution given streams are possible.
+An earlier exercise sketched out how to check for loops in a list of lists, and this could be used to display the list/stream up to some depth.
+
+Alternatively, the generating description of the list of could be saved.
+This would take a lot of overhead, but would return a way to understand the object.
+Indeed, the same understanding used to generate the list.
+Though, this would only apply when displaying the initial list.
+
+Or, do the scheme thing, which is to print something like 'promise'.
+
+With lazy evaluation this is also a headache.
+As, if evaluation has side effects, then it's unclear whether these should result from display.
+Should the element be evaluated, or should the thunk be shown?

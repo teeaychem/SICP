@@ -9,6 +9,7 @@
 ;; * Added support for letrec.
 ;; * Changed to normal order evaluation, with memoisation
 ;; * Added non-strict/semi- primitive procedures (cons, car, cdr).
+;; * Added lazy lists.
 
 
 (define (append list1 list2)
