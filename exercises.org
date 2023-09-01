@@ -11284,25 +11284,36 @@ Though, I don't see this as expected, and it's not super interesting.
 Update: I'm not clear on whether this /actually/ works.
 The output is as expected in tests, but it causes some issues if applied to any body.
 For the moment, this is modified to only make the transformation if an internal definiton is found.
+Update 2: The modification ensured the proc always retruned the body.
+This is fixed by explicitly setting a flag for whether a definition has been found.
+Also, commented option to allow application to a single definition.
+()
 
 #+BEGIN_SRC racket
   (define (scan-out-defines body)
-      (let* ((term-list (cons 'terms nil))
-	   (last-term term-list))
+    (let* ((term-list (cons 'terms nil))
+	   (last-term term-list)
+	  (go? #f))
       (define (collect-replace exp)
-	(cond ((and (definition? exp) (symbol? (cadr exp)))
+	(cond ((and (definition? exp))
 	       (let ((cell (cons (definition-variable exp) nil)))
 		 (set-cdr! last-term cell)
-		 (set! last-term cell))
+		(set! last-term cell)
+		(set! go? #t))
 	       (set-car! exp 'set!)
 	       exp)
 	      (else exp)))
-      (if (> 1 (length term-list))
-	  (let ((new-bod (map collect-replace body)))
-	    (make-let
-	     (map (lambda (t) (cons t '*undefined*)) (cdr term-list))
-	     (list new-bod)))
-	  body)))
+      (let ((new-bod
+	     ;; (if (not (pair? (car body)))
+	     ;; (collect-replace body)
+	     (map collect-replace body)
+	     ;; )
+	     ))
+	(if go?
+	    (let->combination (make-let
+			       (map (lambda (t) (list t ''*undefined*)) (cdr term-list))
+			       (list new-bod)))
+	    body))))
 #+END_SRC
 
 The following evaluates fine:
@@ -11319,6 +11330,7 @@ The following evaluates fine:
 	  (even? (- n 1))))
     (even? x))
 #+END_SRC
+
 
 *** c.
 
@@ -11887,3 +11899,57 @@ Whenever ~lazy~ appended to an argument, the argument is wrapped in a lambda exp
 And, whenever ~lazy-memo~ is appended to an argument, the argument is wrapped in a memod lambda expression.
 
 The latter seems nice, but I'll leave this for a rainy day.
+
+** Non-strict primitives
+
+Implementing lazy cons, etc. is a headache.
+
+This is because it's natural to define the lazy version of  ~cons~ in the base language as a distinct procedure, and then treat this as a primitive procedure.
+
+However, even though most evaluation is lazy, for primitive procedures applicative evaluation is performed.
+So, the option takes is to implement semi-primitive-procedures.
+These rely on base ~apply~.
+However, the arguments given are still delayed.
+
+The only issue here is that some manual forcing is requred in the case of ~car~ and ~cdr~.
+For, these take a delayed cons as an argumnet.
+Indeed, for any procedure of this kind, some explicit forcing is requred.
+
+Fair, the text reads:
+
+"One way to accomplish this is to extend the lazy evaluator to allow for non-strict primitives…"
+
+So, this issue is explicit.
+But, this wasn't focused on enough to really register with me.
+
+In any case, the evaluator now supports non-strict primitives via 'semi-primitive' operations.
+These work the same way as primitives, and are added to the enviroment by extending the list of primites.
+
+The definitions are:
+
+#+BEGIN_SRC racket
+  (define (cons-l x y)  (lambda (m) (m x y)))
+
+  (define (car-l z) ((force-it z) (lambda (p q) p)))
+
+  (define (cdr-l z) ((force-it z) (lambda (p q) q)))
+#+END_SRC
+
+So, a headache, but worthwhile understanding.
+Lazy evaluation is really nice in some respects, but the various ways in which things can be lazy makes for trouble.
+
+With applicativ evalation, ~if~, ~defines~, and so on are non-standard, which can be a little difficult at times.
+But, with normal/lazy evaluation it feels as though almost every procedure /may/ be non-standard, as everything depends on the way forcing is handled.
+
+Also, suggesting a redefinition of ~cons~, etc. seems like a terrible idea.
+For, this amounts to modifying the meta-language with the object-language.
+Of course, it works out, but I can't see this being good practice.
+
+** 4.32
+
+We can now easily create a stream of stream, (i.e. streams indexed by a stream).
+
+Though, I don't really see anything of interest other than this.
+For, the only difference is that lazy evaluation applies to the ~car~ of a ~cons~.
+Anything that can be done without this was possible without the extra laziness.
+

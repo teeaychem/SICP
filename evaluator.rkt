@@ -8,12 +8,21 @@
 ;; * Added support for scan-out-defines (I think).
 ;; * Added support for letrec.
 ;; * Changed to normal order evaluation, with memoisation
+;; * Added non-strict/semi- primitive procedures (cons, car, cdr).
+
 
 (define (append list1 list2)
   (if (null? list1)
       list2
       (cons (car list1) (append (cdr list1) list2))))
 
+;; lazy cons
+
+(define (cons-l x y)  (lambda (m) (m x y)))
+
+(define (car-l z) ((force-it z) (lambda (p q) p)))
+
+(define (cdr-l z) ((force-it z) (lambda (p q) q)))
 
 ;; eval
 
@@ -71,6 +80,13 @@
           (list-of-arg-values
            arguments
            env)))  ; no choice but to apply arguments with primitive, so need arg vals.
+        ((semi-primitive-procedure? procedure)
+         (apply-semi-primitive-procedure
+          procedure
+          (list-of-delayed-args
+           arguments
+           env))
+         )
         ((compound-procedure? procedure)
          (eval-sequence
           (procedure-body procedure)
@@ -169,7 +185,7 @@
 (define (eval-definition exp env)
   (define-variable!
     (definition-variable exp)
-    ; (delay-it (definition-value exp) env) ; defer eval of definitions
+    ;(delay-it (definition-value exp) env) ; defer eval of definitions
     (eval (definition-value exp) env)
     env)
   'ok)
@@ -404,7 +420,11 @@
 
 (define (procedure-parameters p) (cadr p))
 
-(define (procedure-body p) (caddr p))
+(define (procedure-body p)
+  ;;(scan-out-defines
+  (caddr p)
+  ;;)
+  )
 
 (define (procedure-environment p) (cadddr p))
 
@@ -417,8 +437,11 @@
 
 (define (make-frame variables values)
   (cons variables values))
+
 (define (frame-variables frame) (car frame))
+
 (define (frame-values frame) (cdr frame))
+
 (define (add-binding-to-frame! var val frame)
   (set-car! frame (cons var (car frame)))
   (set-cdr! frame (cons val (cdr frame))))
@@ -444,8 +467,8 @@
              (let ((val (car vals)))
                (cond ((eq? '*unassigned* val)
                       (error "Unassigned variable"))
-                     ((tagged-list? val 'thunk)
-                      (force-it val))
+                     ;; ((tagged-list? val 'thunk)
+                     ;;  (force-it val))
                      (else val)
                    )))
              (else (scan (cdr vars)
@@ -497,10 +520,7 @@
   (cadr proc))
 
 (define primitive-procedures
-  (list (list 'car car)
-        (list 'cdr cdr)
-        (list 'cons cons)
-        (list 'null? null?)
+  (list (list 'null? null?)
         (list 'list list)
         (list '+ +)
         (list '* *)
@@ -560,14 +580,12 @@
 (define (setup-environment)
   (let ((initial-env
          (extend-environment
-          (primitive-procedure-names)
-          (primitive-procedure-objects)
+          (append (primitive-procedure-names) (semi-primitive-procedure-names))
+          (append (primitive-procedure-objects) (semi-primitive-procedure-objects))
           the-empty-environment)))
     (define-variable! 'true true initial-env)
     (define-variable! 'false false initial-env)
     initial-env))
-
-
 
 ;; while
 
@@ -589,67 +607,100 @@
 
 
 ;; scan-out-defines
-(define (scan-out-defines body)
-  (let* ((term-list (cons 'terms nil))
-         (last-term term-list))
-    (define (collect-replace exp)
-      (cond ((and (definition? exp) (symbol? (cadr exp)))
-             (let ((cell (cons (definition-variable exp) nil)))
-               (set-cdr! last-term cell)
-               (set! last-term cell))
-             (set-car! exp 'set!)
-             exp)
-            (else exp)))
-    (if (> 1 (length term-list))
-        (let ((new-bod (map collect-replace body)))
-          (make-let
-           (map (lambda (t) (cons t '*unassigned*)) (cdr term-list))
-           (list new-bod)))
-        body)))
+
+  (define (scan-out-defines body)
+    (let* ((term-list (cons 'terms nil))
+	   (last-term term-list)
+	  (go? #f))
+      (define (collect-replace exp)
+	(cond ((and (definition? exp))
+	       (let ((cell (cons (definition-variable exp) nil)))
+		 (set-cdr! last-term cell)
+		(set! last-term cell)
+		(set! go? #t))
+	       (set-car! exp 'set!)
+	       exp)
+	      (else exp)))
+      (let ((new-bod
+	     ;; (if (not (pair? (car body)))
+	     ;; (collect-replace body)
+	     (map collect-replace body)
+	     ;; )
+	     ))
+	(if go?
+	    (let->combination (make-let
+			       (map (lambda (t) (list t ''*undefined*)) (cdr term-list))
+			       (list new-bod)))
+	    body))))
 
 ;; letrec
 
-    (define (letrec? exp)
-    (tagged-list? exp 'letrec))
+(define (letrec? exp)
+  (tagged-list? exp 'letrec))
 
 
-  (define (letrec-var-terms exp)
-		 (map car (cadr exp)))
+(define (letrec-var-terms exp)
+  (map car (cadr exp)))
 
-  (define (letrec-vars exp)
-    (cadr exp))
+(define (letrec-vars exp)
+  (cadr exp))
 
-  (define (letrec-assignments exp)
-    (cadr exp))
+(define (letrec-assignments exp)
+  (cadr exp))
 
-  (define (change-to-set! assignments)
-    (if (not (null? assignments))
-	(begin
-	  (let ((assignment (car assignments))
-		(insert (cons 'set! nil)))
-	    (set-cdr! insert assignment)
-	    (set-car! assignments insert))
-	  (change-to-set! (cdr assignments)))))
+(define (change-to-set! assignments)
+  (if (not (null? assignments))
+      (begin
+        (let ((assignment (car assignments))
+              (insert (cons 'set! nil)))
+          (set-cdr! insert assignment)
+          (set-car! assignments insert))
+        (change-to-set! (cdr assignments)))))
 
-  (define (merge-sets-body exp)
-    (let ((end-of-assingments (letrec-assignments exp)))
-      (define (ensure-end)
-	(if (not (null? (cdr end-of-assingments)))
-	    (begin
-	      (set! end-of-assingments (cdr end-of-assingments))
-	      (ensure-end))))
-      (ensure-end)
-      (set-cdr! end-of-assingments (cddr exp)))
-    (set-cdr! exp (cons (cadr exp) nil)))
+(define (merge-sets-body exp)
+  (let ((end-of-assingments (letrec-assignments exp)))
+    (define (ensure-end)
+      (if (not (null? (cdr end-of-assingments)))
+          (begin
+            (set! end-of-assingments (cdr end-of-assingments))
+            (ensure-end))))
+    (ensure-end)
+    (set-cdr! end-of-assingments (cddr exp)))
+  (set-cdr! exp (cons (cadr exp) nil)))
 
+(define (letrec->let exp)
+  (let ((outervars (letrec-var-terms exp)))
+    (change-to-set! (letrec-assignments exp))
+    (merge-sets-body exp)
+    (cons (make-lambda outervars (cadr exp))
+          (map (lambda (x) '*unassigned*) outervars))))
 
+;; semi primitive procedures
 
-  (define (letrec->let exp)
-      (let ((outervars (letrec-var-terms exp)))
-	(change-to-set! (letrec-assignments exp))
-	(merge-sets-body exp)
-	(cons (make-lambda outervars (cadr exp))
-	      (map (lambda (x) '*unassigned*) outervars))))
+(define (semi-primitive-procedure? proc)
+  (tagged-list? proc 'semi-primitive))
+
+(define (semi-primitive-implementation proc)
+  (cadr proc))
+
+(define semi-primitive-procedures
+  (list (list 'car car-l)
+        (list 'cdr cdr-l)
+        (list 'cons cons-l)
+        ; ⟨more primitives⟩
+        ))
+
+(define (semi-primitive-procedure-names)
+  (map car semi-primitive-procedures))
+
+(define (semi-primitive-procedure-objects)
+  (map (lambda (proc)
+         (list 'semi-primitive (cadr proc)))
+       semi-primitive-procedures))
+
+(define (apply-semi-primitive-procedure proc args)
+  (apply
+   (semi-primitive-implementation proc) args))
 
 
 ;; driver
