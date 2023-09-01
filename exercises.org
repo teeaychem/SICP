@@ -12021,7 +12021,7 @@ To test:
 Note, additional calls to ~amb~ produce the next alternative.
 This is sure to be explained later…
 
-** Ex. 4.36
+** 4.36
 
 We have the following:
 
@@ -12133,9 +12133,9 @@ And, with the current method, this no longer happens.
 #+begin_example
 amb tree exhausted
   context...:
-   /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-sN7PqD.rkt:3:0: multiple-dwelling
-   /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-sN7PqD.rkt:34:0: exhaust
-   body of "/var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-sN7PqD.rkt"
+   /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-d4RhBi.rkt:3:0: multiple-dwelling
+   /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-d4RhBi.rkt:34:0: exhaust
+   body of "/var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-d4RhBi.rkt"
 ((baker 1) (cooper 2) (fletcher 4) (miller 3) (smith 5))
 ((baker 1) (cooper 2) (fletcher 4) (miller 5) (smith 3))
 ((baker 1) (cooper 4) (fletcher 2) (miller 5) (smith 3))
@@ -12144,3 +12144,186 @@ amb tree exhausted
 #+end_example
 
 There are five solutions to the modified puzzle!
+
+#+BEGIN_SRC racket :tangle no
+  ((baker 1) (cooper 2) (fletcher 4) (miller 3) (smith 5))
+  ((baker 1) (cooper 2) (fletcher 4) (miller 5) (smith 3))
+  ((baker 1) (cooper 4) (fletcher 2) (miller 5) (smith 3))
+  ((baker 3) (cooper 2) (fletcher 4) (miller 5) (smith 1))
+  ((baker 3) (cooper 4) (fletcher 2) (miller 5) (smith 1))
+#+END_SRC
+
+** 4.39
+
+#+BEGIN_SRC racket
+  (define (multiple-dwelling)
+    <<def:amb-require>>
+    <<def:distinct?>>
+    (let ((baker (amb 1 2 3 4 5))
+	  (cooper (amb 1 2 3 4 5))
+	  (fletcher (amb 1 2 3 4 5))
+	  (miller (amb 1 2 3 4 5))
+	  (smith (amb 1 2 3 4 5)))
+      (require
+       (distinct? (list baker cooper fletcher
+			miller smith)))
+      (require
+       (not (= (abs (- smith fletcher)) 1)))
+      (require
+       (not (= (abs (- fletcher cooper)) 1)))
+      (require (> miller cooper))
+      (require (not (= baker 5)))
+      (require (not (= cooper 1)))
+      (require (not (= fletcher 5)))
+      (require (not (= fletcher 1)))
+
+      (list (list 'baker baker)
+	    (list 'cooper cooper)
+	    (list 'fletcher fletcher)
+	    (list 'miller miller)
+	    (list 'smith smith))))
+
+  (define (exhaust proc)
+    (define (keep-going)
+      (display (amb))
+      (keep-going))
+    (display (proc))
+    (newline)
+    (keep-going))
+
+  (exhaust multiple-dwelling)
+#+END_SRC
+
+#+RESULTS:
+: amb tree exhausted
+:   context...:
+:    /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-Ev9t6p.rkt:3:0: multiple-dwelling
+:    /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-Ev9t6p.rkt:35:0: exhaust
+:    body of "/var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-Ev9t6p.rkt"
+: ((baker 3) (cooper 2) (fletcher 4) (miller 5) (smith 1))
+
+The goal is to structure the requirements so that redundant options are not explored, or explored fewer times than otherwise.
+
+This can certainly make a difference.
+For example, if ~distinct?~ was the last constraint, all the other requirements may pass when everyone is assigned ~4~.
+
+As a heuristic, we'd like to order things most choice to least choice.
+This way, when a new alternative is requested, there are fewer requirements to backtrack and forwardtrack through.
+
+This could for sure be solved properly by working out the actual number of possible combinations considered.
+But, I don't want to do this.
+
+** 4.40
+
+First some helper functions.
+
+From the book:
+
+#+NAME: def:an-element-of
+#+BEGIN_SRC racket
+  (define (an-element-of items)
+    (require (not (null? items)))
+    (amb (car items)
+	 (an-element-of (cdr items))))
+#+END_SRC
+
+And custom.
+
+~l-without-e~ returns a list without the elements which satisfy some procedure.
+
+#+NAME: def:l-without-e
+#+BEGIN_SRC racket
+  (define (l-without-e proc l)
+	(cond ((null? l)
+	       '())
+	      ((proc (car l))
+	       (l-without-e proc (cdr l)))
+	      (else
+	       (cons (car l) (l-without-e proc (cdr l))))))
+#+END_SRC
+
+~adjactent-to?~ is self explanatory.
+
+#+NAME: def:adjactent-to?
+#+BEGIN_SRC racket
+  (define (adjactent-to? i)
+    (lambda (x) (= (abs (- x i)) 1)))
+#+END_SRC
+
+And, ~ints-between~ makes a list of the integers between ~a~ and ~b~.
+
+#+NAME: def:ints-between
+#+BEGIN_SRC racket
+  (define (ints-between a b)
+    (if (> a b)
+	nil
+	(cons a (ints-between (+ a 1) b))))
+#+END_SRC
+
+With these, we can eliminate most of the requirements be restricting the possible dwellings, either at the initial stage or by a combination of the given procedures.
+
+#+BEGIN_SRC racket
+  (define (multiple-dwelling)
+    <<def:l-without-e>>
+    <<def:adjactent-to?>>
+    <<def:ints-between>>
+
+    <<def:amb-an-integer-between>>
+    <<def:amb-require>>
+    <<def:distinct?>>
+    <<def:an-element-of>>
+    (let ((baker (amb 1 2 3 4))
+	  (fletcher (amb 2 3 4))
+	  (miller (amb 1 2 3 4 5)))
+      (let ((cooper (an-element-of (l-without-e (adjactent-to? fletcher) (ints-between 2 miller))))
+	    (smith (an-element-of (l-without-e (adjactent-to? fletcher) (ints-between 1 5)))))
+	;; (require
+	;;  (not (= (abs (- smith fletcher)) 1)))
+	(require
+	 (distinct? (list baker cooper fletcher
+			  miller smith)))
+	;;(require
+	;;	 (not (= (abs (- fletcher cooper)) 1)))
+	;;	(require (> miller cooper))
+
+	(list (list 'baker baker)
+	      (list 'cooper cooper)
+	      (list 'fletcher fletcher)
+	      (list 'miller miller)
+	      (list 'smith smith)))))
+
+  (define (exhaust proc)
+    (define (keep-going)
+      (display (amb))
+      (keep-going))
+    (display (proc))
+    (newline)
+    (keep-going))
+
+  (exhaust multiple-dwelling)
+#+END_SRC
+
+#+RESULTS:
+: amb tree exhausted
+:   context...:
+:    /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-4KOsJR.rkt:3:0: multiple-dwelling
+:    /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-4KOsJR.rkt:53:0: exhaust
+:    body of "/var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-4KOsJR.rkt"
+: ((baker 3) (cooper 2) (fletcher 4) (miller 5) (smith 1))
+
+** 4.41
+
+But this is not too interesting.
+
+The only requirement left is that the dwellings are distinct.
+And, we only need to fill in three distinct values.
+
+So, basically, we just write a procedure which fills in possible values for ~baker~, ~fletcher~, and ~miller~.
+For ~cooper~ and ~smith~ we then check the lists produced to see if there are any distinct pairs.
+If so, each of these is a solution.
+Otherwise, no solution was found with the inputs.
+
+That's 30 possible combinations to do by hand, but a procedure should be easy to find.
+
+I don't think writing the proceudre is particularly interesting.
+So, this is where I'll leave things.
