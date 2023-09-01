@@ -12020,3 +12020,57 @@ To test:
 
 Note, additional calls to ~amb~ produce the next alternative.
 This is sure to be explained later…
+
+** Ex. 4.36
+
+We have the following:
+
+#+NAME: def:amb-require
+#+BEGIN_SRC racket
+  (define (require p)
+    (if (not p) (amb)))
+#+END_SRC
+
+#+NAME: def:amb-a-pythagorean-triple-between
+#+BEGIN_SRC racket
+  (define (a-pythagorean-triple-between low high)
+    <<def:amb-require>>
+    <<def:amb-an-integer-between>>
+    (let ((i (an-integer-between low high)))
+      (let ((j (an-integer-between i high)))
+	(let ((k (an-integer-between j high)))
+	  (require (= (+ (* i i) (* j j))
+		      (* k k)))
+	  (list i j k)))))
+#+END_SRC
+
+Replacing ~(an-integer-between a b)~ by ~(an-integer-starting-from a)~ wouldn't work as no limit would be placed on ~k~.
+Hence, as ~amb~ is depth first search, additional values of ~k~ would be attempted, and no other values of ~i~ and ~j~ would be considered.
+
+As we're not asked for a procedure which outputs triples uniquely, we can in principle generate all triples by repeatedly generating triples between 1 and some finite limit and then increasing the limit when needed:
+
+#+BEGIN_SRC racket
+  <<def:amb-a-pythagorean-triple-between>>
+  (define (all-triples)
+    (define (all-triples-with-lim i)
+      (amb (a-pythagorean-triple-between 1 i) (all-triples-with-lim (+ i 1))))
+    (all-triples-with-lim 1))
+
+  (all-triples)
+  (amb)
+  (amb)
+  (amb)
+  (amb)
+  (amb)
+  (amb)
+#+END_SRC
+
+#+RESULTS:
+: (3 4 5)
+: (3 4 5)
+: (3 4 5)
+: (3 4 5)
+: (3 4 5)
+: (3 4 5)
+: (6 8 10)
+
