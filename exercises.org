@@ -12074,3 +12074,8 @@ As we're not asked for a procedure which outputs triples uniquely, we can in pri
 : (3 4 5)
 : (6 8 10)
 
+** 4.37
+
+This method looks to be faster in general.
+For, with the previous method, each k ≤ j would be explored.
+And, with the current method, this no longer happens.
