@@ -24,6 +24,10 @@
 
 (define (cdr-l z) ((force-it z) (lambda (p q) q)))
 
+(define (list-l elems)
+  (if (null? elems)
+      nil
+      (cons-l (car elems) (list-l (cdr elems)))))
 ;; eval
 
 (define (eval exp env)
@@ -204,7 +208,7 @@
   (tagged-list? exp 'quote))
 
 (define (text-of-quotation exp)
-  (cadr exp))
+  (list-l (cadr exp)))
 
 
 (define (tagged-list? exp tag)
@@ -687,6 +691,7 @@
   (list (list 'car car-l)
         (list 'cdr cdr-l)
         (list 'cons cons-l)
+        (list 'list list-l)
         ; ⟨more primitives⟩
         ))
 

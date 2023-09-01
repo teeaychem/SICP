@@ -11953,3 +11953,22 @@ Though, I don't really see anything of interest other than this.
 For, the only difference is that lazy evaluation applies to the ~car~ of a ~cons~.
 Anything that can be done without this was possible without the extra laziness.
 
+** 4.33
+
+Following the non-strict primitive approach, lists are defined by:
+
+#+BEGIN_SRC racket :tangle no
+  (define (list-l elems)
+    (if (null? elems)
+	nil
+	(cons-l (car elems) (list-l (cdr elems)))))
+#+END_SRC
+
+And, ~text-of-quotation~ is updated to:
+
+#+BEGIN_SRC racket
+  (define (text-of-quotation exp)
+    (list-l (cadr exp)))
+#+END_SRC
+
+There's no need to apply quotation to the elements of the quote when doing this, as at present, the elements are uninterpreted.
