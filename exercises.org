@@ -11993,3 +11993,30 @@ Or, do the scheme thing, which is to print something like 'promise'.
 With lazy evaluation this is also a headache.
 As, if evaluation has side effects, then it's unclear whether these should result from display.
 Should the element be evaluated, or should the thunk be shown?
+
+** 4.35
+
+#+NAME: def:amb-an-integer-between
+#+BEGIN_SRC racket
+  (define (an-integer-between a b)
+    (cond ((> a b) (amb))
+	  ((= a b) b)
+	  (else (amb a (an-integer-between (+ a 1) b)))))
+#+END_SRC
+
+To test:
+
+#+BEGIN_SRC racket
+  <<def:amb-an-integer-between>>
+  (an-integer-between 4 6)
+  (amb)
+  (amb)
+#+END_SRC
+
+#+RESULTS:
+: 4
+: 5
+: 6
+
+Note, additional calls to ~amb~ produce the next alternative.
+This is sure to be explained later…
