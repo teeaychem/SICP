@@ -5063,18 +5063,18 @@ But, we can extend this to work on an arbitrary number of lists in the following
 
 #+NAME: def:first-match-lists
 #+BEGIN_SRC racket
-      (define (first-match-lists lists)
-	(define (first-match-reversed lists previous)
-	  <<def:accumulate>>
-	  <<def:filter>>
-	  (cond
-	    ((accumulate (lambda (x y) (or (not (pair? x)) y)) #f lists)
-	     previous)
-	    ((not (= (length lists) (length (filter (lambda (x) (equal? (car x) (car (car lists)))) lists))))
-	     previous)
-	    (else
-	     (first-match-reversed (map cdr lists) (car (car lists))))))
-	(first-match-reversed (map reverse lists) nil))
+  (define (first-match-lists lists)
+    (define (first-match-reversed lists previous)
+      <<def:accumulate>
+      <<def:filter>>
+      (cond
+	((accumulate (lambda (x y) (or (not (pair? x)) y)) #f lists)
+	 previous)
+	((not (= (length lists) (length (filter (lambda (x) (equal? (car x) (car (car lists)))) lists))))
+	 previous)
+	(else
+	 (first-match-reversed (map cdr lists) (car (car lists))))))
+    (first-match-reversed (map reverse lists) nil))
 #+END_SRC
 
 The second ~cond~ condition is a little messy here.
@@ -12222,14 +12222,20 @@ From the book:
 #+NAME: def:an-element-of
 #+BEGIN_SRC racket
   (define (an-element-of items)
+    <<def:amb-require>>
     (require (not (null? items)))
     (amb (car items)
 	 (an-element-of (cdr items))))
 #+END_SRC
 
+#+RESULTS: def:an-element-of
+
 And custom.
 
 ~l-without-e~ returns a list without the elements which satisfy some procedure.
+
+Note, this is just ~filter~.
+Completely overlooked this when making the proc.
 
 #+NAME: def:l-without-e
 #+BEGIN_SRC racket
@@ -12383,3 +12389,222 @@ Solution
 #+BEGIN_SRC racket
   ((betty 3) (ethel 5) (joan 2) (kitty 1) (mary 4))
 #+END_SRC
+
+** 4.43
+
+I was thinking about skipping this, but it turned out to be a lot of fun.
+What convinced me to pursue was the obervation that this is solved using ~amb~ with respect to relations, rather than assignments.
+
+Starting with the key idea, ~amb-pair~ makes an ambinvalent relation by ambinvalently taking elements from two lists.
+
+#+BEGIN_SRC racket
+  (define (amb-pair l1 l2)
+    <<def:an-element-of>>
+    (cons (an-element-of l1) (an-element-of l2)))
+#+END_SRC
+
+However, to solve the problem we only want ambivalence in the right relata.
+So, this is more of an ambiguous function.
+
+#+NAME: def:amb-pair-r
+#+BEGIN_SRC racket
+  (define (amb-pair-r e l)
+    <<def:an-element-of>>
+    (cons e (an-element-of l)))
+#+END_SRC
+
+We now have a few procedures for inspecting lists of pairs.
+The only slight headache here was remembering to 'a' the ~car~ and ~cdr~ calls (i.e. to ~caar~ and ~cdar~.)
+
+#+NAME: def:matches
+#+BEGIN_SRC racket
+  (define (matches e v l)
+    (cond ((null? l)
+	   #f)
+	  ((and (equal? e (caar l)) (equal? v (cdar l)))
+	   #t)
+	  (else  ;(not (equal? e (car l)))
+	   (matches e v (cdr l)))))
+#+END_SRC
+
+#+NAME: def:lookup
+#+BEGIN_SRC racket
+  (define (lookup e l)
+    (cond ((null? l)
+	   #f)
+	  ((equal? e (caar l))
+	   (cdar l))
+	  (else  ;(not (equal? e (car l)))
+	   (lookup e (cdr l)))))
+#+END_SRC
+
+#+NAME: def:reverse-lookup
+#+BEGIN_SRC racket
+  (define (reverse-lookup e l)
+    (cond ((null? l)
+	   #f)
+	  ((equal? e (cdar l))
+	   (caar l))
+	  (else  ;(not (equal? e (car l)))
+	   (reverse-lookup e (cdr l)))))
+#+END_SRC
+
+#+BEGIN_SRC racket
+  (define (boats-and-daughters)
+    <<def:amb-pair-r>>
+    <<def:accumulate>>
+    <<def:amb-require>>
+    <<def:distinct?>>
+    <<def:matches>>
+    <<def:lookup>>
+    <<def:reverse-lookup>>
+
+    (let* ((daughters '(lorna melissa rosalind gabriella mary))
+	   (fathers '(moore downing hall hood parker))
+	   (farther-relation (map (lambda (x) (amb-pair-r x daughters)) fathers))
+	   (boat-relation (map (lambda (x) (amb-pair-r x daughters)) fathers)))
+      (require (distinct? (map cdr farther-relation)))
+      (require (distinct? (map cdr boat-relation)))
+      (require
+       (accumulate (lambda (x y) (and x y)) true (map (lambda (x y) (not (equal? x y))) farther-relation boat-relation)))
+      (require (matches 'hood 'gabriella boat-relation))
+      (require (matches 'moore 'lorna boat-relation))
+      (require (matches 'hall 'rosalind boat-relation))
+      (require (matches 'downing 'melissa boat-relation))
+      (require (matches 'hood 'melissa farther-relation))
+      ; (require (matches 'moore 'mary farther-relation))
+      (require
+       (equal?
+	(lookup (reverse-lookup 'gabriella farther-relation) boat-relation)
+	(lookup 'parker farther-relation) ))
+      (display (reverse-lookup 'lorna farther-relation))
+      )
+    )
+
+  (define (exhaust proc)
+    (define (keep-going)
+      (display (amb))
+      (keep-going))
+    (display (proc))
+    (newline)
+    (keep-going))
+
+  (exhaust boats-and-daughters)
+#+END_SRC
+
+#+RESULTS:
+: amb tree exhausted
+:   context...:
+:    /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-ocXKIL.rkt:4:2
+:    .../compatibility/mlist.rkt:30:11: loop
+:    /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-ocXKIL.rkt:3:0: boats-and-daughters
+:    /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-ocXKIL.rkt:68:0: exhaust
+:    body of "/var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-ocXKIL.rkt"
+: parker#<void>
+: downing#<void>
+
+Running without the comment, we find lorna's father is downing.
+With the constraint commended, parker is also an option.
+
+Whether or not this is (relatively) efficient I'm not sure, but it's cool to see ambinvalent relations at work!
+
+** 4.44
+
+To start, a pair of somewhat messy procedures to produce a list of pairs corresponding to other elements in the diagonal of some element.
+
+#+NAME: def:diagonal-down
+#+BEGIN_SRC racket
+  (define (diagonal-down pair to)
+    (define (back-to-start pair)
+      (if (or (= 1 (car pair)) (= 1 (cdr pair)))
+	  pair
+	  (back-to-start (cons (- (car pair) 1) (- (cdr pair) 1)))))
+    (define (diag-from-except pair ex-pair to)
+      (cond ((or (eq? (+ to 1) (car pair)) (eq? (+ to 1) (cdr pair)))
+	     nil)
+	    ((or (eq? (car ex-pair) (car pair)) (eq? (cdr ex-pair) (cdr pair)))
+	     (diag-from-except (cons (+ (car pair) 1) (+ (cdr pair) 1)) ex-pair to))
+	    (else (cons pair (diag-from-except (cons (+ (car pair) 1) (+ (cdr pair) 1)) ex-pair to)))))
+    (diag-from-except (back-to-start pair) pair to))
+#+END_SRC
+
+
+#+NAME: def:diagonal-up
+#+BEGIN_SRC racket
+  (define (diagonal-up pair to)
+    (define (back-to-start pair)
+      (if (or (= to (car pair)) (= 1 (cdr pair)))
+	  pair
+	  (back-to-start (cons (+ (car pair) 1) (- (cdr pair) 1)))))
+    (define (diag-from-except pair ex-pair to)
+      (cond ((or (eq? 0 (car pair)) (eq? (- to 1) (cdr pair)))
+	     nil)
+	    ((or (eq? (car ex-pair) (car pair)) (eq? (cdr ex-pair) (cdr pair)))
+	     (diag-from-except (cons (- (car pair) 1) (+ (cdr pair) 1)) ex-pair to))
+	    (else (cons pair (diag-from-except (cons (- (car pair) 1) (+ (cdr pair) 1)) ex-pair to)))))
+    (diag-from-except (back-to-start pair) pair to))
+#+END_SRC
+
+Second, a way to generate rows:
+
+#+NAME: def:row
+#+BEGIN_SRC racket
+      (define (row i from to)
+      (define (ints from to)
+	(if (> from to)
+	    nil
+	    (cons from (ints (+ from 1) to))))
+      (map (lambda (x) (cons x i)) (ints from to)))
+#+END_SRC
+
+(I was too lazy to find the equiv of ~ints~ surely defined above somewhere.)
+
+With this, ~queens~ amounts to specifying a queen for each row, and then requiring the rows, cols, and diagonals are distinct. 
+
+#+NAME: def:amb-queens
+#+BEGIN_SRC racket
+  (define (queens)
+    <<def:amb-require>>
+    <<def:an-element-of>>
+    <<def:distinct?>>
+    <<def:row>>
+    <<def:diagonal-up>>
+    <<def:diagonal-down>>
+    <<def:flatmap>>
+    (let ((q1 (an-element-of (row 1 1 8)))
+	  (q2 (an-element-of (row 2 1 8)))
+	  (q3 (an-element-of (row 3 1 8)))
+	  (q4 (an-element-of (row 4 1 8)))
+	  (q5 (an-element-of (row 5 1 8)))
+	  (q6 (an-element-of (row 6 1 8)))
+	  (q7 (an-element-of (row 7 1 8)))
+	  (q8 (an-element-of (row 8 1 8))))
+	(require
+	 (distinct? (map car (list q1 q2 q3 q4 q5 q6 q7 q8))))
+	(require
+	 (distinct? (map cdr (list q1 q2 q3 q4 q5 q6 q7 q8))))
+	(require
+	 (distinct? (flatmap (lambda (x) (diagonal-up x 8)) (list q1 q2 q3 q4 q5 q6 q7 q8))))
+	(require
+	 (distinct? (flatmap (lambda (x) (diagonal-down x 8)) (list q1 q2 q3 q4 q5 q6 q7 q8))))
+	(list (list 'q1 q1)
+	      (list 'q2 q2)
+	      (list 'q3 q3)
+	      (list 'q4 q4)
+	      (list 'q5 q5)
+	      (list 'q6 q6)
+	      (list 'q7 q7)
+	      (list 'q8 q8))))
+#+END_SRC
+
+This isn't particularly effective, but I don't think that was the expectation of the exercise.
+
+Here's a test:
+
+#+BEGIN_SRC racket
+  <<def:amb-queens>>
+  (queens)
+#+END_SRC
+
+#+RESULTS:
+: ((q1 (1 . 1)) (q2 (5 . 2)) (q3 (8 . 3)) (q4 (6 . 4)) (q5 (3 . 5)) (q6 (7 . 6)) (q7 (2 . 7)) (q8 (4 . 8)))
