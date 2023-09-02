@@ -12327,3 +12327,59 @@ That's 30 possible combinations to do by hand, but a procedure should be easy to
 
 I don't think writing the proceudre is particularly interesting.
 So, this is where I'll leave things.
+
+** 4.42
+
+We make use of exclusive or to model the statements:
+
+#+NAME: def:x-or
+#+BEGIN_SRC racket
+  (define (x-or a b)
+    (and (or a b) (not (and a b))))
+#+END_SRC
+
+The code:
+
+#+BEGIN_SRC racket
+  (define (examination)
+    <<def:x-or>>
+    <<def:amb-require>>
+    <<def:distinct?>>
+    (let ((betty (amb 1 2 3 4 5))
+	  (ethel (amb 1 2 3 4 5))
+	  (joan (amb 1 2 3 4 5))
+	  (kitty (amb 1 2 3 4 5))
+	  (mary (amb 1 2 3 4 5)))
+      (require
+       (distinct? (list betty ethel joan
+			kitty mary)))
+      (require (x-or (= kitty 2) (= betty 3)))
+      (require (x-or (= ethel 1) (= joan 2)))
+      (require (x-or (= ethel 5) (= joan 3)))
+      (require (x-or (= kitty 2) (= mary 4)))
+      (require (x-or (= mary 4) (= betty 1)))
+      (list (list 'betty betty)
+	    (list 'ethel ethel)
+	    (list 'joan joan)
+	    (list 'kitty kitty)
+	    (list 'mary mary))))
+
+  (define (exhaust proc)
+    (define (keep-going)
+      (display (amb))
+      (keep-going))
+    (display (proc))
+    (newline)
+    (keep-going))
+
+  (exhaust examination)
+#+END_SRC
+
+#+RESULTS:
+: ((betty 3) (ethel 5) (joan 2) (kitty 1) (mary 4))
+
+Solution
+
+#+BEGIN_SRC racket
+  ((betty 3) (ethel 5) (joan 2) (kitty 1) (mary 4))
+#+END_SRC
