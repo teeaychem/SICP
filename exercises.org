@@ -12091,6 +12091,17 @@ And, with the current method, this no longer happens.
 	  (else (distinct? (cdr items)))))
 #+END_SRC
 
+#+NAME: def:amb-exhaust
+#+BEGIN_SRC racket
+  (define (exhaust proc)
+    (define (keep-going)
+      (display (amb))
+      (keep-going))
+    (display (proc))
+    (newline)
+    (keep-going))
+#+END_SRC
+
 #+BEGIN_SRC racket
   (define (multiple-dwelling)
     <<def:amb-require>>
@@ -12118,24 +12129,12 @@ And, with the current method, this no longer happens.
 	    (list 'miller miller)
 	    (list 'smith smith))))
 
-  (define (exhaust proc)
-    (define (keep-going)
-      (display (amb))
-      (keep-going))
-    (display (proc))
-    (newline)
-    (keep-going))
-
+  <<def:amb-exhaust>>
   (exhaust multiple-dwelling)
 #+END_SRC
 
 #+RESULTS:
 #+begin_example
-amb tree exhausted
-  context...:
-   /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-d4RhBi.rkt:3:0: multiple-dwelling
-   /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-d4RhBi.rkt:34:0: exhaust
-   body of "/var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-d4RhBi.rkt"
 ((baker 1) (cooper 2) (fletcher 4) (miller 3) (smith 5))
 ((baker 1) (cooper 2) (fletcher 4) (miller 5) (smith 3))
 ((baker 1) (cooper 4) (fletcher 2) (miller 5) (smith 3))
@@ -12183,23 +12182,11 @@ There are five solutions to the modified puzzle!
 	    (list 'miller miller)
 	    (list 'smith smith))))
 
-  (define (exhaust proc)
-    (define (keep-going)
-      (display (amb))
-      (keep-going))
-    (display (proc))
-    (newline)
-    (keep-going))
-
+  <<def:amb-exhaust>>
   (exhaust multiple-dwelling)
 #+END_SRC
 
 #+RESULTS:
-: amb tree exhausted
-:   context...:
-:    /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-Ev9t6p.rkt:3:0: multiple-dwelling
-:    /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-Ev9t6p.rkt:35:0: exhaust
-:    body of "/var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-Ev9t6p.rkt"
 : ((baker 3) (cooper 2) (fletcher 4) (miller 5) (smith 1))
 
 The goal is to structure the requirements so that redundant options are not explored, or explored fewer times than otherwise.
@@ -12298,23 +12285,11 @@ With these, we can eliminate most of the requirements be restricting the possibl
 	      (list 'miller miller)
 	      (list 'smith smith)))))
 
-  (define (exhaust proc)
-    (define (keep-going)
-      (display (amb))
-      (keep-going))
-    (display (proc))
-    (newline)
-    (keep-going))
-
+  <<def:amb-exhaust>>
   (exhaust multiple-dwelling)
 #+END_SRC
 
 #+RESULTS:
-: amb tree exhausted
-:   context...:
-:    /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-4KOsJR.rkt:3:0: multiple-dwelling
-:    /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-4KOsJR.rkt:53:0: exhaust
-:    body of "/var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-4KOsJR.rkt"
 : ((baker 3) (cooper 2) (fletcher 4) (miller 5) (smith 1))
 
 ** 4.41
@@ -12370,14 +12345,7 @@ The code:
 	    (list 'kitty kitty)
 	    (list 'mary mary))))
 
-  (define (exhaust proc)
-    (define (keep-going)
-      (display (amb))
-      (keep-going))
-    (display (proc))
-    (newline)
-    (keep-going))
-
+  <<def:amb-exhaust>>
   (exhaust examination)
 #+END_SRC
 
@@ -12477,31 +12445,11 @@ The only slight headache here was remembering to 'a' the ~car~ and ~cdr~ calls (
        (equal?
 	(lookup (reverse-lookup 'gabriella farther-relation) boat-relation)
 	(lookup 'parker farther-relation) ))
-      (display (reverse-lookup 'lorna farther-relation))
-      )
-    )
+      (display (reverse-lookup 'lorna farther-relation))))
 
-  (define (exhaust proc)
-    (define (keep-going)
-      (display (amb))
-      (keep-going))
-    (display (proc))
-    (newline)
-    (keep-going))
-
+  <<def:amb-exhaust>>
   (exhaust boats-and-daughters)
 #+END_SRC
-
-#+RESULTS:
-: amb tree exhausted
-:   context...:
-:    /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-ocXKIL.rkt:4:2
-:    .../compatibility/mlist.rkt:30:11: loop
-:    /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-ocXKIL.rkt:3:0: boats-and-daughters
-:    /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-ocXKIL.rkt:68:0: exhaust
-:    body of "/var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-ocXKIL.rkt"
-: parker#<void>
-: downing#<void>
 
 Running without the comment, we find lorna's father is downing.
 With the constraint commended, parker is also an option.
@@ -12559,7 +12507,7 @@ Second, a way to generate rows:
 
 (I was too lazy to find the equiv of ~ints~ surely defined above somewhere.)
 
-With this, ~queens~ amounts to specifying a queen for each row, and then requiring the rows, cols, and diagonals are distinct. 
+With this, ~queens~ amounts to specifying a queen for each row, and then requiring the rows, cols, and diagonals are distinct.
 
 #+NAME: def:amb-queens
 #+BEGIN_SRC racket
