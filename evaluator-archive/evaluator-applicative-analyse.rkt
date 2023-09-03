@@ -125,6 +125,12 @@
        (map (lambda (aproc) (aproc env))
             aprocs)))))
 
+;; execute-application 'replaces' (meta-)apply.
+;; For, the role of apply was to apply a procedure to some arguments.
+;; This is exactly what execute-application does.
+;; One feature of apply was checking the procedure was understood.
+;; However, this has already been done with analyse.
+
 (define (execute-application proc args)
   (cond ((primitive-procedure? proc)
          (apply-primitive-procedure proc args))
@@ -150,28 +156,6 @@
           'false))
     (lambda (env) (a-while env))))
 
-
-;; apply
-
-(define (meta-apply procedure arguments)
-  (cond ((primitive-procedure? procedure)
-         (apply-primitive-procedure
-          procedure
-          arguments))
-        ((compound-procedure? procedure)
-         (eval-sequence
-           (procedure-body procedure)
-           (extend-environment
-             (procedure-parameters
-              procedure)
-             arguments
-             (procedure-environment
-              procedure))))
-        (else
-         (error "Unknown procedure
-                 type: APPLY"
-                procedure))))
-
 ;; procedure arguments
 
 (define (list-of-values exps env)
@@ -188,7 +172,6 @@
   (if (true? (eval (if-predicate exp) env))
       (eval (if-consequent exp) env)
       (eval (if-alternative exp) env)))
-
 
 ;; sequences
 
