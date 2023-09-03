@@ -12561,36 +12561,36 @@ Here's a test:
 
 #+NAME: def:nat-lang-parser
 #+BEGIN_SRC racket
-  <<def:amb-require>>
-  (define *unparsed*
-    '())
+    <<def:amb-require>>
+    (define *unparsed*
+      '())
 
-  (define nouns
-    '(noun student professor cat class))
+    (define nouns
+      '(noun student professor cat class))
 
-  (define verbs
-    '(verb studies lectures eats sleeps))
+    (define verbs
+      '(verb studies lectures eats sleeps))
 
-  (define articles
-    '(article the a))
+    (define articles
+      '(article the a))
 
-  (define prepositions
-    '(prep for to in by with))
+    (define prepositions
+      '(prep for to in by with))
 
-  (define (parse-simple-noun-phrase)
-    (list 'simple-noun-phrase
-	  (parse-word articles)
-	  (parse-word nouns)))
+    (define (parse-simple-noun-phrase)
+      (list 'simple-noun-phrase
+	    (parse-word articles)
+	    (parse-word nouns)))
 
-  (define (parse-noun-phrase)
-    (define (maybe-extend noun-phrase)
-      (amb
-       noun-phrase
-       (maybe-extend
-	(list 'noun-phrase
-	      noun-phrase
-	      (parse-prepositional-phrase)))))
-    (maybe-extend (parse-simple-noun-phrase)))
+    (define (parse-noun-phrase)
+      (define (maybe-extend noun-phrase)
+	(amb
+	 noun-phrase
+	 (maybe-extend
+	  (list 'noun-phrase
+		noun-phrase
+		(parse-prepositional-phrase)))))
+      (maybe-extend (parse-simple-noun-phrase)))
 
   (define (parse-word word-list)
     (require (not (null? *unparsed*)))
@@ -12600,15 +12600,15 @@ Here's a test:
       (set! *unparsed* (cdr *unparsed*))
       (list (car word-list) found-word)))
 
-  (define (parse-prepositional-phrase)
-    (list 'prep-phrase
-	  (parse-word prepositions)
-	  (parse-noun-phrase)))
+    (define (parse-prepositional-phrase)
+      (list 'prep-phrase
+	    (parse-word prepositions)
+	    (parse-noun-phrase)))
 
-  (define (parse-sentence)
-    (list 'sentence
-	  (parse-noun-phrase)
-	  (parse-verb-phrase)))
+    (define (parse-sentence)
+      (list 'sentence
+	    (parse-noun-phrase)
+	    (parse-verb-phrase)))
 
   (define (parse-verb-phrase)
     (define (maybe-extend verb-phrase)
@@ -12727,7 +12727,6 @@ For example, but introducing detailed error messages about what happened.
 Ah well, it makes sense after a while.
 
 ** 4.45
-
 *** 1.
 
 #+BEGIN_SRC racket
@@ -12810,3 +12809,41 @@ The prof lectures to the student who is in the class with the cat.
 The relevant operands are parts of a sentence.
 And, the parser is written with the assumption that ~*unparsed*~ contains the unparsed text as given.
 However, if the operands are not evaluated left to right, there is no guarantee ~*unparsed*~ contains the unparsed text as given.
+
+** 4.47
+
+The suggested change is:
+
+#+BEGIN_SRC racket
+  (define (parse-verb-phrase)
+    (amb (parse-word verbs)
+	 (list
+	  'verb-phrase
+	  (parse-verb-phrase)
+	  (parse-prepositional-phrase))))
+#+END_SRC
+
+This allows for a simple loop.
+For, we may call ~(parse-verb-phrase)~ after calling ~(parse-verb-phrase)~, and so on.
+
+** TODO 4.48
+
+I doubt I'll return to this.
+
+** TODO 4.49
+
+The idea was to ambiguously choose a word.
+
+#+NAME: def:nat-lang-parser
+#+BEGIN_SRC racket
+  (define (parse-word word-list)
+    (require (not (null? *unparsed*)))
+    ;(require (memq (car *unparsed*)
+    ;(cdr word-list)))
+    (set! *unparsed* (cdr *unparsed*))
+    (an-element-of word-list))
+#+END_SRC
+
+This generates the strucutre, and with enough tries starts to fill in the structure.
+
+More could be done here, but testing painful, and, unfortunately, I don't find this sufficiently interesting to endure it.
