@@ -604,6 +604,7 @@
         (list 'display display)
         (list 'newline newline)
         (list 'not not)
+        (list 'memq memq)
         ; ⟨more primitives⟩
         ))
 

@@ -12624,7 +12624,7 @@ Here's a test:
     (set! *unparsed* input)
     (let ((sent (parse-sentence)))
       (require (null? *unparsed*))
-      sent)
+      sent))
 #+END_SRC
 
 #+RESULTS: def:nat-lang-parser
@@ -12725,3 +12725,88 @@ A different option would have been to first introduce this kind of evaluation wi
 For example, but introducing detailed error messages about what happened.
 
 Ah well, it makes sense after a while.
+
+** 4.45
+
+*** 1.
+
+#+BEGIN_SRC racket
+  (sentence
+   (simple-noun-phrase (article the) (noun professor))
+   (verb-phrase
+    (verb-phrase
+     (verb-phrase
+      (verb lectures)
+      (prep-phrase (prep to)
+		   (simple-noun-phrase (article the) (noun student))))
+     (prep-phrase (prep in) (simple-noun-phrase (article the) (noun class))))
+    (prep-phrase (prep with) (simple-noun-phrase (article the) (noun cat)))))
+#+END_SRC
+
+In the class the prof lectures with the cat to the student.
+
+*** 2.
+
+#+BEGIN_SRC racket
+  (sentence
+   (simple-noun-phrase (article the) (noun professor))
+   (verb-phrase
+    (verb-phrase
+     (verb lectures)
+     (prep-phrase (prep to) (simple-noun-phrase (article the) (noun student))))
+    (prep-phrase (prep in) (noun-phrase (simple-noun-phrase (article the) (noun class)) (prep-phrase (prep with) (simple-noun-phrase (article the) (noun cat)))))))
+#+END_SRC
+
+In the class with the cat the prof lectures to the student.
+
+*** 3.
+
+#+BEGIN_SRC racket
+  (sentence
+   (simple-noun-phrase (article the) (noun professor))
+   (verb-phrase
+    (verb-phrase
+     (verb lectures)
+     (prep-phrase (prep to) (noun-phrase (simple-noun-phrase (article the) (noun student)) (prep-phrase (prep in) (simple-noun-phrase (article the) (noun class))))))
+    (prep-phrase (prep with) (simple-noun-phrase (article the) (noun cat)))))
+#+END_SRC
+
+The prof with the cat lectures to the student in the class.
+
+*** 4.
+
+#+BEGIN_SRC racket
+  (sentence
+   (simple-noun-phrase (article the) (noun professor))
+   (verb-phrase
+    (verb lectures)
+    (prep-phrase (prep to)
+		 (noun-phrase
+		  (noun-phrase (simple-noun-phrase (article the) (noun student)) (prep-phrase (prep in) (simple-noun-phrase (article the) (noun class))))
+		  (prep-phrase (prep with) (simple-noun-phrase (article the) (noun cat)))))))
+#+END_SRC
+
+The prof lectures to the student in the class who has a cat.
+
+*** 5.
+
+#+BEGIN_SRC racket
+  (sentence (simple-noun-phrase (article the) (noun professor))
+	    (verb-phrase
+	     (verb lectures)
+	     (prep-phrase (prep to)
+			  (noun-phrase
+			   (simple-noun-phrase (article the) (noun student))
+			   (prep-phrase (prep in)
+					(noun-phrase
+					 (simple-noun-phrase (article the) (noun class))
+					 (prep-phrase (prep with) (simple-noun-phrase (article the) (noun cat)))))))))
+#+END_SRC
+
+The prof lectures to the student who is in the class with the cat.
+
+** 4.46
+
+The relevant operands are parts of a sentence.
+And, the parser is written with the assumption that ~*unparsed*~ contains the unparsed text as given.
+However, if the operands are not evaluated left to right, there is no guarantee ~*unparsed*~ contains the unparsed text as given.
