@@ -12936,3 +12936,5 @@ Following for testing:
 When executing, we skip a display for when x = y, but ~count~ continues to go up.
 There are nine assignmnets total.
 The final value of count is 8 as we could how many times… alternative values for x and y are chosen.
+
+If we'd have used set, count would always be 1.
