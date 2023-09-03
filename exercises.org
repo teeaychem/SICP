@@ -12890,3 +12890,49 @@ Suffling a list is little more than creating a list by taking elements of the in
 : (2 5 3 1 4)
 
 My guess is this allows for a variety of sentence stuctures to be generated.
+
+** 4.51
+
+Implemented as:
+
+#+BEGIN_SRC racket
+  (define (analyze-perm-assignment exp)
+  (let ((var (assignment-variable exp))
+        (vproc (analyze
+                (assignment-value exp))))
+    (lambda (env succeed fail)
+      (vproc env
+             (lambda (val fail2)
+               (set-variable-value!
+                var
+                val
+                env)
+               (succeed
+                'ok
+                fail2))
+             fail))))
+#+END_SRC
+
+Which is just ~analyze-assignment~ without a distinct 'course of failure' for the assignmnet.
+Alternatively, without an alternative path for the assignment.
+
+~eq?~ also added a primitive to the evaluator for this.
+Following for testing:
+
+#+BEGIN_SRC racket
+  (define (an-element-of items)
+    (require (not (null? items)))
+    (amb (car items)
+	 (an-element-of (cdr items))))
+
+  (define count 0)
+  (let ((x (an-element-of '(a b c)))
+	(y (an-element-of '(a b c))))
+    (permanent-set! count (+ count 1))
+    (require (not (eq? x y)))
+    (list x y count))
+#+END_SRC
+
+When executing, we skip a display for when x = y, but ~count~ continues to go up.
+There are nine assignmnets total.
+The final value of count is 8 as we could how many times… alternative values for x and y are chosen.

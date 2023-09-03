@@ -10,11 +10,33 @@
 ;; * Removed support for while
 ;; * Updated to use amb.
 ;; * Added support for require
+;; * Added naive way of doing ramb
+;; * Added permanent assignments
 
 (define (append list1 list2)
   (if (null? list1)
       list2
       (cons (car list1) (append (cdr list1) list2))))
+
+;;
+
+(define (permanent-set? exp) (tagged-list? exp 'permanent-set!))
+
+(define (analyze-perm-assignment exp)
+  (let ((var (assignment-variable exp))
+        (vproc (analyze
+                (assignment-value exp))))
+    (lambda (env succeed fail)
+      (vproc env
+             (lambda (val fail2)
+               (set-variable-value!
+                var
+                val
+                env)
+               (succeed
+                'ok
+                fail2))
+             fail))))
 
 ;; ramb
 
@@ -79,6 +101,8 @@
          (analyze-assignment exp))
         ((definition? exp)
          (analyze-definition exp))
+        ((permanent-set? exp)
+         (analyze-perm-assignment exp))
         ((if? exp)
          (analyze-if exp))
         ((lambda? exp)
@@ -190,7 +214,10 @@
                (succeed 'ok fail2))
              fail))))
 
-;; TODO
+;; analyse the value, same as with definitions.
+;; success condition stores the old value of the variable.
+;; then, sets the variable and passes 'ok' forward.
+;; the failure condition simply sets the variable to the old value.
 
 (define (analyze-assignment exp)
   (let ((var (assignment-variable exp))
@@ -648,6 +675,7 @@
         (list 'newline newline)
         (list 'not not)
         (list 'memq memq)
+        (list 'eq? eq?)
         ; ⟨more primitives⟩
         ))
 
