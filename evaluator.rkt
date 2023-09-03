@@ -5,195 +5,259 @@
 ;; * Added support for let* expressions
 ;; * Added support for named let expressions
 ;; * Added support for while constructs
-;; * Added support for scan-out-defines (I think).
 ;; * Added support for letrec.
-;; * Changed to normal order evaluation, with memoisation
-;; * Added non-strict/semi- primitive procedures (cons, car, cdr).
-;; * Added lazy lists.
-
+;; * Updated to use analyze
+;; * Removed support for while
+;; * Updated to use amb.
 
 (define (append list1 list2)
   (if (null? list1)
       list2
       (cons (car list1) (append (cdr list1) list2))))
 
-;; lazy cons
+;; amb
 
-(define (cons-l x y)  (lambda (m) (m x y)))
+(define (amb? exp) (tagged-list? exp 'amb))
 
-(define (car-l z) ((force-it z) (lambda (p q) p)))
+(define (amb-choices exp) (cdr exp))
 
-(define (cdr-l z) ((force-it z) (lambda (p q) q)))
+(define (ambeval exp env succeed fail)
+  ((analyze exp) env succeed fail))
 
-(define (list-l elems)
-  (if (null? elems)
-      nil
-      (cons-l (car elems) (list-l (cdr elems)))))
 ;; eval
 
-(define (eval exp env)
+(define (eval exp env) ((analyze exp) env))
+
+(define (analyze exp)
   (cond ((self-evaluating? exp)
-         exp)
-        ((variable? exp)
-         (lookup-variable-value exp env))
+         (analyze-self-evaluating exp))
         ((quoted? exp)
-         (text-of-quotation exp))
+         (analyze-quoted exp))
+        ((variable? exp)
+         (analyze-variable exp))
         ((assignment? exp)
-         (eval-assignment exp env))
+         (analyze-assignment exp))
         ((definition? exp)
-         (eval-definition exp env))
+         (analyze-definition exp))
         ((if? exp)
-         (eval-if exp env))
-        ((while? exp)
-         (eval-while exp env))
+         (analyze-if exp))
         ((lambda? exp)
-         (make-procedure
-          (lambda-parameters exp)
-          (lambda-body exp)
-          env))
+         (analyze-lambda exp))
         ((begin? exp)
-         (eval-sequence
-          (begin-actions exp)
-          env))
+         (analyze-sequence
+          (begin-actions exp)))
+;;        ((while? exp)
+;;         (analyze-while exp))
         ((cond? exp)
-         (eval (cond->if exp) env))
+         (analyze (cond->if exp)))
         ((let? exp)
-         (eval (let->combination exp) env))
+         (analyze (let->combination exp)))
         ((let*? exp)
-         (eval (let*->nested-lets exp) env))
+         (analyze (let*->nested-lets exp)))
         ((letrec? exp)
-         (eval (letrec->let exp) env))
+         (analyze (letrec->let exp)))
         ((application? exp)
-         (meta-apply (actual-value (operator exp) env)
-                     (operands exp)
-                     env))
+         (analyze-application exp))
         (else
          (error "Unknown expression
-                 type: EVAL" exp))))
+                 type: ANALYZE"
+                exp))))
 
-;; actual-value
+;; cases
 
-(define (actual-value exp env)
-  (force-it (eval exp env))) ; force any thunks
+;; ;; given cases
 
-;; apply
+(define (analyze-self-evaluating exp)
+  (lambda (env succeed fail)
+    (succeed exp fail)))
 
-(define (meta-apply procedure arguments env)
-  (cond ((primitive-procedure? procedure)
-         (apply-primitive-procedure
-          procedure
-          (list-of-arg-values
-           arguments
-           env)))  ; no choice but to apply arguments with primitive, so need arg vals.
-        ((semi-primitive-procedure? procedure)
-         (apply-semi-primitive-procedure
-          procedure
-          (list-of-delayed-args
-           arguments
-           env))
-         )
-        ((compound-procedure? procedure)
-         (eval-sequence
-          (procedure-body procedure)
+(define (analyze-quoted exp)
+  (let ((qval (text-of-quotation exp)))
+    (lambda (env succeed fail)
+      (succeed qval fail))))
+
+(define (analyze-variable exp)
+  (lambda (env succeed fail)
+    (succeed (lookup-variable-value exp env)
+             fail)))
+
+(define (analyze-lambda exp)
+  (let ((vars (lambda-parameters exp))
+        (bproc (analyze-sequence
+                (lambda-body exp))))
+    (lambda (env succeed fail)
+      (succeed (make-procedure vars bproc env)
+               fail))))
+
+;; with an if, return a procedure, where the predicate is run.
+;; success happens with a procedure has been run, so we'll get the predicate value.
+
+(define (analyze-if exp)
+  (let ((pproc (analyze (if-predicate exp)))
+        (cproc (analyze (if-consequent exp)))
+        (aproc (analyze (if-alternative exp))))
+    (lambda (env succeed fail)
+      (pproc env
+             ;; success continuation for evaluating
+             ;; the predicate to obtain pred-value
+             (lambda (pred-value fail2)
+               (if (true? pred-value)
+                   (cproc env succeed fail2)
+                   (aproc env succeed fail2)))
+             ;; failure continuation for
+             ;; evaluating the predicate
+             fail))))
+
+(define (analyze-sequence exps)
+  (define (sequentially a b)
+    (lambda (env succeed fail)
+      (a env
+         ;; success continuation for calling a
+         (lambda (a-value fail2) ;; at this point, we've just analysed a. When a is evaluated, we'll return the value.
+           (b env succeed fail2))
+         ;; failure continuation for calling a
+         fail)))
+  (define (loop first-proc rest-procs)
+    (if (null? rest-procs)
+        first-proc
+        (loop (sequentially first-proc
+                            (car rest-procs))
+              (cdr rest-procs))))
+  (let ((procs (map analyze exps)))
+    (if (null? procs)
+        (error "Empty sequence: ANALYZE"))
+    (loop (car procs) (cdr procs))))
+
+;; the definition value is analysed.
+;; this is exectured, for some reason I still haven't figured out.
+;; I mean, whether it's stylistic or whether it matters.
+;; Then, the result of the execution is passed to define variable.
+
+(define (analyze-definition exp)
+  (let ((var (definition-variable exp))
+        (vproc (analyze
+                (definition-value exp))))
+    (lambda (env succeed fail)
+      (vproc env
+             (lambda (val fail2)
+               (define-variable! var val env)
+               (succeed 'ok fail2))
+             fail))))
+
+;; TODO
+
+(define (analyze-assignment exp)
+  (let ((var (assignment-variable exp))
+        (vproc (analyze
+                (assignment-value exp))))
+    (lambda (env succeed fail)
+      (vproc env
+             (lambda (val fail2)    ; *1*
+               (let ((old-value
+                      (lookup-variable-value
+                       var
+                       env)))
+                 (set-variable-value!
+                  var
+                  val
+                  env)
+                 (succeed
+                  'ok
+                  (lambda ()    ; *2*
+                    (set-variable-value!
+                     var
+                     old-value
+                     env)
+                    (fail2)))))
+               fail))))
+
+;; TODO
+
+(define (analyze-application exp)
+  (let ((fproc (analyze (operator exp)))
+        (aprocs (map analyze (operands exp))))
+    (lambda (env succeed fail)
+      (fproc env
+             (lambda (proc fail2)
+               (get-args
+                aprocs
+                env
+                (lambda (args fail3)
+                  (execute-application
+                   proc args succeed fail3))
+                fail2))
+             fail))))
+
+;; obtaining arguments is a recursive procedure.
+;; so, execute the first arg, where the success condition amounts to applying get-args to the remainder of the arguments.
+
+(define (get-args aprocs env succeed fail)
+  (if (null? aprocs)
+      (succeed '() fail)
+      ((car aprocs)
+       env
+       ;; success continuation for this aproc
+       (lambda (arg fail2)
+         (get-args
+          (cdr aprocs)
+          env
+          ;; success continuation for
+          ;; recursive call to get-args
+          (lambda (args fail3)
+            (succeed (cons arg args)
+                     fail3))
+          fail2))
+       fail)))
+
+(define (execute-application
+         proc args succeed fail)
+  (cond ((primitive-procedure? proc)
+         (succeed
+          (apply-primitive-procedure
+           proc args)
+          fail))
+        ((compound-procedure? proc)
+         ((procedure-body proc)
           (extend-environment
-           (procedure-parameters procedure)
-           (list-of-delayed-args
-            arguments
-            env)   ; extend env with delayed args.
-                   ;; have ref to a thunk, but nothing more.
-           (procedure-environment procedure))))
-        (else (error "Unknown procedure
-                      type: APPLY"
-                     procedure))))
-
-(define (list-of-arg-values exps env)
-  (if (no-operands? exps)
-      '()
-      (cons (actual-value
-             (first-operand exps)
-             env)
-            (list-of-arg-values
-             (rest-operands exps)
-             env))))
-
-(define (list-of-delayed-args exps env)
-  (if (no-operands? exps)
-      '()
-      (cons (delay-it
-             (first-operand exps)
-             env)
-            (list-of-delayed-args
-             (rest-operands exps)
-             env))))
-
-;; thunks
-
-(define (delay-it exp env)
-  (list 'thunk exp env)) ;; exp is already 'delayed' (as un-evaled), but also keep env.
-
-(define (thunk? obj) (tagged-list? obj 'thunk))
-
-(define (thunk-exp thunk) (cadr thunk))
-
-(define (thunk-env thunk) (caddr thunk))
-
-(define (evaluated-thunk? obj)
-  (tagged-list? obj 'evaluated-thunk))
-
-(define (thunk-value evaluated-thunk)
-  (cadr evaluated-thunk))
-
-(define (force-it obj)
-  (cond ((thunk? obj) ; if thunk, goal is to memo
-         (let ((result ; result stores result of evaluating the thunk
-                (actual-value
-                 (thunk-exp obj)
-                 (thunk-env obj))))
-           (set-car! obj 'evaluated-thunk) ; change the current tag.
-           (set-car! (cdr obj) result) ; update the result
-           (set-cdr! (cdr obj) '()) ; env is no longer needed, as no more calls to eval.
-                                    ; could leave, but I guess forgetting will help clean-up
-           result))
-        ((evaluated-thunk? obj)
-         (thunk-value obj))
-        (else obj)))
+           (procedure-parameters proc)
+           args
+           (procedure-environment proc))
+          succeed
+          fail))
+        (else (error "Unknown procedure type:
+                      EXECUTE-APPLICATION"
+                     proc))))
 
 
-;; conditionals
+;; analyze-amb is analysed to include a method of obtaining the next choice.
+;; The return of executing the analysed procedure is the first choice.
+;; And, the fail condition in analyze-amb amounts to discarding the first choice and starting again.
 
-(define (eval-if exp env)
-  (if (true? (actual-value (if-predicate exp) ; always want to eval the predicate.
-                           env))              ;; everything else is handled recursively
-      (eval (if-consequent exp) env)
-      (eval (if-alternative exp) env)))
+(define (analyze-amb exp)
+  (let ((cprocs
+         (map analyze (amb-choices exp))))
+    (lambda (env succeed fail)
+      (define (try-next choices)
+        (if (null? choices)
+            (fail)
+            ((car choices)
+             env
+             succeed
+             (lambda ()
+               (try-next (cdr choices))))))
+      (try-next cprocs))))
 
+;; ;; custom cases
 
-;; sequences
-
-(define (eval-sequence exps env)
-  (cond ((last-exp? exps)
-         (eval (first-exp exps) env))
-        (else
-         (eval (first-exp exps) env)
-         (eval-sequence (rest-exps exps)
-                        env))))
-
-;; assignments and definitions
-
-(define (eval-assignment exp env)
-  (set-variable-value!
-   (assignment-variable exp)
-   (eval (assignment-value exp) env)
-   env)
-  'ok)
-
-(define (eval-definition exp env)
-  (define-variable!
-    (definition-variable exp)
-    ;(delay-it (definition-value exp) env) ; defer eval of definitions
-    (eval (definition-value exp) env)
-    env)
-  'ok)
+;; (define (analyze-while exp)
+;;   (let ((w-p (analyze (while-cond exp)))
+;;         (w-b (analyze (while-body exp))))
+;;     (define (a-while env)
+;;       (if (true? (w-p env))
+;;           (begin (w-b env)
+;;                  (a-while env))
+;;           'false))
+;;     (lambda (env) (a-while env))))
 
 ;; representing Expressions
 
@@ -204,13 +268,11 @@
 
 (define (variable? exp) (symbol? exp))
 
-
 (define (quoted? exp)
   (tagged-list? exp 'quote))
 
 (define (text-of-quotation exp)
-  (list-l (cadr exp)))
-
+  (cadr exp))
 
 (define (tagged-list? exp tag)
   (if (pair? exp)
@@ -377,35 +439,35 @@
   (append (list 'let vars) body))
 
 (define (let*->nested-lets exp)
-    (define (expand-to-lets var-terms var-values body)
-      (if (null? (cdr var-terms))
-	  (make-let (list (list (car var-terms) (car var-values)))
-		    body)
-	  (make-let (list (list (car var-terms) (car var-values)))
-		    (list (expand-to-lets (cdr var-terms)
-				    (cdr var-values)
-				    body)))))
+  (define (expand-to-lets var-terms var-values body)
+    (if (null? (cdr var-terms))
+        (make-let (list (list (car var-terms) (car var-values)))
+                  body)
+        (make-let (list (list (car var-terms) (car var-values)))
+                  (list (expand-to-lets (cdr var-terms)
+                                        (cdr var-values)
+                                        body)))))
   (expand-to-lets (let-var-terms exp) (let-var-values exp) (let-body exp)))
 
 ;; named let's
 
-  (define (named-let? exp)
-    (variable? (cadr exp)))
+(define (named-let? exp)
+  (variable? (cadr exp)))
 
-  (define (named-let-vars exp)
-    (caddr exp))
+(define (named-let-vars exp)
+  (caddr exp))
 
-  (define (named-let-name exp)
-    (cadr exp))
+(define (named-let-name exp)
+  (cadr exp))
 
-  (define (named-let-var-terms exp)
-    (map car (caddr exp)))
+(define (named-let-var-terms exp)
+  (map car (caddr exp)))
 
-  (define (named-let-var-vals exp)
-    (map cadr (caddr exp)))
+(define (named-let-var-vals exp)
+  (map cadr (caddr exp)))
 
-  (define (named-let-body exp)
-    (cadddr exp))
+(define (named-let-body exp)
+  (cadddr exp))
 
 ;; evaluator data structures
 
@@ -417,7 +479,7 @@
 
 (define (make-procedure parameters body env)
   (list 'procedure parameters
-        (scan-out-defines body)
+        body
         env))
 
 (define (compound-procedure? p)
@@ -425,14 +487,9 @@
 
 (define (procedure-parameters p) (cadr p))
 
-(define (procedure-body p)
-  ;;(scan-out-defines
-  (caddr p)
-  ;;)
-  )
+(define (procedure-body p) (caddr p))
 
 (define (procedure-environment p) (cadddr p))
-
 
 (define (enclosing-environment env) (cdr env))
 
@@ -470,12 +527,9 @@
               (enclosing-environment env)))
             ((eq? var (car vars))
              (let ((val (car vals)))
-               (cond ((eq? '*unassigned* val)
-                      (error "Unassigned variable"))
-                     ;; ((tagged-list? val 'thunk)
-                     ;;  (force-it val))
-                     (else val)
-                   )))
+               (if (eq? '*unassigned* val)
+                   (error "Unassigned variable")
+                   val)))
              (else (scan (cdr vars)
                          (cdr vals)))))
       (if (eq? env the-empty-environment)
@@ -517,7 +571,6 @@
 
 ;; running the evaluator as a program
 
-
 (define (primitive-procedure? proc)
   (tagged-list? proc 'primitive))
 
@@ -525,7 +578,10 @@
   (cadr proc))
 
 (define primitive-procedures
-  (list (list 'null? null?)
+  (list (list 'car car)
+        (list 'cdr cdr)
+        (list 'cons cons)
+        (list 'null? null?)
         (list 'list list)
         (list '+ +)
         (list '* *)
@@ -549,21 +605,43 @@
   (apply
    (primitive-implementation proc) args))
 
+(define input-prompt  ";;; Amb-Eval input:")
 
-(define input-prompt  ";;; L-Eval input:")
-
-(define output-prompt ";;; L-Eval value:")
+(define output-prompt ";;; Amb-Eval value:")
 
 (define (driver-loop)
-  (prompt-for-input input-prompt)
-  (let ((input (read)))
-    (let ((output (actual-value ; input may be just a thunk, so need to force.
-                   input
-                   the-global-environment)))
-      (announce-output output-prompt)
-      (user-print output)))
-  (driver-loop))
-
+  (define (internal-loop try-again)
+    (prompt-for-input input-prompt)
+    (let ((input (read)))
+      (if (eq? input 'try-again)
+          (try-again)
+          (begin
+            (newline)
+            (display
+             ";;; Starting a new problem")
+            (ambeval
+             input
+             the-global-environment
+             ;; ambeval success
+             (lambda (val next-alternative)
+               (announce-output
+                output-prompt)
+               (user-print val)
+               (internal-loop
+                next-alternative))
+             ;; ambeval failure
+             (lambda ()
+               (announce-output
+                ";;; There are no
+                 more values of")
+               (user-print input)
+               (driver-loop)))))))
+  (internal-loop
+   (lambda ()
+     (newline)
+     (display
+      ";;; There is no current problem")
+     (driver-loop))))
 
 (define (prompt-for-input string)
   (newline) (newline)
@@ -581,12 +659,11 @@
              '<procedure-env>))
       (display object)))
 
-
 (define (setup-environment)
   (let ((initial-env
          (extend-environment
-          (append (primitive-procedure-names) (semi-primitive-procedure-names))
-          (append (primitive-procedure-objects) (semi-primitive-procedure-objects))
+          (primitive-procedure-names)
+          (primitive-procedure-objects)
           the-empty-environment)))
     (define-variable! 'true true initial-env)
     (define-variable! 'false false initial-env)
@@ -594,55 +671,26 @@
 
 ;; while
 
-(define (while? exp)
-  (tagged-list? exp 'while))
+;; (define (while? exp)
+;;   (tagged-list? exp 'while))
 
-(define (while-cond exp)
-  (cadr exp))
+;; (define (while-cond exp)
+;;   (cadr exp))
 
-  (define (while-body exp)
-    (cons 'begin (cddr exp)))
+;;   (define (while-body exp)
+;;     (cons 'begin (cddr exp)))
 
-(define (eval-while exp env)
-  (if (true? (eval (while-cond exp) env))
-      (begin
-        (eval (while-body exp) env)
-        (eval-while exp env))
-      'false))
-
-
-;; scan-out-defines
-
-  (define (scan-out-defines body)
-    (let* ((term-list (cons 'terms nil))
-	   (last-term term-list)
-	  (go? #f))
-      (define (collect-replace exp)
-	(cond ((and (definition? exp))
-	       (let ((cell (cons (definition-variable exp) nil)))
-		 (set-cdr! last-term cell)
-		(set! last-term cell)
-		(set! go? #t))
-	       (set-car! exp 'set!)
-	       exp)
-	      (else exp)))
-      (let ((new-bod
-	     ;; (if (not (pair? (car body)))
-	     ;; (collect-replace body)
-	     (map collect-replace body)
-	     ;; )
-	     ))
-	(if go?
-	    (let->combination (make-let
-			       (map (lambda (t) (list t ''*undefined*)) (cdr term-list))
-			       (list new-bod)))
-	    body))))
+;; (define (eval-while exp env)
+;;   (if (true? (eval (while-cond exp) env))
+;;       (begin
+;;         (eval (while-body exp) env)
+;;         (eval-while exp env))
+;;       'false))
 
 ;; letrec
 
 (define (letrec? exp)
   (tagged-list? exp 'letrec))
-
 
 (define (letrec-var-terms exp)
   (map car (cadr exp)))
@@ -678,36 +726,7 @@
     (change-to-set! (letrec-assignments exp))
     (merge-sets-body exp)
     (cons (make-lambda outervars (cadr exp))
-          (map (lambda (x) '*unassigned*) outervars))))
-
-;; semi primitive procedures
-
-(define (semi-primitive-procedure? proc)
-  (tagged-list? proc 'semi-primitive))
-
-(define (semi-primitive-implementation proc)
-  (cadr proc))
-
-(define semi-primitive-procedures
-  (list (list 'car car-l)
-        (list 'cdr cdr-l)
-        (list 'cons cons-l)
-        (list 'list list-l)
-        ; ⟨more primitives⟩
-        ))
-
-(define (semi-primitive-procedure-names)
-  (map car semi-primitive-procedures))
-
-(define (semi-primitive-procedure-objects)
-  (map (lambda (proc)
-         (list 'semi-primitive (cadr proc)))
-       semi-primitive-procedures))
-
-(define (apply-semi-primitive-procedure proc args)
-  (apply
-   (semi-primitive-implementation proc) args))
-
+          (map (lambda (x) ''*unassigned*) outervars))))
 
 ;; driver
 

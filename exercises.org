@@ -12556,3 +12556,172 @@ Here's a test:
 
 #+RESULTS:
 : ((q1 (1 . 1)) (q2 (5 . 2)) (q3 (8 . 3)) (q4 (6 . 4)) (q5 (3 . 5)) (q6 (7 . 6)) (q7 (2 . 7)) (q8 (4 . 8)))
+
+** Parsing natural language
+
+#+NAME: def:nat-lang-parser
+#+BEGIN_SRC racket
+  <<def:amb-require>>
+  (define *unparsed*
+    '())
+
+  (define nouns
+    '(noun student professor cat class))
+
+  (define verbs
+    '(verb studies lectures eats sleeps))
+
+  (define articles
+    '(article the a))
+
+  (define prepositions
+    '(prep for to in by with))
+
+  (define (parse-simple-noun-phrase)
+    (list 'simple-noun-phrase
+	  (parse-word articles)
+	  (parse-word nouns)))
+
+  (define (parse-noun-phrase)
+    (define (maybe-extend noun-phrase)
+      (amb
+       noun-phrase
+       (maybe-extend
+	(list 'noun-phrase
+	      noun-phrase
+	      (parse-prepositional-phrase)))))
+    (maybe-extend (parse-simple-noun-phrase)))
+
+  (define (parse-word word-list)
+    (require (not (null? *unparsed*)))
+    (require (memq (car *unparsed*)
+		   (cdr word-list)))
+    (let ((found-word (car *unparsed*)))
+      (set! *unparsed* (cdr *unparsed*))
+      (list (car word-list) found-word)))
+
+  (define (parse-prepositional-phrase)
+    (list 'prep-phrase
+	  (parse-word prepositions)
+	  (parse-noun-phrase)))
+
+  (define (parse-sentence)
+    (list 'sentence
+	  (parse-noun-phrase)
+	  (parse-verb-phrase)))
+
+  (define (parse-verb-phrase)
+    (define (maybe-extend verb-phrase)
+      (amb
+       verb-phrase
+       (maybe-extend
+	(list 'verb-phrase
+	      verb-phrase
+	      (parse-prepositional-phrase)))))
+    (maybe-extend (parse-word verbs)))
+
+  (define (parse input)
+    (set! *unparsed* input)
+    (let ((sent (parse-sentence)))
+      (require (null? *unparsed*))
+      sent)
+#+END_SRC
+
+#+RESULTS: def:nat-lang-parser
+
+** 4.44
+
+I don't think there's a way to get the parser working with calls to ~amb~.
+Though I'm not sure why.
+
+Intuitively, a call to ~amb~ should make another call to ~parse~.
+But, if it's really a call to ~require~ within ~parse~, then there is nothing left to do.
+
+And, this seems like a branch point.
+Looking ahead, the evalautor considers ~try-again~ as relative to the last procedure given as input.
+So, this is the call to parse.
+But contrast, ~amb~ may work with respect to the last procedure called.
+In which case, it probably is the call to ~require~ on what is now a null term.
+
+#+BEGIN_SRC racket
+  <<def:nat-lang-parser>>
+
+  ;(parse '(the professor lectures to the student in the class with the cat))
+  (parse '(the professor lectures to the student with the cat))
+  (amb)
+#+END_SRC
+
+#+RESULTS:
+: amb tree exhausted
+:   context...:
+:    /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-V0ptBp.rkt:48:2: parse-sentence
+:    /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-V0ptBp.rkt:63:0: parse
+:    body of "/var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-lAsQCE/org-babel-V0ptBp.rkt"
+
+** Implementing the ~amb~ evaluator
+
+The cycle of ~eval~ and ~apply~ extends the evaluator with analysis.
+
+The evaluator is given instructions.
+~eval~ is applied to these instructions
+
+
+to figure out what they amount to in the meta-langauge and applies these to some given ~env~
+In order to apply what is evaluated, we need to supply an ~env~, a ~success~ continutation, and a ~fail~ continuation.
+
+Here, these need to be supplied as each requires the context of what has been applied so far as the role of ~eval~ is to figure out what to do regardless of context.
+
+The key is idea:
+
+- If the evaluation results in a value, the success continuation is called with that value.
+- If the evaluation results in the discovery of a dead end, the failure continuation is called.
+
+For every analysed argument, a lambda expression is returned with takes ~env~, ~success~, and ~failure~.
+
+Key to keep in mind is that the success condition is always applied.
+
+The important idea with everything here is that the analysed expression amounts to passing something forward.
+
+Think about the ~if~ analysis.
+The body of this analysis amounts to executing the condition, and then setting up what happens on success.
+When the ~if~ is put into action, the condition is evaluated, and then applied to the success condition.
+This isn't super clear /inside/ the ~if~ statement, but consider walking through a basic case like:
+
+#+BEGIN_SRC racket
+  (if (= 0 0)
+      1
+      2)
+#+END_SRC
+
+The analysed expression says, roughly, do the predicate, where success amounts to branching on the truth of the predicate, and failure amounts to whatever failure amounted to before.
+
+This is the key thing to keep in mind.
+Analysis doesn't return a direct instruction.
+Rather, analysis returns some tubing.
+
+And, in retrospect, it's clear this was also the case with basic analysis.
+At no point did analysis do anything, it just set things up so that analysis only needed to happen once.
+
+~ambeval~ is only called in the driver loop.
+
+Of course, when things are set into motion only the next piece of tubing is consdiered, but that's all that's needed.
+
+Ok, this is super cool.
+There's not really any backtracking.
+Rather, there's a branch, and things are set up so that in some cases, if you take the 'failure' branch, this ends up reverting or changing some things.
+
+This would have been super helpful to have explicitly pointed out.
+
+Something like:
+
+"
+Of course, backtracking isn't really possible.
+Time marches on.
+However, it's possible to undo changes.
+And, if we keep track of a a way to undo any change, this works the same as backtracking.
+"
+
+A different option would have been to first introduce this kind of evaluation without modelling backtracking.
+For example, but introducing detailed error messages about what happened.
+
+Ah well, it makes sense after a while.
