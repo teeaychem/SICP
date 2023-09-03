@@ -9,6 +9,7 @@
 ;; * Updated to use analyze
 ;; * Removed support for while
 ;; * Updated to use amb.
+;; * Added support for require
 
 (define (append list1 list2)
   (if (null? list1)
@@ -46,7 +47,6 @@
           (begin-actions exp)))
 ;;        ((while? exp)
 ;;         (analyze-while exp))
-        
         ((cond? exp)
          (analyze (cond->if exp)))
         ((let? exp)
@@ -57,6 +57,8 @@
          (analyze (letrec->let exp)))
         ((amb? exp)
          (analyze-amb exp))
+        ((require? exp)
+         (analyze (require->if exp)))
         ((application? exp)
          (analyze-application exp))
         (else
@@ -470,6 +472,16 @@
 (define (named-let-body exp)
   (cadddr exp))
 
+;;
+
+(define (require? exp)
+  (tagged-list? exp 'require))
+
+(define (require->if exp)
+  (make-if (list 'not (cadr exp))
+           '(amb)
+           'false))
+
 ;; evaluator data structures
 
 (define (true? x)
@@ -591,6 +603,7 @@
         (list '< <)
         (list 'display display)
         (list 'newline newline)
+        (list 'not not)
         ; ⟨more primitives⟩
         ))
 
