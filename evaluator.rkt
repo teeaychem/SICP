@@ -26,8 +26,6 @@
 
 ;; eval
 
-(define (eval exp env) ((analyze exp) env))
-
 (define (analyze exp)
   (cond ((self-evaluating? exp)
          (analyze-self-evaluating exp))
@@ -48,6 +46,7 @@
           (begin-actions exp)))
 ;;        ((while? exp)
 ;;         (analyze-while exp))
+        
         ((cond? exp)
          (analyze (cond->if exp)))
         ((let? exp)
@@ -56,6 +55,8 @@
          (analyze (let*->nested-lets exp)))
         ((letrec? exp)
          (analyze (letrec->let exp)))
+        ((amb? exp)
+         (analyze-amb exp))
         ((application? exp)
          (analyze-application exp))
         (else
@@ -530,14 +531,14 @@
                (if (eq? '*unassigned* val)
                    (error "Unassigned variable")
                    val)))
-             (else (scan (cdr vars)
-                         (cdr vals)))))
-      (if (eq? env the-empty-environment)
-          (error "Unbound variable" var)
-          (let ((frame (first-frame env)))
-            (scan (frame-variables frame)
-                  (frame-values frame)))))
-    (env-loop env))
+            (else (scan (cdr vars)
+                        (cdr vals)))))
+    (if (eq? env the-empty-environment)
+        (error "Unbound variable" var)
+        (let ((frame (first-frame env)))
+          (scan (frame-variables frame)
+                (frame-values frame)))))
+  (env-loop env))
 
 (define (set-variable-value! var val env)
   (define (env-loop env)
@@ -632,8 +633,7 @@
              ;; ambeval failure
              (lambda ()
                (announce-output
-                ";;; There are no
-                 more values of")
+                ";;; There are no more values of")
                (user-print input)
                (driver-loop)))))))
   (internal-loop
