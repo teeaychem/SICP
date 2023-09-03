@@ -16,6 +16,47 @@
       list2
       (cons (car list1) (append (cdr list1) list2))))
 
+;; ramb
+
+(define (ramb? exp) (tagged-list? exp 'ramb))
+
+(define (shuffle-list l)
+    (define (get-ith-elem l i)
+      (if (= i 1)
+	  (car l)
+	  (get-ith-elem (cdr l) (- i 1))))
+    (define (without-ith-elem l i)
+      (define (helper i l count)
+	(cond ((null? l) l)
+	      ((= i count)
+	       (helper i (cdr l) (+ 1 count)))
+	      (else
+	       (cons (car l) (helper i (cdr l) (+ 1 count))))))
+      (helper i l 1))
+    (define (shuffle-list-helper l)
+      (cond
+	((null? l) nil)
+	(else
+	 (let* ((length (length l))
+		(i (+ 1 (random length))))
+	   (cons (get-ith-elem l i) (shuffle-list-helper (without-ith-elem l i)))))))
+    (shuffle-list-helper l))
+
+(define (analyze-ramb exp)
+  (let ((cprocs
+         (shuffle-list (map analyze (amb-choices exp)))))
+    (lambda (env succeed fail)
+      (define (try-next choices)
+        (if (null? choices)
+            (fail)
+            ((car choices)
+             env
+             succeed
+             (lambda ()
+               (try-next (cdr choices))))))
+      (try-next cprocs))))
+
+
 ;; amb
 
 (define (amb? exp) (tagged-list? exp 'amb))
@@ -57,6 +98,8 @@
          (analyze (letrec->let exp)))
         ((amb? exp)
          (analyze-amb exp))
+        ((ramb? exp)
+         (analyze-ramb exp))
         ((require? exp)
          (analyze (require->if exp)))
         ((application? exp)

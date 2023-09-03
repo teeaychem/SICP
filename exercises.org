@@ -12847,3 +12847,46 @@ The idea was to ambiguously choose a word.
 This generates the strucutre, and with enough tries starts to fill in the structure.
 
 More could be done here, but testing painful, and, unfortunately, I don't find this sufficiently interesting to endure it.
+
+** 4.50
+
+To implement ~ramb~ naively, we create a procedure to shuffle a list.
+
+With this, ~ramb~ is a simple edit to ~amb~ such that the initial choices are shuffled.
+
+Suffling a list is little more than creating a list by taking elements of the initial list according to a randomly generated index.
+
+#+NAME: def:shuffle-list
+#+BEGIN_SRC racket
+  (define (shuffle-list l)
+    (define (get-ith-elem l i)
+      (if (= i 1)
+	  (car l)
+	  (get-ith-elem (cdr l) (- i 1))))
+    (define (without-ith-elem l i)
+      (define (helper i l count)
+	(cond ((null? l) l)
+	      ((= i count)
+	       (helper i (cdr l) (+ 1 count)))
+	      (else
+	       (cons (car l) (helper i (cdr l) (+ 1 count))))))
+      (helper i l 1))
+    (define (shuffle-list-helper l)
+      (cond
+	((null? l) nil)
+	(else
+	 (let* ((length (length l))
+		(i (+ 1 (random length))))
+	   (cons (get-ith-elem l i) (shuffle-list-helper (without-ith-elem l i)))))))
+    (shuffle-list-helper l))
+#+END_SRC
+
+#+BEGIN_SRC racket
+  <<def:shuffle-list>>
+  (shuffle-list (list 1 2 3 4 5))
+#+END_SRC
+
+#+RESULTS:
+: (2 5 3 1 4)
+
+My guess is this allows for a variety of sentence stuctures to be generated.
