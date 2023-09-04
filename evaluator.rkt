@@ -13,6 +13,7 @@
 ;; * Added naive way of doing ramb
 ;; * Added permanent assignments
 ;; * Added if-fail
+;; * require updated to be primitive
 
 (define (append list1 list2)
   (if (null? list1)
@@ -148,7 +149,7 @@
         ((ramb? exp)
          (analyze-ramb exp))
         ((require? exp)
-         (analyze (require->if exp)))
+         (analyze-require exp))
         ((application? exp)
          (analyze-application exp))
         (else
@@ -571,10 +572,25 @@
 (define (require? exp)
   (tagged-list? exp 'require))
 
-(define (require->if exp)
-  (make-if (list 'not (cadr exp))
-           '(amb)
-           'false))
+(define (require-predicate exp)
+  (cadr exp))
+
+(define (analyze-require exp)
+    (let ((pproc (analyze
+		  (require-predicate exp))))
+      (lambda (env succeed fail)
+	(pproc env
+	       (lambda (pred-value fail2)
+		 (if (not pred-value)
+		     (fail2)
+		     (succeed 'ok fail2)))
+	       fail))))
+
+
+;; (define (require->if exp)
+;;   (make-if (list 'not (cadr exp))
+;;            '(amb)
+;;            'false))
 
 ;; evaluator data structures
 

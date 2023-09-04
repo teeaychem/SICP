@@ -13054,3 +13054,23 @@ Below is background definitions for entering into the evalautor.
     (require (prime? (+ a b)))
     (list a b)))
 #+END_SRC
+
+** 4.54
+
+~require~ as a primitive reads:
+
+#+BEGIN_SRC racket
+  (define (analyze-require exp)
+    (let ((pproc (analyze
+		  (require-predicate exp))))
+      (lambda (env succeed fail)
+	(pproc env
+	       (lambda (pred-value fail2)
+		 (if (not pred-value)
+		     (fail2)
+		     (succeed 'ok fail2)))
+	       fail))))
+#+END_SRC
+
+Note, if the predicate fails, the goal of ~require~ to only to explore a different path.
+And, that alternative path is supplied by the procedure which accesses the value.
