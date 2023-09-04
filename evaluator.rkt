@@ -695,6 +695,7 @@
         (list '= =)
         (list '- -)
         (list '< <)
+        (list '> >)
         (list 'display display)
         (list 'newline newline)
         (list 'not not)

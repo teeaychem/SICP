@@ -124,7 +124,7 @@ If b, then compare a and c.
 
 #+NAME: def:square
 #+BEGIN_SRC racket
-      (define (square x) (* x x))
+  (define (square x) (* x x))
 #+END_SRC
 
 #+BEGIN_SRC racket
@@ -13007,4 +13007,50 @@ And, of course, passing procedures is possible…
       (lambda (x) (- x 1)))
     (lambda (x) (+ x 1)))
    4)
+#+END_SRC
+
+** 4.53
+
+#+BEGIN_SRC racket
+  (let ((pairs '()))
+    (if-fail
+     (let ((p (prime-sum-pair
+	       '(1 3 5 8)
+	       '(20 35 110))))
+       (permanent-set! pairs
+		       (cons p pairs))
+       (amb))
+     pairs))
+#+END_SRC
+
+It should be the case ~pairs~ repeated works through the supplied pairs to find pairs such that sum is a prime number.
+When no more pairs are found, the list is returned.
+
+This is what happens.
+
+Below is background definitions for entering into the evalautor.
+
+#+BEGIN_SRC racket
+  (define (prime? n)
+    (define (smallest-divisor n)
+      (define (find-divisor n test-divisor)
+	(define (divides? a b)
+	  (= (remainder b a) 0))
+	(define (square x) (* x x))
+	(cond ((> (square test-divisor) n) n)
+	      ((divides? test-divisor n) test-divisor)
+	      (else (find-divisor n (+ test-divisor 1)))))
+      (find-divisor n 2))
+    (= n (smallest-divisor n)))
+
+  (define (an-element-of items)
+    (require (not (null? items)))
+    (amb (car items)
+	 (an-element-of (cdr items))))
+
+  (define (prime-sum-pair list1 list2)
+  (let ((a (an-element-of list1))
+	(b (an-element-of list2)))
+    (require (prime? (+ a b)))
+    (list a b)))
 #+END_SRC
