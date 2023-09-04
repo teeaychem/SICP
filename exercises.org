@@ -12938,3 +12938,73 @@ There are nine assignmnets total.
 The final value of count is 8 as we could how many times… alternative values for x and y are chosen.
 
 If we'd have used set, count would always be 1.
+
+** 4.52
+
+~if-fail~ is analysed by:
+
+#+BEGIN_SRC racket
+  (define (analyze-if-fail exp)
+  (let ((mproc (analyze (if-fail-main exp))))
+    (lambda (env succeed fail)
+      (mproc env
+             (lambda (ret-val fail2) (succeed ret-val fail2))
+             ;; insufficient to return value alone.
+             ;; need to also pass the value forward.
+             (lambda ()
+               ((analyze (if-fail-alt exp)) env succeed fail)))
+      fail)))
+#+END_SRC
+
+When called, the main procedure is evaluated and called.
+The alternative to applying the main condition is whatever the prior failure condition was.
+When the main procedure is evaluated, though, the alternative condition is now the specific fail condition.
+And, the success condition is apply the return value of the main procedure to whatever the given success was.
+
+Note: the alternative procedure is only analysed if required.
+My reading here is this is usually used to terminate the current computation.
+So, there's no reason to store the analysis.
+Of course, it's easy to keep a store of the analysis along with the main procedure if desired.
+
+For testing:
+
+Two required definitions:
+
+#+BEGIN_SRC racket
+  (define (an-element-of items)
+    (require (not (null? items)))
+    (amb (car items)
+	 (an-element-of (cdr items))))
+
+  (define (even? n)
+    (= (remainder n 2) 0))
+#+END_SRC
+
+And, two test cases:
+
+#+BEGIN_SRC racket
+  (if-fail
+   (let ((x (an-element-of '(1 3 5))))
+     (require (even? x))
+     x)
+   'all-odd)
+#+END_SRC
+
+#+BEGIN_SRC racket
+  (if-fail
+   (let ((x (an-element-of '(1 3 5 8))))
+     (require (even? x))
+     x)
+   'all-odd)
+#+END_SRC
+
+And, of course, passing procedures is possible…
+
+#+BEGIN_SRC racket
+  ((if-fail
+    (let ((x (an-element-of '(1 3 5 8))))
+      (require (even? x))
+      (lambda (x) (- x 1)))
+    (lambda (x) (+ x 1)))
+   4)
+#+END_SRC

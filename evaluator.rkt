@@ -12,13 +12,34 @@
 ;; * Added support for require
 ;; * Added naive way of doing ramb
 ;; * Added permanent assignments
+;; * Added if-fail
 
 (define (append list1 list2)
   (if (null? list1)
       list2
       (cons (car list1) (append (cdr list1) list2))))
 
-;;
+
+;; if-fail
+
+(define (if-fail? exp) (tagged-list? exp 'if-fail))
+
+(define (if-fail-main exp) (cadr exp))
+
+(define (if-fail-alt exp) (caddr exp))
+
+(define (analyze-if-fail exp)
+  (let ((mproc (analyze (if-fail-main exp))))
+    (lambda (env succeed fail)
+      (mproc env
+             (lambda (ret-val fail2) (succeed ret-val fail2))
+             ;; insufficient to return value alone.
+             ;; need to also pass the value forward.
+             (lambda ()
+               ((analyze (if-fail-alt exp)) env succeed fail)))
+      fail)))
+
+;; permanent-set
 
 (define (permanent-set? exp) (tagged-list? exp 'permanent-set!))
 
@@ -105,6 +126,8 @@
          (analyze-perm-assignment exp))
         ((if? exp)
          (analyze-if exp))
+        ((if-fail? exp)
+         (analyze-if-fail exp))
         ((lambda? exp)
          (analyze-lambda exp))
         ((begin? exp)
@@ -251,14 +274,15 @@
         (aprocs (map analyze (operands exp))))
     (lambda (env succeed fail)
       (fproc env
-             (lambda (proc fail2)
+             (lambda (proc fail2) ;; analysed application
                (get-args
                 aprocs
                 env
-                (lambda (args fail3)
+                (lambda (args fail3) ;; succeed getting args, do app
                   (execute-application
                    proc args succeed fail3))
-                fail2))
+                fail2) ;; failure of getting args is whatever is given
+               )
              fail))))
 
 ;; obtaining arguments is a recursive procedure.
@@ -542,7 +566,7 @@
 (define (named-let-body exp)
   (cadddr exp))
 
-;;
+;; require
 
 (define (require? exp)
   (tagged-list? exp 'require))
@@ -676,6 +700,7 @@
         (list 'not not)
         (list 'memq memq)
         (list 'eq? eq?)
+        (list 'remainder remainder)
         ; ⟨more primitives⟩
         ))
 
