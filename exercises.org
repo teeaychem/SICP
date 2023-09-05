@@ -13266,3 +13266,27 @@ Getting the last /element/ is basically the same, and more intuitive.
   (assert! (rule (last-element (?z . ?t) ?x)
 		 (last-element ?t ?x)))
 #+END_SRC
+
+** 4.63
+
+I guess the general son-of relation isn't ideal:
+
+#+BEGIN_SRC racket
+  (assert! (rule (son-of ?a ?b)
+		 (or
+		  (son ?a ?b)
+		  (and (son-of ?a ?c)
+		       (son-of ?c ?b)))))
+#+END_SRC
+
+As, there's no way to keep track of which son-of instances that have been explored.
+
+Grandson is simple.
+
+#+BEGIN_SRC racket
+  (assert! (rule (grandson ?a ?b)
+		 (and (son ?a ?c)
+		      (son ?c ?b))))
+#+END_SRC
+
+My guess is this exercise was designed to push toward attempting to take the transitive closure and realising a problem…

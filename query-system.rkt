@@ -1104,6 +1104,23 @@
    )
  (begin (display "meetings added") (newline)))
 
+;; 4.63
+
+(for-each-end
+ add-assertion!
+ '(
+   (son Adam Cain)
+   (son Cain Enoch)
+   (son Enoch Irad)
+   (son Irad Mehujael)
+   (son Mehujael Methushael)
+   (son Methushael Lamech)
+   (wife Lamech Ada)
+   (son Ada Jubal)
+   )
+ (begin (display "genealogy added") (newline)))
+
 ;; motion
 
 (query-driver-loop)
+
