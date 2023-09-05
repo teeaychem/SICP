@@ -13074,3 +13074,52 @@ Below is background definitions for entering into the evalautor.
 
 Note, if the predicate fails, the goal of ~require~ to only to explore a different path.
 And, that alternative path is supplied by the procedure which accesses the value.
+
+** 4.55
+*** a.
+
+#+BEGIN_SRC racket
+  (supervisor (Bitdiddle Ben) ?x)
+#+END_SRC
+
+*** b.
+
+#+BEGIN_SRC racket
+  (job ?x
+     (accounting .  ?title))
+#+END_SRC
+
+*** c.
+
+#+BEGIN_SRC racket
+  (address ?x
+         (Slumerville . ?sub-address))
+#+END_SRC
+
+** 4.56
+*** 1.
+
+#+BEGIN_SRC racket
+  (and (supervisor ?x (Bitdiddle Ben))
+       (address ?x ?location))
+#+END_SRC
+
+*** 2.
+
+#+BEGIN_SRC racket
+  (and (salary (Bitdiddle Ben) ?amount-b)
+              (salary ?x ?amount-p)
+              (lisp-value < ?amount-x ?amount-b))
+#+END_SRC
+
+*** 3.
+
+#+BEGIN_SRC racket
+  (and (supervisor ?x ?boss)
+       (not (job ?boss (computer . ?type)))
+       (job ?boss ?job))
+#+END_SRC
+
+** 4.57
+
+
