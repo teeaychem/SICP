@@ -370,9 +370,8 @@
   (apply
    (primitive-implementation proc) args))
 
-
-
 (define input-prompt  ";;; M-Eval input:")
+
 (define output-prompt ";;; M-Eval value:")
 
 (define (driver-loop)
@@ -415,4 +414,4 @@
 (define the-global-environment
   (setup-environment))
 
- (driver-loop)
+(driver-loop)
