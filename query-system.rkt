@@ -35,9 +35,10 @@
     dispatch))
 
 (define operation-table (make-table))
-(define get (operation-table 'lookup-proc))
-(define put (operation-table 'insert-proc!))
 
+(define get (operation-table 'lookup-proc))
+
+(define put (operation-table 'insert-proc!))
 
 ;; the driver loop and instantiation
 
@@ -590,7 +591,14 @@
 
 ;; the basic database
 
-(map add-assertion! '(
+(define (for-each-end proc l end)
+  (cond ((null? (cdr l)) (begin (proc (car l))
+                                      end))
+        (else
+         (proc (car l)) (for-each-end proc (cdr l) end))))
+
+
+(for-each-end add-assertion! '(
                      (address (Bitdiddle Ben)
                                (Slumerville (Ridge Road) 10))
                      (job (Bitdiddle Ben) (computer wizard))
@@ -660,6 +668,6 @@
                      (can-do-job (administration secretary)
                                  (administration big wheel))
                      )
- )
+          (display "basic database created"))
 
 (query-driver-loop)
