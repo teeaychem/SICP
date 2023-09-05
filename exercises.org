@@ -13290,3 +13290,29 @@ Grandson is simple.
 #+END_SRC
 
 My guess is this exercise was designed to push toward attempting to take the transitive closure and realising a problem…
+
+** 4.64
+
+#+BEGIN_SRC racket
+  (rule (outranked-by ?staff-person ?boss)
+	(or (supervisor ?staff-person ?boss)
+	    (and (outranked-by ?middle-manager
+			       ?boss)
+		 (supervisor ?staff-person
+			     ?middle-manager))))
+#+END_SRC
+
+An attempt to solve ~(outranked-by ?staff-person ?boss)~ may lead to an attempt to solve ~(outranked-by ?middle-manager ?boss)~ which is the same problem.
+
+** 4.65
+
+There are multiple middle-managers, and a result is returned every time a distinct collection of variables satisfies the rule.
+
+** 4.66
+
+The possiblility of duplicate results, I'd guess.
+
+I'd probably require the specification of an identifier, and then temporarily store the results via the identifier.
+One could then overwrite without checking, or perhaps call an error if an existing identifier is given a novel value.
+
+In any case, some way to identify duplicate results is required, and in general this is going to require a store of all the (unique) seen results.
