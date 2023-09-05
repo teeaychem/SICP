@@ -13222,3 +13222,47 @@ So, in order to avoid both instances of the relation, we'd need to take advantag
 This might be possible, but it's not clear this is intended.
 
 ** 4.61
+
+#+BEGIN_SRC racket
+  (assert! (rule (?x next-to ?y in (?x ?y . ?u))))
+  (assert! (rule (?x next-to ?y in (?v . ?z))
+	(?x next-to ?y in ?z)))
+#+END_SRC
+
+#+BEGIN_SRC racket
+  (?x next-to ?y in (1 (2 3) 4))
+#+END_SRC
+
+1 is next to (2 3)
+(2 3) is next to 4
+
+The relation is left-right only, so this is everything.
+
+#+BEGIN_SRC racket
+  (?x next-to 1 in (2 1 3 1))
+#+END_SRC
+
+2 is next to 1
+3 is next to 1
+
+** 4.62
+
+#+BEGIN_SRC racket
+  (assert! (rule (last-pair (?x) (?x))))
+  (assert! (rule (last-pair (?z . ?t) ?x)
+		 (last-pair ?t ?x)))
+#+END_SRC
+
+Seems to work for ~(last-pair ?x (3))~, in that the process does not terminate.
+
+This terminolgy makes no sense though.
+For sure, this is a representation of the last pair of a lisp list, given the cdr is nil.
+But, we're not working with lisp lists, at least not by design…
+
+Getting the last /element/ is basically the same, and more intuitive.
+
+#+BEGIN_SRC racket
+  (assert! (rule (last-element (?x) ?x)))
+  (assert! (rule (last-element (?z . ?t) ?x)
+		 (last-element ?t ?x)))
+#+END_SRC
