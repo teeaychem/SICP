@@ -1092,6 +1092,18 @@
    )
  (begin (display "initial rules added") (newline)))
 
+;; meetings
+(for-each-end
+ add-assertion!
+ '(
+   (meeting accounting (Monday 9am))
+   (meeting administration (Monday 10am))
+   (meeting computer (Wednesday 3pm))
+   (meeting administration (Friday 1pm))
+   (meeting whole-company (Wednesday 4pm))
+   )
+ (begin (display "meetings added") (newline)))
+
 ;; motion
 
 (query-driver-loop)

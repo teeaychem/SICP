@@ -13188,3 +13188,37 @@ And, with this ~big-shot~ is easy.
 		  (job ?p (?d . ?sub-d))
 		  (not (supervisor-in-division ?p ?p2 ?d ?d)))))
 #+END_SRC
+
+** 4.59
+*** 1.
+
+#+BEGIN_SRC racket
+  (meeting ?d (Friday ?t))
+#+END_SRC
+
+*** 2.
+
+#+BEGIN_SRC racket
+  (assert! (rule (meeting-time ?person ?day-and-time)
+		 (or
+		  (meeting whole-company ?day-and-time)
+		  (and
+		   (meeting ?d ?day-and-time)
+		   (job ?person (?d . ?sub-d))))))
+#+END_SRC
+
+*** 3.
+
+#+BEGIN_SRC racket
+  (meeting-time (Hacker Alyssa P) (Wednesday ?time))
+#+END_SRC
+
+** 4.60
+
+I'm not sure there is a natural way to avoid repetition.
+The thing is, this is a symmetric relation.
+
+So, in order to avoid both instances of the relation, we'd need to take advantage of the order by which queries are processed.
+This might be possible, but it's not clear this is intended.
+
+** 4.61
