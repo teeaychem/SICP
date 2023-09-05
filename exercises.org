@@ -13086,7 +13086,7 @@ And, that alternative path is supplied by the procedure which accesses the value
 
 #+BEGIN_SRC racket
   (job ?x
-     (accounting .  ?title))
+     (accounting . ?title))
 #+END_SRC
 
 *** c.
@@ -13108,8 +13108,8 @@ And, that alternative path is supplied by the procedure which accesses the value
 
 #+BEGIN_SRC racket
   (and (salary (Bitdiddle Ben) ?amount-b)
-              (salary ?x ?amount-p)
-              (lisp-value < ?amount-x ?amount-b))
+	      (salary ?x ?amount-x)
+	      (lisp-value < ?amount-x ?amount-b))
 #+END_SRC
 
 *** 3.
@@ -13122,4 +13122,40 @@ And, that alternative path is supplied by the procedure which accesses the value
 
 ** 4.57
 
+*** 1.
 
+Define:
+
+#+BEGIN_SRC racket
+  (assert! (rule (same-job ?p1 ?p2)
+		 (and (and (job ?p1 ?j)  (job ?p2 ?j))
+		      (not (same ?p1 ?p2)))))
+
+  (assert! (rule (can-do-job ?p1 ?p2)
+		 (and (and (job ?p1 ?j)  (can-do-job ?p2 ?j))
+		      (not (same ?p1 ?p2)))))
+
+  (assert! (rule (replace ?p1 ?p2)
+		 (or
+		  (same-job ?p1 ?p2)
+		  (can-do-job ?p1 ?p2))))
+#+END_SRC
+
+Then, ~(replace ?p1 (Fect Cy D))~ returns:
+
+#+BEGIN_SRC racket
+  (replace (Hacker Alyssa P) (Fect Cy D))
+  (replace (Bitdiddle Ben) (Fect Cy D))
+#+END_SRC
+
+*** 2.
+
+With the rules from part 1, query:
+
+#+BEGIN_SRC racket
+  (and
+   (replace ?p1 ?p2)
+   (salary ?p1 ?ap1)
+   (salary ?p2 ?ap2)
+   (lisp-value > ?ap1 ?ap2))
+#+END_SRC
