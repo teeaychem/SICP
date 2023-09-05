@@ -13159,3 +13159,32 @@ With the rules from part 1, query:
    (salary ?p2 ?ap2)
    (lisp-value > ?ap1 ?ap2))
 #+END_SRC
+
+** 4.58
+
+To build the ~big shot~ query, we first build a ~supervisor-in-division~ query.
+
+This finds ~p1~ and ~p2~ such that ~p1~ has a job in division ~d1~ and ~p2~ has a job in division ~d2~.
+
+Importantly, this is a transitive relation.
+(Note, four arguments are key to making this work (in a simple way, at least)!)
+
+~supervisor-in-division~ can then be used with the same division given as an argument.
+And, with this ~big-shot~ is easy.
+
+#+BEGIN_SRC racket
+  (assert! (rule (supervisor-in-division ?p1 ?p2 ?d1 ?d2)
+		 (and
+		  (job ?p1 (?d1 . ?sub-d))
+		  (or
+		   (and (job ?p2 (?d2 . ?sub-d-alt))
+			(supervisor ?p1 ?p2))
+		   (and
+		    (supervisor ?p1 ?p3)
+		    (supervisor-in-division ?p3 ?p2 ?d3 ?d2))))))
+
+  (assert! (rule (big-shot ?p ?d)
+		 (and
+		  (job ?p (?d . ?sub-d))
+		  (not (supervisor-in-division ?p ?p2 ?d ?d)))))
+#+END_SRC

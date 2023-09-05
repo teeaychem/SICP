@@ -1039,8 +1039,18 @@
    (salary (Aull DeWitt) 25000)
    (supervisor (Aull DeWitt) (Warbucks Oliver))
 
+   ;; for testing supervisor-in-division which requires recursive through diff divs.
+   ;; (address (glad os)
+   ;;          (moon (outer earth) 1))
+   ;; (job (glad os) (computer technician))
+   ;; (salary (glad os) 1)
+   ;; (supervisor (Warbucks Oliver) (glad os))
+
    (can-do-job (computer wizard)
-               (computer programmer))
+               (computer programmer))  (assert! (rule (same-division ?p1 ?p2)
+		 (and (job ?p1 (?d . ?sub-d))
+		      (job ?p2 (?d . ?sub-d-alt))
+		      (not (same ?p1 ?p2)))))
 
    (can-do-job (computer wizard)
                (computer technician))
