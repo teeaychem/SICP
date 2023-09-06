@@ -13316,3 +13316,125 @@ I'd probably require the specification of an identifier, and then temporarily st
 One could then overwrite without checking, or perhaps call an error if an existing identifier is given a novel value.
 
 In any case, some way to identify duplicate results is required, and in general this is going to require a store of all the (unique) seen results.
+
+** 4.67
+
+The goal is to ensure we do not instantiate a variable in a loopy way.
+
+Doing this with variables alone seems impossible.
+FOr, we have no way to tell from variables alone whether or not the data is well-grounded.
+
+So, store a history of vairables instantiated, and ensure no attempt is made to substitute the same value for the same variable.
+
+** TODO 4.68
+
+A start…
+
+#+BEGIN_SRC racket
+  (assert! (rule (append-to-form () ?y ?y)))
+  (assert! (rule (append-to-form (?u . ?v) ?y (?u . ?z))
+		 (append-to-form ?v ?y ?z)))
+
+  (assert! (rule (reverse () ())))
+
+  (assert! (rule (reverse (?x . ?z) ?y)
+		 (and (append-to-form ?zr (?x) ?y)
+		      (reverse ?z ?zr))))
+#+END_SRC
+
+** TODO 4.69
+
+When I have the motivation… something about writing queries in this system is very demotivating…
+
+** 4.70
+
+The alternative:
+
+#+BEGIN_SRC racket
+  (define (add-assertion! assertion)
+  (store-assertion-in-index assertion)
+  (set! THE-ASSERTIONS
+	(cons-stream assertion
+		     THE-ASSERTIONS))
+  'ok)
+#+END_SRC
+
+Introduces a loop, as the evaluation of ~THE-ASSERTIONS~ is delayed within ~cons-stream~ but not with respect to ~set!~.
+
+So, that is, when ~(stream-cdr THE-ASSERTIONS)~ is evaluated, this is just whatever ~THE-ASSERTIONS~ has been set to, which in this case would be ~(cons-stream assertion THE-ASSERTIONS)~.
+
+The let statements store a distinct reference to ~THE-ASSERTIONS~ so that this sort of loop can be avoided.
+
+** 4.71
+
+~stream-append-delayed~ works the same as ~stream-append~, with the expection of never evaluating the delayed argument.
+And, as we're working with streams, the only time the argument is forced is when the appended element is accessed.
+
+Using the alternative ~stream-append~ would involve evaluating the argument, and then appending the evaluated argument to the stream.
+
+With ~simple-query~, rules are evalauted only after assertions are found.
+
+So, one issue may be a rule which extends an assertion.
+E.g., something where a base case exists, but won't be found as it's been entered as an assertion, rather than as an instance of the rule.
+
+Maybe?
+
+** 4.72
+
+If ~disjoin~ didn't interleave streams, the stream for the first disjunct would be created before the second, and so on.
+This is an issue if the data base is infinite.
+
+Further, it's also likely to be ineffective, even in finite streams.
+As, a disjunction is likely used because each of the disjuncts is satisfied by some entry.
+So, working through one disjunct at a time is likely a block on making progress with various other disjuncts.
+
+~flatten-stream~ takes a stream of streams and flattens these into a single stream.
+Again, if the inner streams are infinite, the elements of any steams scheduled to be processed after the stream will never be seen.
+
+Here, it's less clear how to motivate efficiency, as the process is higher order.
+
+** 4.73
+
+Compare:
+
+#+BEGIN_SRC racket
+  (define (flatten-stream stream)
+    (if (stream-null? stream)
+	the-empty-stream
+	(interleave-delayed (stream-car stream)
+			    (delay (flatten-stream
+				    (stream-cdr stream))))))
+#+END_SRC
+
+#+BEGIN_SRC racket
+  (define (flatten-stream stream)
+    (if (stream-null? stream)
+	the-empty-stream
+	(interleave (stream-car stream)
+		    (flatten-stream
+		     (stream-cdr stream)))))
+#+END_SRC
+
+~flatten-stream~ recursively calls ~flatten-stream~.
+So, in the call to ~interleave~, and additional call to ~flatten-stream~ is made.
+In turn, this makes a call to ~interleave~, and the entire stream ends up being inspected.
+So, we're not really using streams.
+
+This is quite bad in the case of infinite streams.
+
+** TODO The remainder of chapter 4
+
+I'll perhaps return to these when I'm more enthusiastic about the query system…
+
+*** TODO 4.74
+
+*** TODO 4.75
+
+*** TODO 4.76
+
+*** TODO 4.77
+
+*** TODO 4.78
+
+*** TODO 4.79
+

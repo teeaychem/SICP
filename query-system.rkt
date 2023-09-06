@@ -203,7 +203,6 @@
 
 ;; derived expressions
 
-
 (define (cond? exp)
   (tagged-list? exp 'cond))
 
@@ -239,9 +238,7 @@
                      (expand-clauses
                       rest))))))
 
-
 ;; evaluator data structures
-
 
 (define (true? x)
   (not (eq? x false)))
@@ -261,7 +258,6 @@
 
 (define (procedure-environment p) (cadddr p))
 
-
 (define (enclosing-environment env) (cdr env))
 
 (define (first-frame env) (car env))
@@ -270,8 +266,11 @@
 
 (define (make-frame variables values)
   (cons variables values))
+
 (define (frame-variables frame) (car frame))
+
 (define (frame-values frame) (cdr frame))
+
 (define (add-binding-to-frame! var val frame)
   (set-car! frame (cons var (car frame)))
   (set-cdr! frame (cons val (cdr frame))))
@@ -458,8 +457,7 @@
              (qeval q (singleton-stream '()))))
            (query-driver-loop)))))
 
-(define (instantiate
-         exp frame unbound-var-handler)
+(define (instantiate exp frame unbound-var-handler)
   (define (copy exp)
     (cond ((var? exp)
            (let ((binding
@@ -615,7 +613,6 @@
                  (singleton-stream
                   unify-result))))))
 
-
 (define (rename-variables-in rule)
   (let ((rule-application-id
          (new-rule-application-id)))
@@ -677,13 +674,13 @@
            (if (equal? var e)
                true
                (let
-                 ((b (binding-in-frame
-                      e
-                      frame)))
-                  (if b
-                      (tree-walk
-                       (binding-value b))
-                      false))))
+                   ((b (binding-in-frame
+                        e
+                        frame)))
+                   (if b
+                       (tree-walk
+                        (binding-value b))
+                       false))))
           ((pair? e)
            (or (tree-walk (car e))
                (tree-walk (cdr e))))
@@ -691,8 +688,6 @@
   (tree-walk exp))
 
 ;; maintaining the data base
-
-
 
 (define (fetch-assertions pattern frame)
   (if (use-index? pattern)
@@ -950,8 +945,6 @@
   (define (stream-car strm) (car strm))
 
   (define (stream-cdr strm)
-      ;; (define (force elem)
-	;; (elem))
     (force (cdr strm)))
 
 (define (tagged-list? exp tag)
@@ -971,7 +964,7 @@
 (put 'lisp-value 'qeval lisp-value)
 (put 'always-true 'qeval always-true)
 
-;; the basic database
+;; the basic data base
 
 (define (for-each-end proc l end)
   (cond ((null? (cdr l)) (begin (proc (car l))
@@ -1061,7 +1054,7 @@
    (can-do-job (administration secretary)
                (administration big wheel))
    )
- (begin (display "basic database created") (newline)))
+ (begin (display "basic data base created") (newline)))
 
 ; note, as rules include query syntax, we need to process the rule
 
