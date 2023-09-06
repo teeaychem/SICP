@@ -13480,3 +13480,82 @@ One question is, if we're doing things sequentially, is it possible to reduce s 
 If the controller could specify when an operation happens, then for sure.
 We could update the product and then update the counter.
 
+** 5.2
+
+#+BEGIN_SRC racket
+  (data-paths
+   (registers
+    ((name counter)
+     (buttons ((name counter<-s) (source (register s)))))
+    ((name product)
+     (buttons ((name product<-t) (source (register t)))))
+    ((name s)
+     (buttons ((name count-up) (source (operation add1)))))
+    ((name t)
+     (buttons ((name new-product) (source (operation up-prod)))))
+    )
+
+   (operations
+    ((name add1)
+     (inputs (register counter) (constant 1)))
+    ((name up-prod)
+     (inputs (register counter) (register product)))
+    ((name >)
+     (inputs (register n) (register counter)))
+    )
+
+   (controller
+    (assign counter (const 1))
+    (assign product (const 1))
+    test-n
+    (test >)
+    (branch (label fact-done))
+    (count-up)
+    (new-product)
+    (counter<-s)
+    (product<-t)
+    (goto (label test-n))
+    fact-done
+    )
+   )
+#+END_SRC
+
+Alternatively:
+
+#+BEGIN_SRC racket
+  (controller
+   (assign counter (const 1))
+   (assign product (const 1))
+   test-n
+   (test (op >) (reg counter) (reg n))
+   (branch (label fact-done))
+   (assign s (op +) (reg counter) (constant 1))
+   (assign t (op *) (reg counter) (constant product))
+   (assign counter (reg s))
+   (assign product (reg t))
+   (goto (label test-n))
+   fact-done
+   )
+#+END_SRC
+
+Ah, with this, it's easy to reuse ~s~ (or ~t~)…
+
+For example:
+
+#+BEGIN_SRC racket
+  (controller
+   (assign counter (const 1))
+   (assign product (const 1))
+   test-n
+   (test (op >) (reg counter) (reg n))
+   (branch (label fact-done))
+   (assign s (op *) (reg counter) (constant product))
+   (assign product (reg s))
+   (assign s (op +) (reg counter) (constant 1))
+   (assign counter (reg s))
+   (goto (label test-n))
+   fact-done
+   )
+#+END_SRC
+
+Note, we now need to ensure the next product has been calculated before increasing the counter.
