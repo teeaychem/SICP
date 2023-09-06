@@ -13438,3 +13438,41 @@ I'll perhaps return to these when I'm more enthusiastic about the query systemâ€
 
 *** TODO 4.79
 
+
+* Chapter 5
+
+** 5.1
+
+The core data path:
+
+          1
+          |
+      s---+
+      |  /
+n  counter product
+| /   |   \  |
+ <    t-----*
+
+Though, there should also be 1's going to counter and product.
+
+The controller, text form:
+
+a. set product 1
+b. set counter 1
+c. check <
+   - if true, done
+   - else, continue
+d. set s
+e. set t
+f. set product t
+g. set counter s
+h. go to c.
+
+Note, the additional 1's are important to describe a(n iterative) factorial machine.
+Else, we just have a description of the inner ~iter~ machine.
+But, these are discarded after first use, so they don't enter into the control loop.
+
+One question is, if we're doing things sequentially, is it possible to reduce s and t to a single register?
+If the controller could specify when an operation happens, then for sure.
+We could update the counter and then update the product.
+
