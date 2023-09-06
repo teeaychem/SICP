@@ -13478,5 +13478,5 @@ But, these are discarded after first use, so they don't enter into the control l
 
 One question is, if we're doing things sequentially, is it possible to reduce s and t to a single register?
 If the controller could specify when an operation happens, then for sure.
-We could update the counter and then update the product.
+We could update the product and then update the counter.
 
