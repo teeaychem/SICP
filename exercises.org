@@ -13682,3 +13682,68 @@ So, we can clean things up a little…
    sqrt-done
    )
 #+END_SRC
+
+** 5.4
+
+Just the controller for this exercise, as drawing diagrams is rough…
+
+*** 1.
+
+The controller for recursive ~expt~ is very similar to the controller for ~fact~ in the book.
+This is no real surprise.
+Though, as we don't use the value of ~n~, there's no need to store this on the stack.
+Instead, we just need to ensure the right trail of continues in order to multiply ~b~ by iteself the right number of times.
+
+#+BEGIN_SRC racket
+  (define (expt b n)
+    (if (= n 0)
+	1
+	(* b (expt b (- n 1)))))
+#+END_SRC
+
+#+BEGIN_SRC racket
+  (controller
+   (assign continue (label expt-done))
+   expt-loop
+   (test (op =) (reg n) (const 0))
+   (branch (label base-case))
+   (save continue)
+   (assign n (op -) (reg n) (const 1))
+   (assign continue (after-expt))
+   after-expt
+   (restore continue)
+   (assign val (op *) (reg b) (reg val))
+   (goto (reg continue))
+   base-case
+   (assign val (const 1))
+   (goto (reg continue))
+   expt-done
+   )
+#+END_SRC
+
+*** 2.
+
+The iterative version doesn't use a stack, and is fairly straightforward…
+
+#+BEGIN_SRC racket
+  (define (expt b n)
+    (define (expt-iter counter product)
+      (if (= counter 0)
+	  product
+	  (expt-iter (- counter 1)
+		     (* b product))))
+    (expt-iter n 1))
+#+END_SRC
+
+#+BEGIN_SRC racket
+  (controller
+   (assign  val (const 1))
+   expt-loop
+   (test (op =) (reg n) (const 0))
+   (branch (label expt-done))
+   (assign n (op -) (reg n) (const 1))
+   (assign val (op *) (reg b) (r val))
+   (goto (label expt-loop))
+   expt-done
+   )
+#+END_SRC
