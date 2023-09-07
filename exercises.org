@@ -13559,3 +13559,104 @@ For example:
 #+END_SRC
 
 Note, we now need to ensure the next product has been calculated before increasing the counter.
+
+** 5.3
+
+As drawing isn't too easy, we just write out the short-form controller for calculating square-roots by the newtonian method.
+The original algorithm is:
+
+#+BEGIN_SRC racket
+  (define (sqrt x)
+    (define (good-enough? guess)
+      (< (abs (- (square guess) x)) 0.001))
+    (define (improve guess)
+      (average guess (/ x guess)))
+    (define (sqrt-iter guess)
+      (if (good-enough? guess)
+	  guess
+	  (sqrt-iter (improve guess))))
+    (sqrt-iter 1.0))
+#+END_SRC
+
+So, first pass, treating ~good-enough?~ and ~improve~ as primitive:
+
+#+BEGIN_SRC racket
+  (controller
+   (assign x (const 1.0))
+   (assign guess (reg x))
+   test-guess
+   (test (op good-enough?) (reg guess))
+   (branch (label sqrt-done))
+   (assign new-guess (op improve) (reg guess))
+   (assign guess (reg new-guess))
+   (goto (label test-guess))
+   sqrt-done
+   )
+#+END_SRC
+
+We expand on ~improve~ with an additional variable to handle taking the average of ~guess~ and ~(/ x guess)~.
+Both ~+~ and ~/~ are assumed primitive.
+
+#+BEGIN_SRC racket
+  (controller
+   (assign x (const 1.0))
+   (assign guess (reg x))
+   test-guess
+   (test (op good-enough?) (reg guess))
+   (branch (label sqrt-done))
+   (assign new-guess-a (op /) (reg x) (reg guess))
+   (assign new-guess-b (op +) (reg div) (reg guess))
+   (assign new-guess-a (op /) (reg new-guess-b) (const 2.0))
+   (assign guess (reg new-guess))
+   (goto (label test-guess))
+   sqrt-done
+   )
+#+END_SRC
+
+And, to expand on ~improve~, the operations ~*~, ~-~, ~abs~, and ~<~ are assumed primitive.
+A pair of registers are then used to help figure out whether ~good-enough?~ is true.
+
+#+BEGIN_SRC racket
+  (controller
+   (assign x (const 1.0))
+   (assign guess (reg x))
+   test-guess
+   (assign guess-a (op *) (reg guess) (reg guess))
+   (assign guess-b (op -) (reg guess-a) (reg x))
+   (assign guess-a (op abs) (reg guess-b))
+   (assign guess (reg guess-a))
+   (test (op <) (reg guess) (const 0.001))
+   (branch (label sqrt-done))
+   (assign new-guess-a (op /) (reg x) (reg guess))
+   (assign new-guess-b (op +) (reg div) (reg guess))
+   (assign new-guess-a (op /) (reg new-guess-b) (const 2.0))
+   (assign guess (reg new-guess))
+   (goto (label test-guess))
+   sqrt-done
+   )
+#+END_SRC
+
+Of course, as we never use the ~guess-?~ and ~new-gues-?~ registers at the same time, these can be collapsed:
+
+#+BEGIN_SRC racket
+  (controller
+   (assign x (const 1.0))
+   (assign guess (reg x))
+   test-guess
+   (assign guess-a (op *) (reg guess) (reg guess))
+   (assign guess-b (op -) (reg guess-a) (reg x))
+   (assign guess-a (op abs) (reg guess-b))
+   (assign guess (reg guess-a))
+   (test (op <) (reg guess) (const 0.001))
+   (branch (label sqrt-done))
+   (assign guess-a (op /) (reg x) (reg guess))
+   (assign guess-b (op +) (reg div) (reg guess))
+   (assign guess-a (op /) (reg guess-b) (const 2.0))
+   (assign guess (reg new-guess))
+   (goto (label test-guess))
+   sqrt-done
+   )
+#+END_SRC
+
+I'm not sure register use can be reduced further.
+Though, I wouldn't be shocked.
