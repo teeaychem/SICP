@@ -172,9 +172,9 @@
 
 (define (assemble controller-text machine)
   (extract-labels controller-text
-    (lambda (insts labels)
-      (update-insts! insts labels machine)
-      insts)))
+                  (lambda (insts labels)
+                    (update-insts! insts labels machine)
+                    insts)))
 
 (define (extract-labels text receive)
   (if (null? text)
@@ -658,3 +658,28 @@
 ;; (start fib-machie)
 ;; (get-register-contents fib-machie 'val)
 ;; (display "ran fib-machie")
+
+;; machine from ex 5.8 machine
+
+(define 5.8-machine
+  (make-machine
+   '(a)
+   (list )
+   '(
+     start
+     (goto (label here))
+     here
+     (assign a (const 3))
+     (goto (label there))
+     here
+     (assign a (const 4))
+     (goto (label there))
+     there
+     )))
+
+;; (display "running 5.8-machine:")
+;; (newline)
+;; (start 5.8-machine)
+;; (get-register-contents 5.8-machine 'a)
+;; (display "ran 5.8-machine")
+

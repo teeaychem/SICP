@@ -13819,4 +13819,43 @@ There's no need to read ~continue~ from the stack, make an assignment to ~n~ whi
 
 Machines have been added to the simulator, and some fixes have been made.
 
+** 5.8
+
+#+BEGIN_SRC racket
+  start
+  (goto (label here))
+  here
+  (assign a (const 3))
+  (goto (label there))
+  here
+  (assign a (const 4))
+  (goto (label there))
+  there
+#+END_SRC
+
+~extract-labels~ tells us the way labels are extracted from the text.
+Specifically, everything is processed from bottom to top (as ~extract-labels~ is recursive and initialises the return data structure on the base case and then builds through return calls).
+So, the /initial/ label will be processed last.
+And, if there are no checks in place, will overwrite however the later label was processed in the case of any conflict.
+
+~make-label-entry~ adds the ~cons~ of the label name with (a pointer to) the instructions to the ~labels~ table.
+So, there's no conflict.
+
+Instead, we have a label associated with the instructions processed so far.
+
+This is kind of neat.
+We're building up the instruction table as we go.
+And, all we have is a pointer to the start of the instructions.
+So, when we store a label, we're just storing a pointer to the appropriate place in the instructions.
+The final result, basically, is a list and a bunch of named pointers to parts of the list.
+
+Labels are idenitified by searching through a the ~labels~ lookup table.
+Here, we need to check on how ~assoc~ works.
+And, by inspection, this works through the list from head to tail.
+So, the first label in the procedure will be found first (a.k.a the last label processed by ~extract-labels~ when returning).
+
+So, ~a~ is assigned ~3~ and that's all that happens.
+
+This can be checked in the simulator.
+
 
