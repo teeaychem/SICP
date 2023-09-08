@@ -1,7 +1,8 @@
 #lang sicp
 
 ;; * the register-machine simulator from 5.2
-
+;; * added gcd machine from book
+;; * added fact machine from 5.2
 
 ;; from the past
 
@@ -471,3 +472,53 @@
                symbol))))
 
 ;; end
+
+;; built machines
+
+;; gcd-machine
+
+(define gcd-machine
+  (make-machine
+   '(a b t)
+   (list (list 'rem remainder) (list '= =))
+   '(test-b
+       (test (op =) (reg b) (const 0))
+       (branch (label gcd-done))
+       (assign t (op rem) (reg a) (reg b))
+       (assign a (reg b))
+       (assign b (reg t))
+       (goto (label test-b))
+     gcd-done)))
+
+;; (display "running gcd-machine:")
+;; (newline)
+;; (set-register-contents! gcd-machine 'a 206)
+;; (set-register-contents! gcd-machine 'b 40)
+;; (start gcd-machine)
+;; (get-register-contents gcd-machine 'a)
+;; (display "ran gcd-machine")
+
+;; factorial machine
+
+(define fact-machine
+  (make-machine
+   '(counter n product s t)
+   (list (list '> >) (list '* *) (list '+ +))
+   '(
+     (assign counter (const 1))
+     (assign product (const 1))
+     test-n
+     (test (op >) (reg counter) (reg n))
+     (branch (label fact-done))
+     (assign product (op *) (reg counter) (reg product))
+     (assign counter (op +) (reg counter) (const 1))
+     (goto (label test-n))
+     fact-done
+     )))
+
+;; (display "running fact-machine:")
+;; (newline)
+;; (set-register-contents! fact-machine 'n 6)
+;; (start fact-machine)
+;; (get-register-contents fact-machine 'product)
+;; (display "ran fact-machine")
