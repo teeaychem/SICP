@@ -13718,7 +13718,8 @@ Instead, we just need to ensure the right trail of continues in order to multipl
    (branch (label base-case))
    (save continue)
    (assign n (op -) (reg n) (const 1))
-   (assign continue (after-expt))
+   (assign continue (label after-expt))
+   (goto (label expt-loop)) ;; keep in the recursion loop
    after-expt
    (restore continue)
    (assign val (op *) (reg b) (reg val))
