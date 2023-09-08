@@ -13529,8 +13529,8 @@ Alternatively:
    test-n
    (test (op >) (reg counter) (reg n))
    (branch (label fact-done))
-   (assign s (op +) (reg counter) (constant 1))
-   (assign t (op *) (reg counter) (constant product))
+   (assign s (op +) (reg counter) (const 1))
+   (assign t (op *) (reg counter) (reg product))
    (assign counter (reg s))
    (assign product (reg t))
    (goto (label test-n))
@@ -13549,9 +13549,9 @@ For example:
    test-n
    (test (op >) (reg counter) (reg n))
    (branch (label fact-done))
-   (assign s (op *) (reg counter) (constant product))
+   (assign s (op *) (reg counter) (reg product))
    (assign product (reg s))
-   (assign s (op +) (reg counter) (constant 1))
+   (assign s (op +) (reg counter) (const 1))
    (assign counter (reg s))
    (goto (label test-n))
    fact-done
@@ -13559,6 +13559,21 @@ For example:
 #+END_SRC
 
 Note, we now need to ensure the next product has been calculated before increasing the counter.
+
+Further streamlined:
+
+#+BEGIN_SRC racket
+  (controller
+   (assign counter (const 1))
+   (assign product (const 1))
+   test-n
+   (test (op >) (reg counter) (reg n))
+   (branch (label fact-done))
+   (assign product (op *) (reg counter) (reg product))
+   (assign counter (op +) (reg counter) (const 1))
+   (goto (label test-n))
+   fact-done)
+#+END_SRC
 
 ** 5.3
 
