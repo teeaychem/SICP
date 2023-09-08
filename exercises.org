@@ -13758,7 +13758,6 @@ The iterative version doesn't use a stack, and is fairly straightforward…
    )
 #+END_SRC
 
-
 ** 5.5
 
 *** factorial
@@ -13817,3 +13816,7 @@ There's no need to read ~continue~ from the stack, make an assignment to ~n~ whi
 #+END_SRC
 
 ** 5.7
+
+Machines have been added to the simulator, and some fixes have been made.
+
+
