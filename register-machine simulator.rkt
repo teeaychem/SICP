@@ -6,8 +6,8 @@
 ;; * added sqrt machine from 5.3
 ;; * added expt machines from 5.4
 ;; * added fib machine from book
-;; * added check for reused label and machine from Ex. 5.8
-;; * prevented operations on labels, added test
+;; * added check for reused label
+;; * prevented operations on labels
 
 ;; from the past
 
@@ -363,20 +363,29 @@
 ;; other instructions
 
 (define (make-save inst machine stack pc)
-  (let ((reg (get-register
+  (let* ((reg-name (stack-inst-reg-name inst))
+        (reg (get-register
               machine
-              (stack-inst-reg-name inst))))
+              reg-name)))
     (lambda ()
-      (push stack (get-contents reg))
+      (push stack (cons reg-name (get-contents reg)))
       (advance-pc pc))))
 
 (define (make-restore inst machine stack pc)
-  (let ((reg (get-register
+  (let* ((reg-name (stack-inst-reg-name inst))
+        (reg (get-register
               machine
-              (stack-inst-reg-name inst))))
+              reg-name)))
     (lambda ()
-      (set-contents! reg (pop stack))
-      (advance-pc pc))))
+      (let* ((stack-pop (pop stack))
+             (stack-name (car stack-pop))
+             (stack-val (cdr stack-pop)))
+        (cond ((eq? reg-name stack-name)
+               (set-contents! reg stack-val)
+               (advance-pc pc))
+              (else
+               (error "Bad RESTORE request"
+                       inst)))))))
 
 (define (stack-inst-reg-name stack-instruction)
   (cadr stack-instruction))
@@ -640,8 +649,7 @@
      (save val)         ; save Fib(n − 1)
      (goto (label fib-loop))
      afterfib-n-2 ; upon return, val contains Fib(n − 2)
-     (assign n (reg val)) ; n now contains Fib(n − 2)
-     (restore val)      ; val now contains Fib(n − 1)
+     (restore n)      ; val now contains Fib(n − 1)
      (restore continue)
      (assign val (op +) (reg val) (reg n)); Fib(n − 1) + Fib(n − 2)
      (goto              ; return to caller,
@@ -657,50 +665,3 @@
 ;; (start fib-machie)
 ;; (get-register-contents fib-machie 'val)
 ;; (display "ran fib-machie")
-
-;; machine from ex 5.8 machine
-
-;; (define 5.8-machine
-;;   (make-machine
-;;    '(a)
-;;    (list )
-;;    '(
-;;      start
-;;      (goto (label here))
-;;      here
-;;      (assign a (const 3))
-;;      (goto (label there))
-;;      here
-;;      (assign a (const 4))
-;;      (goto (label there))
-;;      there
-;;      )))
-
-;; (display "running 5.8-machine:")
-;; (newline)
-;; (start 5.8-machine)
-;; (get-register-contents 5.8-machine 'a)
-;; (display "ran 5.8-machine")
-
-;; machine to test ex 5.9
-
-;; (define Ex.5.9-machine
-;;   (make-machine
-;;    '(test)
-;;    (list (list 'not not))
-;;    '(
-;;      test-start
-;;      (assign test (op not) (label test-start))
-;; ;;   (assign test (op not) (op not))
-;;      test-done
-;;      )))
-
-(define Ex.5.9-machine
-  (make-machine
-   '(test)
-   (list (list 'not not))
-   '(
-     test-start
-     (assign test (op not) (op not))
-     test-done
-     )))
