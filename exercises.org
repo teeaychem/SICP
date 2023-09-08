@@ -13752,7 +13752,7 @@ The iterative version doesn't use a stack, and is fairly straightforward…
    (test (op =) (reg n) (const 0))
    (branch (label expt-done))
    (assign n (op -) (reg n) (const 1))
-   (assign val (op *) (reg b) (r val))
+   (assign val (op *) (reg b) (reg val))
    (goto (label expt-loop))
    expt-done
    )
