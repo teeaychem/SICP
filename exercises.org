@@ -13597,8 +13597,7 @@ So, first pass, treating ~good-enough?~ and ~improve~ as primitive:
 
 #+BEGIN_SRC racket
   (controller
-   (assign x (const 1.0))
-   (assign guess (reg x))
+   (assign guess (const 1.0))
    test-guess
    (test (op good-enough?) (reg guess))
    (branch (label sqrt-done))
@@ -13614,8 +13613,7 @@ Both ~+~ and ~/~ are assumed primitive.
 
 #+BEGIN_SRC racket
   (controller
-   (assign x (const 1.0))
-   (assign guess (reg x))
+   (assign guess (const 1.0))
    test-guess
    (test (op good-enough?) (reg guess))
    (branch (label sqrt-done))
