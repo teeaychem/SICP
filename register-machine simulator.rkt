@@ -4,6 +4,7 @@
 ;; * added gcd machine from book
 ;; * added fact machine from 5.2
 ;; * added sqrt machine from 5.3
+;; * added expt machines from 5.4
 
 ;; from the past
 
@@ -552,3 +553,66 @@
 ;; (start sqrt-machine)
 ;; (get-register-contents sqrt-machine 'guess)
 ;; (display "ran sqrt-machine")
+
+;; expt machine (recursive)
+
+(define expt-machine-recursive
+  (make-machine
+   '(n continue val b)
+   (list (list '= =) (list '* *) (list '- -)
+         (list '/ /) (list '+ +)
+         (list 'abs abs))
+   '(
+     (assign continue (label expt-done))
+     expt-loop
+     (test (op =) (reg n) (const 0))
+     (branch (label base-case))
+     (save continue)
+     (assign n (op -) (reg n) (const 1))
+     (assign continue (label after-expt))
+     (goto (label expt-loop))
+     after-expt
+     (restore continue)
+     (assign val (op *) (reg b) (reg val))
+     (goto (reg continue))
+     base-case
+     (assign val (const 1))
+     (goto (reg continue))
+     expt-done
+     )))
+
+;; (display "running expt-machine-recursive:")
+;; (newline)
+;; (set-register-contents! expt-machine-recursive 'b 3)
+;; (set-register-contents! expt-machine-recursive 'n 5)
+;; (start expt-machine-recursive)
+;; (get-register-contents expt-machine-recursive 'val)
+;; (display "ran expt-machine-recursive")
+
+;; expt machine (iterative)
+
+(define expt-machine-iterative
+  (make-machine
+   '(n continue val b)
+   (list (list '= =) (list '* *) (list '- -)
+         (list '/ /) (list '+ +)
+         (list 'abs abs))
+   '(
+     (assign val (const 1))
+     expt-loop
+     (test (op =) (reg n) (const 0))
+     (branch (label expt-done))
+     (assign n (op -) (reg n) (const 1))
+     (assign val (op *) (reg b) (reg val))
+     (goto (label expt-loop))
+   expt-done
+     )))
+
+;; (display "running expt-machine-iterative:")
+;; (newline)
+;; (set-register-contents! expt-machine-iterative 'b 3)
+;; (set-register-contents! expt-machine-iterative 'n 5)
+;; (start expt-machine-iterative)
+;; (get-register-contents expt-machine-iterative 'val)
+;; (display "ran expt-machine-iterative")
+
