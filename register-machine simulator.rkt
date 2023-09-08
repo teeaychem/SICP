@@ -7,6 +7,7 @@
 ;; * added expt machines from 5.4
 ;; * added fib machine from book
 ;; * added check for reused label and machine from Ex. 5.8
+;; * prevented operations on labels, added test
 
 ;; from the past
 
@@ -436,14 +437,22 @@
 (define (label-exp-label exp)
   (cadr exp))
 
-(define (make-operation-exp exp machine labels operations)
-  (let ((op (lookup-prim (operation-exp-op exp) operations))
-        (aprocs (map (lambda (e)
-                       (make-primitive-exp
-                        e machine labels))
-                     (operation-exp-operands exp))))
+
+(define (make-operation-exp
+         exp machine labels operations)
+  (let ((op (lookup-prim
+             (operation-exp-op exp)
+             operations))
+        (aprocs
+         (map (lambda (e)
+                (if (or (register-exp? e) (constant-exp? e))
+                 (make-primitive-exp
+                 e machine labels)
+                 (error "Operation on something other than a register or constant: ASSEMBLE" e)))
+              (operation-exp-operands exp))))
     (lambda () (apply op (map (lambda (p) (p))
                               aprocs)))))
+
 
 (define (operation-exp? exp)
   (and (pair? exp)
@@ -673,3 +682,25 @@
 ;; (get-register-contents 5.8-machine 'a)
 ;; (display "ran 5.8-machine")
 
+;; machine to test ex 5.9
+
+;; (define Ex.5.9-machine
+;;   (make-machine
+;;    '(test)
+;;    (list (list 'not not))
+;;    '(
+;;      test-start
+;;      (assign test (op not) (label test-start))
+;; ;;   (assign test (op not) (op not))
+;;      test-done
+;;      )))
+
+(define Ex.5.9-machine
+  (make-machine
+   '(test)
+   (list (list 'not not))
+   '(
+     test-start
+     (assign test (op not) (op not))
+     test-done
+     )))

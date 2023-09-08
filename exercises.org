@@ -13863,4 +13863,29 @@ In short, this just wraps the label case in the return of ~extract-labels~ in a 
 
 ** 5.9
 
+~make-operation-exp~ is modified to read:
 
+#+BEGIN_SRC racket
+  (define (make-operation-exp
+	   exp machine labels operations)
+    (let ((op (lookup-prim
+	       (operation-exp-op exp)
+	       operations))
+	  (aprocs
+	   (map (lambda (e)
+		  (if (or (register-exp? e) (constant-exp? e))
+		      (make-primitive-exp
+		       e machine labels)
+		      (error "Operation on something other than a register or constant: ASSEMBLE" e)))
+		(operation-exp-operands exp))))
+      (lambda () (apply op (map (lambda (p) (p))
+				aprocs)))))
+#+END_SRC
+
+In short, for each operand, a check is performed to see whether the operand is a register or a constant.
+
+Here we explicitly whitelist the two options, as along with labels, ~make-operation-exp~ as defined allows operating on ops, etc.
+
+It would be nice to modify ~operation-exp-operands~ as, intuitively, a label (etc.) expression is not truly an operand.
+However, this is just a list.
+And, I see little motivation for processing the same list twice.
