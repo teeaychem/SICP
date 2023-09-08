@@ -13633,20 +13633,18 @@ A pair of registers are then used to help figure out whether ~good-enough?~ is t
 
 #+BEGIN_SRC racket
   (controller
-   (assign x (const 1.0))
-   (assign guess (reg x))
-   test-guess
+   (assign guess (const 1.0))
+   good-enough?
    (assign guess-a (op *) (reg guess) (reg guess))
    (assign guess-b (op -) (reg guess-a) (reg x))
    (assign guess-a (op abs) (reg guess-b))
-   (assign guess (reg guess-a))
-   (test (op <) (reg guess) (const 0.001))
+   (test (op <) (reg guess-a) (const 0.001))
    (branch (label sqrt-done))
    (assign new-guess-a (op /) (reg x) (reg guess))
    (assign new-guess-b (op +) (reg new-guess-a) (reg guess))
    (assign new-guess-a (op /) (reg new-guess-b) (const 2.0))
-   (assign guess (reg new-guess))
-   (goto (label test-guess-a))
+   (assign guess (reg new-guess-a))
+   (goto (label good-enough?))
    sqrt-done
    )
 #+END_SRC
@@ -13655,20 +13653,18 @@ Of course, as we never use the ~guess-?~ and ~new-gues-?~ registers at the same 
 
 #+BEGIN_SRC racket
   (controller
-   (assign x (const 1.0))
-   (assign guess (reg x))
-   test-guess
+   (assign guess (const 1.0))
+   good-enough?
    (assign guess-a (op *) (reg guess) (reg guess))
    (assign guess-b (op -) (reg guess-a) (reg x))
    (assign guess-a (op abs) (reg guess-b))
-   (assign guess (reg guess-a))
-   (test (op <) (reg guess) (const 0.001))
+   (test (op <) (reg guess-a) (const 0.001))
    (branch (label sqrt-done))
    (assign guess-a (op /) (reg x) (reg guess))
    (assign guess-b (op +) (reg guess-a) (reg guess))
    (assign guess-a (op /) (reg guess-b) (const 2.0))
-   (assign guess (reg new-guess))
-   (goto (label test-guess))
+   (assign guess (reg guess-a))
+   (goto (label good-enough?))
    sqrt-done
    )
 #+END_SRC
@@ -13681,22 +13677,22 @@ So, we can clean things up a little…
 
 #+BEGIN_SRC racket
   (controller
-   (assign x (const 1.0))
-   (assign guess (reg x))
-   test-guess
-   (assign guess (op *) (reg guess) (reg guess))
-   (assign guess (op -) (reg guess) (reg x))
-   (assign guess (op abs) (reg guess))
-   (assign guess (reg guess-a))
-   (test (op <) (reg guess) (const 0.001))
+   (assign guess (const 1.0))
+   good-enough?
+   (assign div (op *) (reg guess) (reg guess))
+   (assign div (op -) (reg div) (reg x))
+   (assign div (op abs) (reg div))
+   (test (op <) (reg div) (const 0.001))
    (branch (label sqrt-done))
    (assign div (op /) (reg x) (reg guess))
    (assign guess (op +) (reg div) (reg guess))
    (assign guess (op /) (reg guess) (const 2.0))
-   (goto (label test-guess))
+   (goto (label good-enough?))
    sqrt-done
    )
 #+END_SRC
+
+Note, we need to use ~div~ (or some register other than ~guess~) for the ~good-enough?~ sub-routine, as this is only a test --- ~guess~ itself is not updated.
 
 ** 5.4
 

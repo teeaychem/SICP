@@ -3,6 +3,7 @@
 ;; * the register-machine simulator from 5.2
 ;; * added gcd machine from book
 ;; * added fact machine from 5.2
+;; * added sqrt machine from 5.3
 
 ;; from the past
 
@@ -502,7 +503,7 @@
 
 (define fact-machine
   (make-machine
-   '(counter n product s t)
+   '(counter n product)
    (list (list '> >) (list '* *) (list '+ +))
    '(
      (assign counter (const 1))
@@ -522,3 +523,34 @@
 ;; (start fact-machine)
 ;; (get-register-contents fact-machine 'product)
 ;; (display "ran fact-machine")
+
+
+;; square-root machine
+
+(define sqrt-machine
+  (make-machine
+   '(counter x guess div)
+   (list (list '< <) (list '* *) (list '- -)
+         (list '/ /) (list '+ +)
+         (list 'abs abs))
+   '(
+     (assign guess (const 1.0))
+     good-enough?
+     (assign div (op *) (reg guess) (reg guess))
+     (assign div (op -) (reg div) (reg x))
+     (assign div (op abs) (reg div))
+     (test (op <) (reg div) (const 0.001))
+     (branch (label sqrt-done))
+     (assign div (op /) (reg x) (reg guess))
+     (assign guess (op +) (reg div) (reg guess))
+     (assign guess (op /) (reg guess) (const 2.0))
+     (goto (label good-enough?))
+     sqrt-done
+     )))
+
+;; (display "running sqrt-machine:")
+;; (newline)
+;; (set-register-contents! sqrt-machine 'x 17)
+;; (start sqrt-machine)
+;; (get-register-contents sqrt-machine 'guess)
+;; (display "ran sqrt-machine")
