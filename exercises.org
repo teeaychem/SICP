@@ -13858,4 +13858,9 @@ So, ~a~ is assigned ~3~ and that's all that happens.
 
 This can be checked in the simulator.
 
+The modification to check for a reused label has been added to the machine.
+In short, this just wraps the label case in the return of ~extract-labels~ in a check through the existing ~labels~.
+
+** 5.9
+
 

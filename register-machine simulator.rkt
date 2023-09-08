@@ -6,6 +6,7 @@
 ;; * added sqrt machine from 5.3
 ;; * added expt machines from 5.4
 ;; * added fib machine from book
+;; * added check for reused label and machine from Ex. 5.8
 
 ;; from the past
 
@@ -74,7 +75,8 @@
                     message))))
     dispatch))
 
-(define (pop stack) (stack 'pop))
+(define (pop stack)
+  (stack 'pop))
 
 (define (push stack value)
   ((stack 'push) value))
@@ -87,10 +89,9 @@
         (stack (make-stack))
         (the-instruction-sequence '()))
     (let ((the-ops
-           (list
-            (list 'initialize-stack
-                  (lambda ()
-                    (stack 'initialize)))))
+           (list (list 'initialize-stack
+                       (lambda ()
+                         (stack 'initialize)))))
           (register-table
            (list (list 'pc pc)
                  (list 'flag flag))))
@@ -101,8 +102,7 @@
              name)
             (set! register-table
                   (cons
-                   (list name
-                         (make-register name))
+                   (list name (make-register name))
                    register-table)))
         'register-allocated)
       (define (lookup-register name)
@@ -153,13 +153,11 @@
 (define (start machine)
   (machine 'start))
 
-(define (get-register-contents
-         machine register-name)
+(define (get-register-contents machine register-name)
   (get-contents
    (get-register machine register-name)))
 
-(define (set-register-contents!
-         machine register-name value)
+(define (set-register-contents! machine register-name value)
   (set-contents!
    (get-register machine register-name)
    value)
@@ -184,13 +182,15 @@
        (lambda (insts labels)
          (let ((next-inst (car text)))
            (if (symbol? next-inst)
-               (receive
-                   insts
-                   (cons
-                    (make-label-entry
-                     next-inst
-                     insts)
-                    labels))
+               (if (assoc next-inst labels)
+                   (error "Multiply defined label:" next-inst)
+                   (receive
+                       insts
+                       (cons
+                        (make-label-entry
+                         next-inst
+                         insts)
+                        labels)))
                (receive
                    (cons (make-instruction
                           next-inst)
@@ -219,7 +219,8 @@
 (define (make-instruction text)
   (cons text '()))
 
-(define (instruction-text inst) (car inst))
+(define (instruction-text inst)
+  (car inst))
 
 (define (instruction-execution-proc inst)
   (cdr inst))
@@ -241,8 +242,7 @@
 
 ;; generating execution procedures for instructions
 
-(define (make-execution-procedure
-         inst labels machine pc flag stack ops)
+(define (make-execution-procedure inst labels machine pc flag stack ops)
   (cond ((eq? (car inst) 'assign)
          (make-assign
           inst machine labels ops pc))
@@ -266,8 +266,7 @@
 
 ;; assign instructions
 
-(define (make-assign
-         inst machine labels operations pc)
+(define (make-assign inst machine labels operations pc)
   (let ((target
          (get-register
           machine
@@ -300,9 +299,7 @@
 
 ;; test, branch, and goto instructions
 
-(define
-  (make-test
-   inst machine labels operations flag pc)
+(define (make-test inst machine labels operations flag pc)
   (let ((condition (test-condition inst)))
     (if (operation-exp? condition)
         (let ((condition-proc
@@ -321,9 +318,7 @@
 (define (test-condition test-instruction)
   (cdr test-instruction))
 
-(define
-  (make-branch
-   inst machine labels flag pc)
+(define (make-branch inst machine labels flag pc)
   (let ((dest (branch-dest inst)))
     (if (label-exp? dest)
         (let ((insts
@@ -382,12 +377,10 @@
       (set-contents! reg (pop stack))
       (advance-pc pc))))
 
-(define (stack-inst-reg-name
-         stack-instruction)
+(define (stack-inst-reg-name stack-instruction)
   (cadr stack-instruction))
 
-(define (make-perform
-         inst machine labels operations pc)
+(define (make-perform inst machine labels operations pc)
   (let ((action (perform-action inst)))
     (if (operation-exp? action)
         (let ((action-proc
@@ -402,7 +395,8 @@
         (error "Bad PERFORM instruction: ASSEMBLE"
                inst))))
 
-(define (perform-action inst) (cdr inst))
+(define (perform-action inst)
+  (cdr inst))
 
 ;; execution procedures for subexpressions
 
@@ -442,16 +436,12 @@
 (define (label-exp-label exp)
   (cadr exp))
 
-(define (make-operation-exp
-         exp machine labels operations)
-  (let ((op (lookup-prim
-             (operation-exp-op exp)
-             operations))
-        (aprocs
-         (map (lambda (e)
-                (make-primitive-exp
-                 e machine labels))
-              (operation-exp-operands exp))))
+(define (make-operation-exp exp machine labels operations)
+  (let ((op (lookup-prim (operation-exp-op exp) operations))
+        (aprocs (map (lambda (e)
+                       (make-primitive-exp
+                        e machine labels))
+                     (operation-exp-operands exp))))
     (lambda () (apply op (map (lambda (p) (p))
                               aprocs)))))
 
@@ -661,21 +651,21 @@
 
 ;; machine from ex 5.8 machine
 
-(define 5.8-machine
-  (make-machine
-   '(a)
-   (list )
-   '(
-     start
-     (goto (label here))
-     here
-     (assign a (const 3))
-     (goto (label there))
-     here
-     (assign a (const 4))
-     (goto (label there))
-     there
-     )))
+;; (define 5.8-machine
+;;   (make-machine
+;;    '(a)
+;;    (list )
+;;    '(
+;;      start
+;;      (goto (label here))
+;;      here
+;;      (assign a (const 3))
+;;      (goto (label there))
+;;      here
+;;      (assign a (const 4))
+;;      (goto (label there))
+;;      there
+;;      )))
 
 ;; (display "running 5.8-machine:")
 ;; (newline)
