@@ -37,8 +37,7 @@
              (lambda (value)
                (set! contents value)))
             (else
-             (error "Unknown request:
-                     REGISTER"
+             (error "Unknown request: REGISTER"
                     message))))
     dispatch))
 
@@ -96,7 +95,7 @@
       (define (allocate-register name)
         (if (assoc name register-table)
             (error
-             "Multiply defined register: "
+             "Multiply defined register:"
              name)
             (set! register-table
                   (cons
@@ -145,8 +144,7 @@
               ((eq? message 'stack) stack)
               ((eq? message 'operations)
                the-ops)
-              (else (error "Unknown request:
-                            MACHINE"
+              (else (error "Unknown request: MACHINE"
                            message))))
       dispatch)))
 
