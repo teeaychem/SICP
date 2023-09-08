@@ -5,6 +5,7 @@
 ;; * added fact machine from 5.2
 ;; * added sqrt machine from 5.3
 ;; * added expt machines from 5.4
+;; * added fib machine from book
 
 ;; from the past
 
@@ -559,9 +560,7 @@
 (define expt-machine-recursive
   (make-machine
    '(n continue val b)
-   (list (list '= =) (list '* *) (list '- -)
-         (list '/ /) (list '+ +)
-         (list 'abs abs))
+   (list (list '= =) (list '* *) (list '- -))
    '(
      (assign continue (label expt-done))
      expt-loop
@@ -593,10 +592,8 @@
 
 (define expt-machine-iterative
   (make-machine
-   '(n continue val b)
-   (list (list '= =) (list '* *) (list '- -)
-         (list '/ /) (list '+ +)
-         (list 'abs abs))
+   '(n val b)
+   (list (list '= =) (list '* *) (list '- -))
    '(
      (assign val (const 1))
      expt-loop
@@ -616,3 +613,48 @@
 ;; (get-register-contents expt-machine-iterative 'val)
 ;; (display "ran expt-machine-iterative")
 
+;; fib machine
+
+(define fib-machie
+  (make-machine
+   '(continue n val)
+   (list (list '< <) (list '+ +)
+         (list '- -))
+   '(
+     (assign continue (label fib-done))
+     fib-loop
+     (test (op <) (reg n) (const 2))
+     (branch (label immediate-answer))
+     ;; set up to compute Fib(n − 1)
+     (save continue)
+     (assign continue (label afterfib-n-1))
+     (save n)           ; save old value of n
+     (assign n (op -) (reg n) (const 1)) ; clobber n to n-1
+     (goto (label fib-loop)) ; perform recursive call
+     afterfib-n-1 ; upon return, val contains Fib(n − 1)
+     (restore n)
+     ;; (restore continue)
+     ;; set up to compute Fib(n − 2)
+     (assign n (op -) (reg n) (const 2))
+     ;; (save continue)
+     (assign continue (label afterfib-n-2))
+     (save val)         ; save Fib(n − 1)
+     (goto (label fib-loop))
+     afterfib-n-2 ; upon return, val contains Fib(n − 2)
+     (assign n (reg val)) ; n now contains Fib(n − 2)
+     (restore val)      ; val now contains Fib(n − 1)
+     (restore continue)
+     (assign val (op +) (reg val) (reg n)); Fib(n − 1) + Fib(n − 2)
+     (goto              ; return to caller,
+      (reg continue))   ; answer is in val
+     immediate-answer   (assign val (reg n))   ; base case: Fib(n) = n
+     (goto (reg continue))
+     fib-done
+     )))
+
+;; (display "running fib-machie:")
+;; (newline)
+;; (set-register-contents! fib-machie 'n 13)
+;; (start fib-machie)
+;; (get-register-contents fib-machie 'val)
+;; (display "ran fib-machie")
