@@ -13978,9 +13978,57 @@ And, ~make-restore~ ensures the register names match before restoring the val.
 			inst)))))))
 #+END_SRC
 
-I guess this is probably quite a nice safety feature.
-An additional option would be to scan the stack for the next instance of the register.
-Though, if we can do this it's no longer 'just' a stack we're requiring.
-Not to mention this introduces a different path for typos.
-
 *** c.
+
+In short, we change the stack to a table of stacks.
+Then, for each stack operation we lookup the stack associated with the register.
+
+#+BEGIN_SRC racket
+  (define (make-stack-table)
+    (let ((table '()))
+      (define (push id val)
+	(let ((entry (assoc id table)))
+	  (if entry
+	      (set-cdr! entry (cons val (cdr entry)))
+	      (error "No stack with id:" id))))
+      (define (pop id)
+	(let ((entry (assoc id table)))
+	  (cond ((eq? entry #f)
+		 (error "No stack with id:" id))
+		((null? (cdr entry))
+		 (error "Empty stack: POP:" id))
+		(else
+		 (let ((val (cadr entry)))
+		   (set-cdr! entry (cddr entry))
+		   val)))))
+      (define (add-stack id)
+	(set! table (cons (cons id '()) table)))
+      (define (initialize)
+	(set! table '())
+	'done)
+      (define (dispatch message)
+	(cond ((eq? message 'push) push)
+	    ((eq? message 'pop) pop)
+	    ((eq? message 'add-stack) add-stack)
+	    ((eq? message 'initialize)
+	     (initialize))
+	    (else
+	     (error "Unknown request: STACK"
+		    message))))
+    dispatch))
+#+END_SRC
+
+Strictly speaking, the id check for ~pop~ isn't required as an error for the lack of assigned register will be hit first.
+Still, I prefer to keep it in.
+
+The difficult thing here was recalling the way to modify the table.
+
+Given ~entry~, etc, it's no use performing ~set!~ as within a lambda this only has local scope.
+So, ~set-cdr!~ is the way to go.
+This makes the code a little messy, and it would be nice to revist this so the various ~set-cdr!~ commands are more explicit wrt. modifying the stack.
+Still, for now things work…
+
+Figuring the above out took some effort, and recalling a cons of a name and a list is printed as a list also helped.
+
+The other task is to set up the table of stacks.
+This is done by modifying make machine to create stacks when allocating registers.

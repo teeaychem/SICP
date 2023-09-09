@@ -8,6 +8,7 @@
 ;; * added fib machine from book
 ;; * added check for reused label
 ;; * prevented operations on labels
+;; * implemented a table of stacks linked to registers
 
 ;; from the past
 
@@ -23,8 +24,8 @@
                       controller-text)
   (let ((machine (make-new-machine)))
     (for-each (lambda (register-name)
-                ((machine 'allocate-register)
-                 register-name))
+                ((machine 'allocate-register) register-name)
+                (((machine 'stack-table) 'add-stack) register-name))
               register-names)
     ((machine 'install-operations) ops)
     ((machine 'install-instruction-sequence)
@@ -53,22 +54,32 @@
 
 ;; the stack
 
-(define (make-stack)
-  (let ((s '()))
-    (define (push x)
-      (set! s (cons x s)))
-    (define (pop)
-      (if (null? s)
-          (error "Empty stack: POP")
-          (let ((top (car s)))
-            (set! s (cdr s))
-            top)))
+(define (make-stack-table)
+  (let ((table '()))
+    (define (push id val)
+      (let ((entry (assoc id table)))
+        (if entry
+            (set-cdr! entry (cons val (cdr entry)))
+            (error "No stack with id:" id))))
+    (define (pop id)
+      (let ((entry (assoc id table)))
+        (cond ((eq? entry #f)
+               (error "No stack with id:" id))
+              ((null? (cdr entry))
+               (error "Empty stack: POP:" id))
+              (else
+               (let ((val (cadr entry)))
+                 (set-cdr! entry (cddr entry))
+                 val)))))
+    (define (add-stack id)
+      (set! table (cons (cons id '()) table)))
     (define (initialize)
-      (set! s '())
+      (set! table '())
       'done)
     (define (dispatch message)
       (cond ((eq? message 'push) push)
-            ((eq? message 'pop) (pop))
+            ((eq? message 'pop) pop)
+            ((eq? message 'add-stack) add-stack)
             ((eq? message 'initialize)
              (initialize))
             (else
@@ -76,31 +87,30 @@
                     message))))
     dispatch))
 
-(define (pop stack)
-  (stack 'pop))
+(define (pop stack-table id)
+  ((stack-table 'pop) id))
 
-(define (push stack value)
-  ((stack 'push) value))
+(define (push stack-table id value)
+  ((stack-table 'push) id value))
 
 ;; the basic machine
 
 (define (make-new-machine)
   (let ((pc (make-register 'pc))
         (flag (make-register 'flag))
-        (stack (make-stack))
+        (stack-table (make-stack-table))
         (the-instruction-sequence '()))
     (let ((the-ops
-           (list (list 'initialize-stack
-                       (lambda ()
-                         (stack 'initialize)))))
+           (list
+            (list 'initialize-stack
+                   (lambda ()
+                     (stack-table 'initialize)))))
           (register-table
            (list (list 'pc pc)
                  (list 'flag flag))))
       (define (allocate-register name)
         (if (assoc name register-table)
-            (error
-             "Multiply defined register:"
-             name)
+            (error "Multiply defined register:" name)
             (set! register-table
                   (cons
                    (list name (make-register name))
@@ -144,7 +154,7 @@
                (lambda (ops)
                  (set! the-ops
                        (append the-ops ops))))
-              ((eq? message 'stack) stack)
+              ((eq? message 'stack-table) stack-table)
               ((eq? message 'operations)
                the-ops)
               (else (error "Unknown request: MACHINE"
@@ -155,8 +165,7 @@
   (machine 'start))
 
 (define (get-register-contents machine register-name)
-  (get-contents
-   (get-register machine register-name)))
+  (get-contents (get-register machine register-name)))
 
 (define (set-register-contents! machine register-name value)
   (set-contents!
@@ -201,7 +210,7 @@
 (define (update-insts! insts labels machine)
   (let ((pc (get-register machine 'pc))
         (flag (get-register machine 'flag))
-        (stack (machine 'stack))
+        (stack-table (machine 'stack-table))
         (ops (machine 'operations)))
     (for-each
      (lambda (inst)
@@ -213,7 +222,7 @@
          machine
          pc
          flag
-         stack
+         stack-table
          ops)))
      insts)))
 
@@ -243,7 +252,7 @@
 
 ;; generating execution procedures for instructions
 
-(define (make-execution-procedure inst labels machine pc flag stack ops)
+(define (make-execution-procedure inst labels machine pc flag stack-table ops)
   (cond ((eq? (car inst) 'assign)
          (make-assign
           inst machine labels ops pc))
@@ -256,9 +265,9 @@
         ((eq? (car inst) 'goto)
          (make-goto inst machine labels pc))
         ((eq? (car inst) 'save)
-         (make-save inst machine stack pc))
+         (make-save inst machine stack-table pc))
         ((eq? (car inst) 'restore)
-         (make-restore inst machine stack pc))
+         (make-restore inst machine stack-table pc))
         ((eq? (car inst) 'perform)
          (make-perform
           inst machine labels ops pc))
@@ -362,30 +371,23 @@
 
 ;; other instructions
 
-(define (make-save inst machine stack pc)
+(define (make-save inst machine stack-table pc)
   (let* ((reg-name (stack-inst-reg-name inst))
-        (reg (get-register
-              machine
-              reg-name)))
+         (reg (get-register
+               machine
+               reg-name)))
     (lambda ()
-      (push stack (cons reg-name (get-contents reg)))
+      (push stack-table reg-name (get-contents reg))
       (advance-pc pc))))
 
-(define (make-restore inst machine stack pc)
+(define (make-restore inst machine stack-table pc)
   (let* ((reg-name (stack-inst-reg-name inst))
-        (reg (get-register
-              machine
-              reg-name)))
+         (reg (get-register
+               machine
+               reg-name)))
     (lambda ()
-      (let* ((stack-pop (pop stack))
-             (stack-name (car stack-pop))
-             (stack-val (cdr stack-pop)))
-        (cond ((eq? reg-name stack-name)
-               (set-contents! reg stack-val)
-               (advance-pc pc))
-              (else
-               (error "Bad RESTORE request"
-                       inst)))))))
+      (set-contents! reg (pop stack-table reg-name))
+      (advance-pc pc))))
 
 (define (stack-inst-reg-name stack-instruction)
   (cadr stack-instruction))
@@ -637,31 +639,43 @@
      (save continue)
      (assign continue (label afterfib-n-1))
      (save n)           ; save old value of n
-     (assign n (op -) (reg n) (const 1)) ; clobber n to n-1
-     (goto (label fib-loop)) ; perform recursive call
+     (assign n
+             (op -)
+             (reg n)
+             (const 1)) ; clobber n to n-1
+     (goto
+      (label fib-loop)) ; perform recursive call
      afterfib-n-1 ; upon return, val contains Fib(n − 1)
      (restore n)
-     ;; (restore continue)
+     (restore continue)
      ;; set up to compute Fib(n − 2)
      (assign n (op -) (reg n) (const 2))
-     ;; (save continue)
+     (save continue)
      (assign continue (label afterfib-n-2))
      (save val)         ; save Fib(n − 1)
      (goto (label fib-loop))
      afterfib-n-2 ; upon return, val contains Fib(n − 2)
-     (restore n)      ; val now contains Fib(n − 1)
+     (assign n
+             (reg val)) ; n now contains Fib(n − 2)
+     (restore val)      ; val now contains Fib(n − 1)
      (restore continue)
-     (assign val (op +) (reg val) (reg n)); Fib(n − 1) + Fib(n − 2)
+     (assign val        ; Fib(n − 1) + Fib(n − 2)
+             (op +)
+             (reg val)
+             (reg n))
      (goto              ; return to caller,
       (reg continue))   ; answer is in val
-     immediate-answer   (assign val (reg n))   ; base case: Fib(n) = n
+     immediate-answer
+     (assign val
+             (reg n))   ; base case: Fib(n) = n
      (goto (reg continue))
      fib-done
-     )))
+     )
+   ))
 
-;; (display "running fib-machie:")
-;; (newline)
-;; (set-register-contents! fib-machie 'n 13)
-;; (start fib-machie)
-;; (get-register-contents fib-machie 'val)
-;; (display "ran fib-machie")
+(display "running fib-machie:")
+(newline)
+(set-register-contents! fib-machie 'n 5)
+(start fib-machie)
+(get-register-contents fib-machie 'val)
+(display "ran fib-machie")
