@@ -8,7 +8,7 @@
 ;; * added fib machine from book
 ;; * added check for reused label
 ;; * prevented operations on labels
-;; * restore requires save register match (5.11.2)
+;; * restore requires save register match (5.11.b)
 
 ;; from the past
 
