@@ -14209,3 +14209,23 @@ This isn't quite as requested.
 I don't allocate a register the first time it's seen during an instruction.
 But, I think this is a fair way to tackle the problem.
 Nothing can happen before the intructions are added, in any case.
+
+** 5.14
+
+Given ~n~:
+- The number of pushes is ~(* (- n 2) 2)~
+- The depth of the stack is ~(* n (- n 1))~
+
+To read the stack information, the instruction ~display-stack-stats~ is defined.
+And, the evaluated procedure simply calls the ~print-statistics~ procedure given in the text.
+This allows one to inspect the stack at any point in the execution, and so 'current depth' has also been added to the printout.
+
+The modification is an addition to ~make-execution-procedure~ to deal with the syntax and the make command is:
+
+#+BEGIN_SRC racket
+  (define (make-stack-stats inst machine labels flag pc)
+  (lambda ()
+    ((machine 'stack) 'print-statistics)
+    (advance-pc pc)))
+#+END_SRC
+

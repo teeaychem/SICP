@@ -10,6 +10,7 @@
 ;; * prevented operations on labels, added test
 ;; * functionality to inspect machine via filtering provided instructions (Ex. 5.12)
 ;; * registers are automatically added (Ex. 5.13)
+;; * added instruction to print stack stats (Ex. 5.14).
 
 ;; from the past
 
@@ -81,25 +82,46 @@
 ;; the stack
 
 (define (make-stack)
-  (let ((s '()))
+  (let ((s '())
+        (number-pushes 0)
+        (max-depth 0)
+        (current-depth 0))
     (define (push x)
-      (set! s (cons x s)))
+      (set! s (cons x s))
+      (set! number-pushes (+ 1 number-pushes))
+      (set! current-depth (+ 1 current-depth))
+      (set! max-depth
+            (max current-depth max-depth)))
     (define (pop)
       (if (null? s)
-          (error "Empty stack: POP" s)
+          (error "Empty stack: POP")
           (let ((top (car s)))
             (set! s (cdr s))
+            (set! current-depth
+                  (- current-depth 1))
             top)))
     (define (initialize)
       (set! s '())
+      (set! number-pushes 0)
+      (set! max-depth 0)
+      (set! current-depth 0)
       'done)
+
+    (define (print-statistics)
+      (display (list 'total-pushes '= number-pushes
+                     'maximum-depth '= max-depth
+                     'current-depth '= current-depth))
+      (newline))
     (define (dispatch message)
       (cond ((eq? message 'push) push)
             ((eq? message 'pop) (pop))
             ((eq? message 'initialize)
              (initialize))
+            ((eq? message 'print-statistics)
+             (print-statistics))
             (else
-             (error "Unknown request: STACK" message))))
+             (error "Unknown request: STACK"
+                    message))))
     dispatch))
 
 (define (pop stack)
@@ -117,8 +139,11 @@
         (the-instruction-sequence '()))
     (let ((the-ops
            (list (list 'initialize-stack
-                       (lambda ()
-                         (stack 'initialize)))))
+            (lambda ()
+              (stack 'initialize)))
+      (list 'print-stack-statistics
+            (lambda ()
+              (stack 'print-statistics)))))
           (register-table
            (list (list 'pc pc)
                  (list 'flag flag))))
@@ -340,6 +365,9 @@
         ((eq? (car inst) 'perform)
          (make-perform
           inst machine labels ops pc))
+        ((eq? (car inst) 'display-stack-stats)
+         (make-stack-stats
+          inst machine labels ops pc))
         (else (error "Unknown instruction type: ASSEMBLE" inst))))
 
 ;; assign instructions
@@ -376,6 +404,11 @@
   (set-contents! pc (cdr (get-contents pc))))
 
 ;; test, branch, and goto instructions
+
+(define (make-stack-stats inst machine labels flag pc)
+  (lambda ()
+    ((machine 'stack) 'print-statistics)
+    (advance-pc pc)))
 
 (define (make-test inst machine labels operations flag pc)
   (let ((condition (test-condition inst)))
@@ -728,12 +761,16 @@
 ;; ((fib-machine 'inspect) 'save-rest)
 ;; (((fib-machine 'inspect) 'sources) 'val)
 
-(display "running fib-machine:")
-(newline)
-(set-register-contents! fib-machine 'n 13)
-(start fib-machine)
-(get-register-contents fib-machine 'val)
-(display "ran fib-machine")
+(define (run-fib-machine n)
+  (display "running fib-machine:")
+  (newline)
+  (set-register-contents! fib-machine 'n n)
+  (start fib-machine)
+  (get-register-contents fib-machine 'val)
+  (display "ran fib-machine")
+)
+
+(run-fib-machine 5)
 
 ;; machine from ex 5.8 machine
 
@@ -781,3 +818,43 @@
 ;;      (assign test (op not) (op not))
 ;;      test-done
 ;;      )))
+
+(define recursive-fact-machine
+  (make-machine
+   (list (list '- -) (list '= =) (list '* *))
+   '(
+     (assign continue (label fact-done))   ; set up final return address
+     fact-loop
+     (test (op =) (reg n) (const 1))
+     (branch (label base-case))
+     (save continue)                       ; Set up for the recursive call
+     (save n)                              ; by saving n and continue.
+     (assign n (op -) (reg n) (const 1))   ; Set up continue so that the
+     (assign continue (label after-fact))  ; computation will continue
+     (goto (label fact-loop))              ; at after-fact when the
+     after-fact                              ; subroutine returns.
+     (restore n)
+     (restore continue)
+     (assign val (op *) (reg n) (reg val)) ; val now contains n(n - 1)!
+     (goto (reg continue))                 ; return to caller
+     base-case
+     (assign val (const 1))                ; base case: 1! = 1
+     (goto (reg continue))                 ; return to caller
+     fact-done
+     (display-stack-stats)
+     )))
+
+(define (run-recursive-fact-machine n)
+  (display "running fib-machine:")
+  (newline)
+  (set-register-contents! recursive-fact-machine 'n n)
+  (start recursive-fact-machine)
+  (get-register-contents recursive-fact-machine 'val)
+  (display "ran fib-machine")
+)
+
+(run-recursive-fact-machine 1)
+(run-recursive-fact-machine 2)
+(run-recursive-fact-machine 3)
+(run-recursive-fact-machine 4)
+(run-recursive-fact-machine 8)
