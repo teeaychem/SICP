@@ -13940,7 +13940,6 @@ However, given the default behaviour, this isn't required.
    fib-done)
 #+END_SRC
 
-
 *** b.
 
 We modify only ~make-save~ and ~make-restore~.
@@ -14032,3 +14031,95 @@ Figuring the above out took some effort, and recalling a cons of a name and a li
 
 The other task is to set up the table of stacks.
 This is done by modifying make machine to create stacks when allocating registers.
+
+** 5.12
+
+The simulator stores the original instruction alonside the compiled instruction.
+
+So, an easy approach to retrieving the relevant information is to parse this.
+In particular, as we're dealing with a list and the items of the list follow strict syntactic patterns, this is fairly simple to do by the use of filters.
+
+Specifically, we define an ~inspect~ procedure, which itself expands to a message passing object.
+
+So, added to ~make-new-machine~ is the following:
+
+#+BEGIN_SRC racket
+  (define (inspect)
+    (let ((input-inst-seq (map (lambda (x) (car x)) the-instruction-sequence)))
+      (define (get-unique inst-type)
+	(filter-unique (lambda (x) (tagged-list? x inst-type)) (lambda (x) x) input-inst-seq))
+      (define (display-insts pre sequence)
+	(for-each (lambda (x) (display pre) (display x) (newline)) sequence))
+      (define (dispatch message)
+	(cond
+	  ((eq? message 'instructions)
+	   (display-insts "" input-inst-seq))
+	  ((eq? message 'filter-by-type)
+	   (lambda (type)
+	     (display "Instructions of type '") (display type) (display "':") (newline)
+	     (display-insts
+	      " - "
+	      (filter-unique (lambda (x) (tagged-list? x type)) cadr input-inst-seq))))
+	  ((eq? message 'entry-regs)
+	   (display "Registers used to hold entry points:") (newline)
+	   (display-insts
+	    " - "
+	    ;; second, filter registers and return register name
+	    (filter-unique (lambda (x) (tagged-list? x 'reg)) cadr
+			   ;; first, filter gotos and return argument
+			   (filter-unique (lambda (x) (tagged-list? x 'goto)) cadr input-inst-seq))))
+	  ((eq? message 'save-rest)
+	   (display "Registers saved and restrored from:") (newline)
+	   (display-insts
+	    " - "
+	    ;; filter for save/rest and return reg name
+	    (filter-unique
+	     (lambda (x) (or (tagged-list? x 'save) (tagged-list? x 'restore)))
+	     cadr
+	     input-inst-seq)))
+	  ((eq? message 'sources)
+	   (lambda (reg)
+	     (display "Sources of register '") (display reg) (display "':") (newline)
+	     (display-insts
+	      " - "
+	      (filter-unique
+	       (lambda (x) (and (tagged-list? x 'assign)
+				(equal? (cadr x) reg)))
+	       cddr
+	       input-inst-seq))))))
+      dispatch))
+#+END_SRC
+
+This opens up a message passing procedure which works on the list of original instructions.
+The key procedure this relies on is ~filter-unique~.
+
+This returns a list filtered by some predicate with the filtered elements transformed in some way.
+And, ensures each transformed element appears in the out-list only once.
+
+The method for ensuring uniqueness is simple for now.
+A (not so) quick search through an internally stored list of seen elements.
+Though, this could be improved.
+
+Note, it's easy to specify a 'null' transformation with ~lambda (x) x~.
+
+#+BEGIN_SRC racket
+(define (filter-unique test transform sequence)
+  (let ((seen '()))
+    (define (seen? elem sequence)
+      (cond ((null? sequence) #f)
+            ((equal? (car sequence) elem) #t) ;; need equal? rather than eq? as testing strings not pointers
+            (else (seen? elem (cdr sequence)))))
+    (define (do-it sequence)
+      (cond ((null? sequence) nil)
+            ((seen? (transform (car sequence)) seen)
+             (do-it (cdr sequence)))
+            ((test (car sequence))
+             (begin
+               (set! seen (cons (transform (car sequence)) seen))
+               (cons (transform (car sequence))
+                     (do-it (cdr sequence)))))
+            (else (do-it (cdr sequence)))))
+    (do-it sequence)))
+#+END_SRC
+
+
