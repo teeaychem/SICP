@@ -12,6 +12,7 @@
 ;; * registers are automatically added (Ex. 5.13)
 ;; * added instruction to print stack stats (Ex. 5.14).
 ;; * inspector separated from machine and extended
+;; * option to pgoress a fixed number of executions directly or interactively
 
 ;; from the past
 
@@ -163,18 +164,44 @@
           (if val
               (cadr val)
               (error "Unknown register:" name))))
+      (define (execute-n n)
+        (let ((insts (get-contents pc)))
+          (if (or (= n 0) (null? insts))
+              'done
+              (begin ((instruction-execution-proc (car insts)))
+                     (set! instruction-count (+ instruction-count 1))
+                     (execute-n (- n 1))))))
+      (define (manual-execute)
+        (let ((insts (get-contents pc)))
+          (cond ((null? insts) 'done)
+                (else
+                 (begin
+                   (display "steps to execute: ")
+                   (let ((input (read)))
+                     (cond ((number? input)
+                            (execute-n input)
+                            (manual-execute))
+                           (else
+                            (display "undefined input")))
+                     ))))))
       (define (execute)
         (let ((insts (get-contents pc)))
-          (if (null? insts)
-              'done
-              (begin
-                ((instruction-execution-proc (car insts)))
-                (set! instruction-count (+ instruction-count 1))
-                (execute)))))
+          (cond ((null? insts) 'done)
+                (else
+                 (begin
+                   ((instruction-execution-proc (car insts)))
+                   (set! instruction-count (+ instruction-count 1))
+                   (execute))))))
       (define (dispatch message)
         (cond ((eq? message 'start)
                (set-contents! pc the-instruction-sequence)
                (execute))
+              ((eq? message 'execute-n)
+               (set-contents! pc the-instruction-sequence)
+               (lambda (n) (execute-n n)))
+              ((eq? message 'manual-execute)
+               (set-contents! pc the-instruction-sequence)
+               (manual-execute))
               ((eq? message 'install-instruction-sequence)
                (lambda (seq)
                  (set! the-instruction-sequence seq)))
@@ -781,15 +808,24 @@
 
 (define fib-machine-inspector (machine-inspector fib-machine))
 
-(run-fib-machine 5)
+;; (run-fib-machine 5)
 
-(fib-machine-inspector 'instructions)
-((fib-machine-inspector 'filter-by-type) 'goto)
-(fib-machine-inspector 'entry-regs)
-(fib-machine-inspector 'save-rest)
-((fib-machine-inspector 'sources) 'val)
+;; (fib-machine-inspector 'instructions)
+;; ((fib-machine-inspector 'filter-by-type) 'goto)
+;; (fib-machine-inspector 'entry-regs)
+;; (fib-machine-inspector 'save-rest)
+;; ((fib-machine-inspector 'sources) 'val)
 (fib-machine-inspector 'instruction-count)
 
+(display "running fib-machine:")
+(newline)
+(set-register-contents! fib-machine 'n 5)
+;((fib-machine 'execute-n) 120)
+(get-register-contents fib-machine 'val)
+(display "ran fib-machine")
+(newline)
+((machine-inspector fib-machine) 'instruction-count)
+(fib-machine 'manual-execute)
 
 ;; machine from ex 5.8 machine
 
