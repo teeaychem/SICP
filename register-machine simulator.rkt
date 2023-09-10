@@ -9,6 +9,7 @@
 ;; * added check for reused label and machine from Ex. 5.8
 ;; * prevented operations on labels, added test
 ;; * functionality to inspect machine via filtering provided instructions (Ex. 5.12)
+;; * registers are automatically added (Ex. 5.13)
 
 ;; from the past
 
@@ -50,14 +51,9 @@
 
 ;; make machine
 
-(define (make-machine register-names
-                      ops
+(define (make-machine ops
                       controller-text)
   (let ((machine (make-new-machine)))
-    (for-each (lambda (register-name)
-                ((machine 'allocate-register)
-                 register-name))
-              register-names)
     ((machine 'install-operations) ops)
     ((machine 'install-instruction-sequence)
      (assemble controller-text machine))
@@ -231,30 +227,55 @@
   ((machine 'get-register) reg-name))
 
 ;; the assembler
+(define (append-elem-if-new e l)
+  (cond ((null? l) (list e))
+        ((equal? (car l) e) l)
+        (else (cons (car l) (append-elem-if-new e (cdr l))))))
+
+(define (append-if-new l1 l2)
+    (cond ((null? l1) l2)
+	  (else (append-if-new (cdr l1) (append-elem-if-new (car l1) l2)))))
+
+(define (found-registers exp)
+  (cond ((null? exp) '())
+        ((tagged-list? exp 'assign)
+         (cons (assign-reg-name exp) (found-registers (assign-value-exp exp))))
+        ((or (tagged-list? exp 'restore) (tagged-list? exp 'save))
+         (cdr exp))
+        ((tagged-list? (car exp) 'reg)
+         (cons (cadar exp) (found-registers (cdr exp))))
+        (else (found-registers (cdr exp)))))
 
 (define (assemble controller-text machine)
-  (extract-labels controller-text
-                  (lambda (insts labels)
-                    (update-insts! insts labels machine)
-                    insts)))
+  (extract-info controller-text
+                (lambda (insts labels register-names)
+                  (for-each (lambda (register-name)
+                              ((machine 'allocate-register)
+                               register-name))
+                            register-names)
+                  (update-insts! insts labels machine)
+                  insts)))
 
-(define (extract-labels text receive) ; builds two lists (labels and instructions) and
-  (if (null? text)                    ; passes these to whatever recieve is (see assemble)
-      (receive '() '())
-      (extract-labels
-       (cdr text)
-       (lambda (insts labels)
+(define (extract-info text receive) ; builds lists (labels, instructions, etc) and
+  (if (null? text)                  ; passes these to whatever recieve is (see assemble)
+      (receive '() '() '())         ; though, this isn't straightforward.
+      (extract-info                 ; recieve is specifying the task for the next recursive call.
+       (cdr text)                   ; so, it's only the first call where receive isn't overwritten.
+       (lambda (insts labels registers)
          (let ((next-inst (car text)))
-           (if (symbol? next-inst)
-               (if (assoc next-inst labels)
-                   (error "Multiply defined label:" next-inst)
-                   (receive insts
-                       (cons (make-label-entry next-inst insts)
-                             labels)))
-               (receive
-                   (cons (make-instruction next-inst)
-                         insts)
-                   labels)))))))
+           (cond ((symbol? next-inst)
+                  (if (assoc next-inst labels)
+                      (error "Multiply defined label:" next-inst)
+                      (receive insts
+                          (cons (make-label-entry next-inst insts)
+                                labels)
+                        registers)))
+                 (else
+                  (receive
+                      (cons (make-instruction next-inst)
+                            insts)
+                      labels
+                    (append-if-new (found-registers next-inst) registers)))))))))
 
 (define (update-insts! insts labels machine)
   (let ((pc (get-register machine 'pc))
@@ -529,7 +550,7 @@
 
 (define gcd-machine
   (make-machine
-   '(a b t)
+   ;; '(a b t)
    (list (list 'rem remainder) (list '= =))
    '(test-b
        (test (op =) (reg b) (const 0))
@@ -552,7 +573,7 @@
 
 (define fact-machine
   (make-machine
-   '(counter n product)
+   ;; '(counter n product)
    (list (list '> >) (list '* *) (list '+ +))
    '(
      (assign counter (const 1))
@@ -578,7 +599,7 @@
 
 (define sqrt-machine
   (make-machine
-   '(counter x guess div)
+   ;; '(x guess div)
    (list (list '< <) (list '* *) (list '- -)
          (list '/ /) (list '+ +)
          (list 'abs abs))
@@ -608,7 +629,7 @@
 
 (define expt-machine-recursive
   (make-machine
-   '(n continue val b)
+   ;; '(n continue val b)
    (list (list '= =) (list '* *) (list '- -))
    '(
      (assign continue (label expt-done))
@@ -641,7 +662,7 @@
 
 (define expt-machine-iterative
   (make-machine
-   '(n val b)
+   ;; '(n val b)
    (list (list '= =) (list '* *) (list '- -))
    '(
      (assign val (const 1))
@@ -664,9 +685,9 @@
 
 ;; fib machine
 
-(define fib-machie
+(define fib-machine
   (make-machine
-   '(continue n val)
+   ;; '(continue n val)
    (list (list '< <) (list '+ +)
          (list '- -))
    '(
@@ -701,18 +722,18 @@
      fib-done
      )))
 
-;; ((fib-machie 'inspect) 'instructions)
-;; (((fib-machie 'inspect) 'filter-by-type) 'goto)
-;; ((fib-machie 'inspect) 'entry-regs)
-;; ((fib-machie 'inspect) 'save-rest)
-;; (((fib-machie 'inspect) 'sources) 'val)
+;; ((fib-machine 'inspect) 'instructions)
+;; (((fib-machine 'inspect) 'filter-by-type) 'goto)
+;; ((fib-machine 'inspect) 'entry-regs)
+;; ((fib-machine 'inspect) 'save-rest)
+;; (((fib-machine 'inspect) 'sources) 'val)
 
-;; (display "running fib-machie:")
-;; (newline)
-;; (set-register-contents! fib-machie 'n 13)
-;; (start fib-machie)
-;; (get-register-contents fib-machie 'val)
-;; (display "ran fib-machie")
+(display "running fib-machine:")
+(newline)
+(set-register-contents! fib-machine 'n 13)
+(start fib-machine)
+(get-register-contents fib-machine 'val)
+(display "ran fib-machine")
 
 ;; machine from ex 5.8 machine
 

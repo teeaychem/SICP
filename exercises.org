@@ -14122,4 +14122,90 @@ Note, it's easy to specify a 'null' transformation with ~lambda (x) x~.
     (do-it sequence)))
 #+END_SRC
 
+** 5.13
 
+To automatically install registers we modify ~assemble~.
+In particular, we redefine ~extract-labels~ to ~extract-info~ and extend the procedure to keep track of registers found.
+Then, before updating the instructions, we install the registers.
+
+~assemble~ is the following simple edit:
+
+#+BEGIN_SRC racket
+  (define (assemble controller-text machine)
+    (extract-info controller-text
+		  (lambda (insts labels register-names)
+		    (for-each (lambda (register-name)
+				((machine 'allocate-register)
+				 register-name))
+			      register-names)
+		    (update-insts! insts labels machine)
+		    insts)))
+#+END_SRC
+
+And, ~extract-info~ is now:
+
+#+BEGIN_SRC racket
+  (define (extract-info text receive) ; builds lists (labels, instructions, etc) and
+    (if (null? text)                  ; passes these to whatever recieve is (see assemble)
+	(receive '() '() '())         ; though, this isn't straightforward.
+	(extract-info                 ; recieve is specifying the task for the next recursive call.
+	 (cdr text)                   ; so, it's only the first call where receive isn't overwritten.
+	 (lambda (insts labels registers)
+	   (let ((next-inst (car text)))
+	     (cond ((symbol? next-inst)
+		    (if (assoc next-inst labels)
+			(error "Multiply defined label:" next-inst)
+			(receive insts
+			  (cons (make-label-entry next-inst insts)
+				labels)
+			registers)))
+		   (else
+		    (receive
+			(cons (make-instruction next-inst)
+			      insts)
+			labels
+		      (append-if-new (found-registers next-inst) registers)))))))))
+#+END_SRC
+
+Note, there are still only two main cases (label/inst.) but instruction now also scans for registers in the expression, and appends these to the register list if new.
+
+~found-registers~ is simple parsing:
+
+#+BEGIN_SRC racket
+  (define (found-registers exp)
+    (cond ((null? exp) '())
+	  ((tagged-list? exp 'assign)
+	   (cons (assign-reg-name exp) (found-registers (assign-value-exp exp))))
+	  ((or (tagged-list? exp 'restore) (tagged-list? exp 'save))
+	   (cdr exp))
+	  ((tagged-list? (car exp) 'reg)
+	   (cons (cadar exp) (found-registers (cdr exp))))
+	  (else (found-registers (cdr exp)))))
+#+END_SRC
+
+And, the append procedures are:
+
+#+BEGIN_SRC racket
+  (define (append-new-elem! e l)
+    (cond ((null? l) (set! l (list e)))
+	  ((equal? (car l) e)
+	   #f)
+	  ((null? (cdr l)) (set-cdr! l (list e)))
+	  (else (append-new-elem! e (cdr l)))))
+
+  (define (append-elem-if-new e l)
+    (cond ((null? l) (list e))
+	  ((equal? (car l) e) l)
+	  (else (cons (car l) (append-elem-if-new e (cdr l))))))
+
+  (define (append-if-new l1 l2)
+    (cond ((null? l1) l2)
+	  (else (append-if-new (cdr l1) (append-elem-if-new (car l1) l2)))))
+#+END_SRC
+
+~append-new-elem!~ is not used, but is kept as maybe will use.
+
+This isn't quite as requested.
+I don't allocate a register the first time it's seen during an instruction.
+But, I think this is a fair way to tackle the problem.
+Nothing can happen before the intructions are added, in any case.
