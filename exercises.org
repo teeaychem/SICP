@@ -14238,3 +14238,43 @@ And, this cuts down on the size of the machine procedure.
 The procedure is the same as before, and to count executions a counter is added to the machine which is incremented on every execution…
 
 I'm not sure what the use of resetting the instruction count is, so this is a separate message.
+
+** 5.16
+
+Two variations on ~execute~ have been added.
+
+The first executes as many of a specified number of steps as possible.
+This can be called directly, similar to ~execute~.
+
+The second is an interactive prompt similar to that of the evaluator which repeatedly asks for a number of steps to be executed and the calls the first variant.
+
+Both of these take a ~trace~ argument and print the step to be executed if requested.
+
+The relevant part of ~make-machine~ is:
+
+#+BEGIN_SRC racket
+    (define (execute-n-trace n trace)
+    (let ((insts (get-contents pc)))
+      (if (or (= n 0) (null? insts))
+	  'done
+	  (begin
+	    (if trace
+		(begin
+		  (for-each display (list "Executing instruction: " (caar insts)))
+		  (newline)))
+	    ((instruction-execution-proc (car insts)))
+	    (set! instruction-count (+ instruction-count 1))
+	    (execute-n-trace (- n 1) trace)))))
+  (define (manual-execute-trace trace)
+    (let ((insts (get-contents pc)))
+      (cond ((null? insts) 'done)
+	    (else
+	     (begin
+	       (display "steps to execute: ")
+	       (let ((input (read)))
+		 (cond ((number? input)
+			(execute-n-trace input trace)
+			(manual-execute-trace trace))
+		       (else
+			(display "undefined input")))))))))
+#+END_SRC
