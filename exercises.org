@@ -14229,3 +14229,12 @@ The modification is an addition to ~make-execution-procedure~ to deal with the s
     (advance-pc pc)))
 #+END_SRC
 
+** 5.15
+
+Rather than extending the machines interface further, the inspector has been moved to a distinct procedure which takes a machine as an argument.
+This can then be easily saved to a variable, etc.
+And, this cuts down on the size of the machine procedure.
+
+The procedure is the same as before, and to count executions a counter is added to the machine which is incremented on every execution…
+
+I'm not sure what the use of resetting the instruction count is, so this is a separate message.

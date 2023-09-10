@@ -11,6 +11,7 @@
 ;; * functionality to inspect machine via filtering provided instructions (Ex. 5.12)
 ;; * registers are automatically added (Ex. 5.13)
 ;; * added instruction to print stack stats (Ex. 5.14).
+;; * inspector separated from machine and extended
 
 ;; from the past
 
@@ -136,7 +137,8 @@
   (let ((pc (make-register 'pc))
         (flag (make-register 'flag))
         (stack (make-stack))
-        (the-instruction-sequence '()))
+        (the-instruction-sequence '())
+        (instruction-count 0))
     (let ((the-ops
            (list (list 'initialize-stack
             (lambda ()
@@ -167,51 +169,8 @@
               'done
               (begin
                 ((instruction-execution-proc (car insts)))
+                (set! instruction-count (+ instruction-count 1))
                 (execute)))))
-      (define (inspect)
-        (let ((input-inst-seq (map (lambda (x) (car x)) the-instruction-sequence)))
-          (define (get-unique inst-type)
-            (filter-unique (lambda (x) (tagged-list? x inst-type)) (lambda (x) x) input-inst-seq))
-          (define (display-insts pre sequence)
-            (for-each (lambda (x) (display pre) (display x) (newline)) sequence))
-          (define (dispatch message)
-            (cond
-              ((eq? message 'instructions)
-               (display-insts "" input-inst-seq))
-              ((eq? message 'filter-by-type)
-               (lambda (type)
-                 (display "Instructions of type '") (display type) (display "':") (newline)
-                 (display-insts
-                               " - "
-                               (filter-unique (lambda (x) (tagged-list? x type)) cadr input-inst-seq))))
-              ((eq? message 'entry-regs)
-               (display "Registers used to hold entry points:") (newline)
-               (display-insts
-                " - "
-                ;; second, filter registers and return register name
-                (filter-unique (lambda (x) (tagged-list? x 'reg)) cadr
-                               ;; first, filter gotos and return argument
-                               (filter-unique (lambda (x) (tagged-list? x 'goto)) cadr input-inst-seq))))
-              ((eq? message 'save-rest)
-               (display "Registers saved and restrored from:") (newline)
-               (display-insts
-                " - "
-                ;; filter for save/rest and return reg name
-                (filter-unique
-                 (lambda (x) (or (tagged-list? x 'save) (tagged-list? x 'restore)))
-                 cadr
-                 input-inst-seq)))
-              ((eq? message 'sources)
-               (lambda (reg)
-                 (display "Sources of register '") (display reg) (display "':") (newline)
-                 (display-insts
-                  " - "
-                  (filter-unique
-                   (lambda (x) (and (tagged-list? x 'assign)
-                                    (equal? (cadr x) reg)))
-                 cddr
-                 input-inst-seq))))))
-          dispatch))
       (define (dispatch message)
         (cond ((eq? message 'start)
                (set-contents! pc the-instruction-sequence)
@@ -230,8 +189,12 @@
                stack)
               ((eq? message 'operations)
                the-ops)
-              ((eq? message 'inspect)
-               (inspect))
+              ((eq? message 'the-instruction-sequence)
+               the-instruction-sequence)
+              ((eq? message 'instruction-count)
+               instruction-count)
+              ((eq? message 'reset-instruction-count)
+               (set! instruction-count 0))
               (else (error "Unknown request: MACHINE" message))))
       dispatch)))
 
@@ -250,6 +213,58 @@
 
 (define (get-register machine reg-name)
   ((machine 'get-register) reg-name))
+
+;; inspector
+
+(define (machine-inspector machine)
+  (let* ((the-instruction-sequence (machine 'the-instruction-sequence))
+         (input-inst-seq (map (lambda (x) (car x)) the-instruction-sequence)))
+    (define (get-unique inst-type)
+      (filter-unique (lambda (x) (tagged-list? x inst-type)) (lambda (x) x) input-inst-seq))
+    (define (display-insts pre sequence)
+      (for-each (lambda (x) (display pre) (display x) (newline)) sequence))
+    (define (dispatch message)
+      (cond
+        ((eq? message 'instructions)
+         (display-insts "" input-inst-seq))
+        ((eq? message 'filter-by-type)
+         (lambda (type)
+           (for-each display (list "Instructions of type '" type "':")) (newline)
+           (display-insts
+            " - "
+            (filter-unique (lambda (x) (tagged-list? x type)) cadr input-inst-seq))))
+        ((eq? message 'entry-regs)
+         (display "Registers used to hold entry points:") (newline)
+         (display-insts
+          " - "
+          ;; second, filter registers and return register name
+          (filter-unique (lambda (x) (tagged-list? x 'reg)) cadr
+                         ;; first, filter gotos and return argument
+                         (filter-unique (lambda (x) (tagged-list? x 'goto)) cadr input-inst-seq))))
+        ((eq? message 'save-rest)
+         (display "Registers saved and restrored from:") (newline)
+         (display-insts
+          " - "
+          ;; filter for save/rest and return reg name
+          (filter-unique
+           (lambda (x) (or (tagged-list? x 'save) (tagged-list? x 'restore)))
+           cadr
+           input-inst-seq)))
+        ((eq? message 'sources)
+         (lambda (reg)
+           (for-each display (list "Sources of register '" reg "':")) (newline)
+           (display-insts
+            " - "
+            (filter-unique
+             (lambda (x) (and (tagged-list? x 'assign)
+                              (equal? (cadr x) reg)))
+             cddr
+             input-inst-seq))))
+        ((eq? message 'instruction-count)
+         (for-each display (list (machine 'instruction-count) " instructions executed"))
+         (newline))
+        ))
+    dispatch))
 
 ;; the assembler
 (define (append-elem-if-new e l)
@@ -755,12 +770,6 @@
      fib-done
      )))
 
-;; ((fib-machine 'inspect) 'instructions)
-;; (((fib-machine 'inspect) 'filter-by-type) 'goto)
-;; ((fib-machine 'inspect) 'entry-regs)
-;; ((fib-machine 'inspect) 'save-rest)
-;; (((fib-machine 'inspect) 'sources) 'val)
-
 (define (run-fib-machine n)
   (display "running fib-machine:")
   (newline)
@@ -770,7 +779,17 @@
   (display "ran fib-machine")
 )
 
+(define fib-machine-inspector (machine-inspector fib-machine))
+
 (run-fib-machine 5)
+
+(fib-machine-inspector 'instructions)
+((fib-machine-inspector 'filter-by-type) 'goto)
+(fib-machine-inspector 'entry-regs)
+(fib-machine-inspector 'save-rest)
+((fib-machine-inspector 'sources) 'val)
+(fib-machine-inspector 'instruction-count)
+
 
 ;; machine from ex 5.8 machine
 
@@ -845,16 +864,16 @@
      )))
 
 (define (run-recursive-fact-machine n)
-  (display "running fib-machine:")
+  (display "running recursive-fact-machine-machine:")
   (newline)
   (set-register-contents! recursive-fact-machine 'n n)
   (start recursive-fact-machine)
   (get-register-contents recursive-fact-machine 'val)
-  (display "ran fib-machine")
+  (display "ran recursive-fact-machine-machine")
 )
 
-(run-recursive-fact-machine 1)
-(run-recursive-fact-machine 2)
-(run-recursive-fact-machine 3)
-(run-recursive-fact-machine 4)
-(run-recursive-fact-machine 8)
+;; (run-recursive-fact-machine 1)
+;; (run-recursive-fact-machine 2)
+;; (run-recursive-fact-machine 3)
+;; (run-recursive-fact-machine 4)
+;; (run-recursive-fact-machine 8)
