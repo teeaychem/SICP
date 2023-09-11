@@ -14343,20 +14343,19 @@ So, we update this to point to the instructions of the primitive label.
      (lambda ()
        (set-contents!
 	pc
-	(caddr (get-contents reg))))))
+	(reg 'get-label-dest)))))
 #+END_SRC
 
-Finally, the dispatch method for registers is updated.
-To ensure ~get~ functions as before, we make sure this ignores the extra label wrapping.
-~get-raw~ shows the 'true' contents.
-And, ~get-simple~ is like ~get~ but shows the label name rather than the label pointer.
+Finally, the dispatch method for registers is updated to include an option for the additional request.
+Here, we add an error to ensure the request is only made when needed.
 
 #+BEGIN_SRC racket
   ((eq? message 'get)
+   contents)
+  ((eq? message 'get-label-dest)
    (if (tagged-list? contents 'primitive-label)
-		 (caddr contents)
-		 contents))
-  ((eq? message 'get-raw) contents)
+       (caddr contents)
+       (error "Attempting to extract destination from something other than a primitive label")))
   ((eq? message 'get-simple)
    (if (tagged-list? contents 'primitive-label)
        (cadr contents)

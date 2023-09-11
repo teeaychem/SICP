@@ -69,10 +69,11 @@
   (let ((contents '*unassigned*))
     (define (dispatch message)
       (cond ((eq? message 'get)
+                 contents)
+            ((eq? message 'get-label-dest)
              (if (tagged-list? contents 'primitive-label)
                  (caddr contents)
-                 contents))
-            ((eq? message 'get-raw) contents)
+                 (error "Attempting to extract destination from something other than a primitive label")))
             ((eq? message 'get-simple)
              (if (tagged-list? contents 'primitive-label)
                  (cadr contents)
@@ -350,7 +351,7 @@
         (else (found-registers (cdr exp)))))
 
 (define (assemble controller-text machine)
-  (extract-info controller-text
+  (extract-info-loop controller-text
                 (lambda (insts labels register-names)
                   (for-each (lambda (register-name)
                               ((machine 'allocate-register)
@@ -359,26 +360,28 @@
                   (update-insts! insts labels machine)
                   insts)))
 
-(define (extract-info text receive) ; builds lists (labels, instructions, etc) and
-  (if (null? text)                  ; passes these to whatever recieve is (see assemble)
-      (receive '() '() '())         ; though, this isn't straightforward.
-      (extract-info                 ; recieve is specifying the task for the next recursive call.
-       (cdr text)                   ; so, it's only the first call where receive isn't overwritten.
-       (lambda (insts labels registers)
-         (let ((next-inst (car text)))
-           (cond ((symbol? next-inst)
-                  (if (assoc next-inst labels)
-                      (error "Multiply defined label:" next-inst)
-                      (receive insts
-                          (cons (make-label-entry next-inst insts)
-                                labels)
-                        registers)))
-                 (else
-                  (receive
-                      (cons (make-instruction next-inst)
-                            insts)
-                      labels
-                    (append-if-new (found-registers next-inst) registers)))))))))
+;(define (extract-info text receive)
+  (define (extract-info-loop text receive) ; builds lists (labels, instructions, etc) and
+    (if (null? text)                  ; passes these to whatever recieve is (see assemble)
+        (receive '() '() '())     ; though, this isn't straightforward.
+        (extract-info-loop                 ; recieve is specifying the task for the next recursive call.
+         (cdr text)                   ; so, it's only the first call where receive isn't overwritten.
+         (lambda (insts labels registers)
+           (let ((next-inst (car text)))
+             (cond ((symbol? next-inst)
+                    (if (assoc next-inst labels)
+                        (error "Multiply defined label:" next-inst)
+                        (receive insts
+                            (cons (make-label-entry next-inst insts)
+                                  labels)
+                          registers)))
+                   (else
+                    (receive
+                        (cons (make-instruction next-inst)
+                              insts)
+                        labels
+                      (append-if-new (found-registers next-inst) registers)))))))))
+;  (extract-info-loop text receive))
 
 (define (update-insts! insts labels machine)
   (let ((pc (get-register machine 'pc))
@@ -531,7 +534,8 @@
              (lambda ()
                (set-contents!
                 pc
-                (caddr (get-contents reg))))))
+                (reg 'get-label-dest)
+                ))))
           (else (error "Bad GOTO instruction: ASSEMBLE" inst)))))
 
 (define (goto-dest goto-instruction)
@@ -571,7 +575,6 @@
             (action-proc)
             (advance-pc pc)))
         (error "Bad PERFORM instruction: ASSEMBLE" inst))))
-
 
 (define (perform-action inst)
   (cdr inst))
@@ -804,10 +807,8 @@
      (goto (label fib-loop)) ; perform recursive call
      afterfib-n-1 ; upon return, val contains Fib(n − 1)
      (restore n)
-     ;; (restore continue)
      ;; set up to compute Fib(n − 2)
      (assign n (op -) (reg n) (const 2))
-     ;; (save continue)
      (assign continue (label afterfib-n-2))
      (save val)         ; save Fib(n − 1)
      (goto (label fib-loop))
@@ -818,7 +819,8 @@
      (assign val (op +) (reg val) (reg n)); Fib(n − 1) + Fib(n − 2)
      (goto              ; return to caller,
       (reg continue))   ; answer is in val
-     immediate-answer   (assign val (reg n))   ; base case: Fib(n) = n
+     immediate-answer
+     (assign val (reg n))   ; base case: Fib(n) = n
      (goto (reg continue))
      fib-done
      )))
