@@ -14,7 +14,7 @@
 ;; * inspector separated from machine and extended
 ;; * option to pgoress a fixed number of executions directly or interactively
 ;; * added tracing to fixed executions
-
+;; * extended tracing to print contents of registers before and after execution.
 
 ;; from the past
 
@@ -56,8 +56,7 @@
 
 ;; make machine
 
-(define (make-machine ops
-                      controller-text)
+(define (make-machine ops controller-text)
   (let ((machine (make-new-machine)))
     ((machine 'install-operations) ops)
     ((machine 'install-instruction-sequence)
@@ -69,7 +68,15 @@
 (define (make-register name)
   (let ((contents '*unassigned*))
     (define (dispatch message)
-      (cond ((eq? message 'get) contents)
+      (cond ((eq? message 'get)
+             (if (tagged-list? contents 'primitive-label)
+                 (caddr contents)
+                 contents))
+            ((eq? message 'get-raw) contents)
+            ((eq? message 'get-simple)
+             (if (tagged-list? contents 'primitive-label)
+                 (cadr contents)
+                 contents))
             ((eq? message 'set)
              (lambda (value)
                (set! contents value)))
@@ -94,15 +101,13 @@
       (set! s (cons x s))
       (set! number-pushes (+ 1 number-pushes))
       (set! current-depth (+ 1 current-depth))
-      (set! max-depth
-            (max current-depth max-depth)))
+      (set! max-depth (max current-depth max-depth)))
     (define (pop)
       (if (null? s)
           (error "Empty stack: POP")
           (let ((top (car s)))
             (set! s (cdr s))
-            (set! current-depth
-                  (- current-depth 1))
+            (set! current-depth (- current-depth 1))
             top)))
     (define (initialize)
       (set! s '())
@@ -110,7 +115,6 @@
       (set! max-depth 0)
       (set! current-depth 0)
       'done)
-
     (define (print-statistics)
       (display (list 'total-pushes '= number-pushes
                      'maximum-depth '= max-depth
@@ -167,16 +171,42 @@
               (cadr val)
               (error "Unknown register:" name))))
       (define (execute-n-trace n trace)
-        (let ((insts (get-contents pc)))
+        (let* ((insts (get-contents pc))
+               (f-registers
+                (if (null? insts)
+                    '()
+                    (filter-unique (lambda (x) x) (lambda (x) x) (found-registers (caar insts))))))
           (if (or (= n 0) (null? insts))
               'done
               (begin
                 (if trace
                     (begin
                       (for-each display (list "Executing instruction: " (caar insts)))
+                      (cond ((not (null? f-registers))
+                             (newline)
+                             (display " - Before execution:")
+                             (for-each (lambda (x)
+                                         (newline)
+                                         (display " - + ")
+                                         (display x)
+                                         (display " has value: ")
+                                         (display ((lookup-register x) 'get-simple))) f-registers)
+                             ))
                       (newline)))
                 ((instruction-execution-proc (car insts)))
                 (set! instruction-count (+ instruction-count 1))
+                (if trace
+                    (begin
+                      (cond ((not (null? f-registers))
+                             (display " - After execution:")
+                             (for-each (lambda (x)
+                                         (newline)
+                                         (display " - + ")
+                                         (display x)
+                                         (display " has value: ")
+                                         (display ((lookup-register x) 'get-simple))) f-registers)
+                             ))
+                      (newline)))
                 (execute-n-trace (- n 1) trace)))))
       (define (manual-execute-trace trace)
         (let ((insts (get-contents pc)))
@@ -378,9 +408,7 @@
 (define (instruction-execution-proc inst)
   (cdr inst))
 
-(define (set-instruction-execution-proc!
-         inst
-         proc)
+(define (set-instruction-execution-proc! inst proc)
   (set-cdr! inst proc))
 
 (define (make-label-entry label-name insts)
@@ -396,14 +424,11 @@
 
 (define (make-execution-procedure inst labels machine pc flag stack ops)
   (cond ((eq? (car inst) 'assign)
-         (make-assign
-          inst machine labels ops pc))
+         (make-assign inst machine labels ops pc))
         ((eq? (car inst) 'test)
-         (make-test
-          inst machine labels ops flag pc))
+         (make-test inst machine labels ops flag pc))
         ((eq? (car inst) 'branch)
-         (make-branch
-          inst machine labels flag pc))
+         (make-branch inst machine labels flag pc))
         ((eq? (car inst) 'goto)
          (make-goto inst machine labels pc))
         ((eq? (car inst) 'save)
@@ -411,11 +436,9 @@
         ((eq? (car inst) 'restore)
          (make-restore inst machine stack pc))
         ((eq? (car inst) 'perform)
-         (make-perform
-          inst machine labels ops pc))
+         (make-perform inst machine labels ops pc))
         ((eq? (car inst) 'display-stack-stats)
-         (make-stack-stats
-          inst machine labels ops pc))
+         (make-stack-stats inst machine labels ops pc))
         (else (error "Unknown instruction type: ASSEMBLE" inst))))
 
 ;; assign instructions
@@ -437,8 +460,7 @@
                 (car value-exp)
                 machine
                 labels))))
-      (lambda ()   ; execution procedure
-                   ; for assign
+      (lambda ()   ; execution procedure for assign
         (set-contents! target (value-proc))
         (advance-pc pc)))))
 
@@ -509,7 +531,7 @@
              (lambda ()
                (set-contents!
                 pc
-                (get-contents reg)))))
+                (caddr (get-contents reg))))))
           (else (error "Bad GOTO instruction: ASSEMBLE" inst)))))
 
 (define (goto-dest goto-instruction)
@@ -550,6 +572,7 @@
             (advance-pc pc)))
         (error "Bad PERFORM instruction: ASSEMBLE" inst))))
 
+
 (define (perform-action inst)
   (cdr inst))
 
@@ -564,7 +587,8 @@
                 (lookup-label
                  labels
                  (label-exp-label exp))))
-           (lambda () insts)))
+           (lambda ()
+             (list 'primitive-label exp insts))))
         ((register-exp? exp)
          (let ((r (get-register
                    machine
@@ -590,7 +614,6 @@
 (define (label-exp-label exp)
   (cadr exp))
 
-
 (define (make-operation-exp
          exp machine labels operations)
   (let ((op (lookup-prim
@@ -599,13 +622,10 @@
         (aprocs
          (map (lambda (e)
                 (if (or (register-exp? e) (constant-exp? e))
-                 (make-primitive-exp
-                 e machine labels)
+                    (make-primitive-exp e machine labels)
                  (error "Operation on something other than reg/const: ASSEMBLE" e)))
               (operation-exp-operands exp))))
-    (lambda () (apply op (map (lambda (p) (p))
-                              aprocs)))))
-
+    (lambda () (apply op (map (lambda (p) (p)) aprocs)))))
 
 (define (operation-exp? exp)
   (and (pair? exp)
@@ -825,7 +845,7 @@
 
 (display "running fib-machine:")
 (newline)
-(set-register-contents! fib-machine 'n 5)
+(set-register-contents! fib-machine 'n 7)
 ;((fib-machine 'execute-n-trace) 120)
 (get-register-contents fib-machine 'val)
 (display "ran fib-machine")

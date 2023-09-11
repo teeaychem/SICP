@@ -14210,6 +14210,17 @@ I don't allocate a register the first time it's seen during an instruction.
 But, I think this is a fair way to tackle the problem.
 Nothing can happen before the intructions are added, in any case.
 
+Looking back, the request probably works as a hint.
+~lookup-register~ in ~make-new-machine~ returns an error if a register is not found.
+And, this could be reworked to add the register.
+
+Hm, this seems like it might be better, depending on what one is up to.
+For, looking up a register always requires working through the table of registers.
+So, adjusting the not-found behaviour is simple.
+
+On the other hand, one doesn't need to assemble the instructions to find out what registers are used.
+Though, I don't think this is clearly enough of a benefit…
+
 ** 5.14
 
 Given ~n~:
@@ -14253,7 +14264,7 @@ Both of these take a ~trace~ argument and print the step to be executed if reque
 The relevant part of ~make-machine~ is:
 
 #+BEGIN_SRC racket
-    (define (execute-n-trace n trace)
+  (define (execute-n-trace n trace)
     (let ((insts (get-contents pc)))
       (if (or (= n 0) (null? insts))
 	  'done
@@ -14265,6 +14276,7 @@ The relevant part of ~make-machine~ is:
 	    ((instruction-execution-proc (car insts)))
 	    (set! instruction-count (+ instruction-count 1))
 	    (execute-n-trace (- n 1) trace)))))
+
   (define (manual-execute-trace trace)
     (let ((insts (get-contents pc)))
       (cond ((null? insts) 'done)
@@ -14278,3 +14290,82 @@ The relevant part of ~make-machine~ is:
 		       (else
 			(display "undefined input")))))))))
 #+END_SRC
+
+** 5.17
+
+I ran into a similar problem is pointing towards while attempting to print out the contents of a register before and after executing an instruction.
+
+The issue is, once assembled, labels are implicit.
+These are just pointers to some exeuction sequence.
+
+So, in order to represent the label we need to either include information about the label in the assmbeld code, or somehow track the assmebled code.
+
+Tracking is hard.
+For, although every execution has the corresponding control instruction, when reading from a register there's no guarantee about when the register was written to.
+
+The actual exercise here seems maybe easier.
+For, we just want labels before any instruction.
+In particular, ~extract-info~ parses everything an extracts labels.
+So, when ~extract-info~ parses a label, this is added to a buffer of labels, which is expanded until an instruction is found and then the contents of the buffer is returned.
+Then, ~assemble~ and the associated procedures need to be updated to ensure the contents of the buffer are associated with the procedure.
+I.e., we'd have a list of (text assembly before-labels) rather than (text assembly) as it is now.
+
+But, I really don't see the interest in this.
+
+For the register problem, and a more general solution, the idea is to explicitly include labels in the assembled code.
+
+This is fairly easy to do.
+For, the only time a label is used is with a ~goto~ statement.
+So, that is, to accomodate a different data type for lables, we only need to update ~make-goto~ and ~make-primitive-exp~.
+
+For ~make-primitive-exp~, the label condition returns a tagged list, with the (ironic) ~primitive-label~ tag, the name of the label, and where the label points.
+
+#+BEGIN_SRC racket
+  ((label-exp? exp)
+   (let ((insts
+	  (lookup-label
+	   labels
+	   (label-exp-label exp))))
+     (lambda ()
+       (list 'primitive-label exp insts))))
+#+END_SRC
+
+For ~make-goto~ we either have a label or the contents of a register.
+Only the register case is of interest, as this is the only time a primitive label expression will have been made.
+So, we update this to point to the instructions of the primitive label.
+
+#+BEGIN_SRC racket
+  ((register-exp? dest)
+   (let ((reg
+	  (get-register
+	   machine
+	   (register-exp-reg dest))))
+     (lambda ()
+       (set-contents!
+	pc
+	(caddr (get-contents reg))))))
+#+END_SRC
+
+Finally, the dispatch method for registers is updated.
+To ensure ~get~ functions as before, we make sure this ignores the extra label wrapping.
+~get-raw~ shows the 'true' contents.
+And, ~get-simple~ is like ~get~ but shows the label name rather than the label pointer.
+
+#+BEGIN_SRC racket
+  ((eq? message 'get)
+   (if (tagged-list? contents 'primitive-label)
+		 (caddr contents)
+		 contents))
+  ((eq? message 'get-raw) contents)
+  ((eq? message 'get-simple)
+   (if (tagged-list? contents 'primitive-label)
+       (cadr contents)
+       contents))
+#+END_SRC
+
+** 5.18
+
+Tracing of registers is kind of already included with the tracing I've implemented.
+
+And alternative way to do this is to modify the ~set~ command.
+Internal to the register could be a flag for tracing, and when on print the present contents and the value being set.
