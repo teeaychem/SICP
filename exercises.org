@@ -14368,3 +14368,131 @@ Tracing of registers is kind of already included with the tracing I've implement
 
 And alternative way to do this is to modify the ~set~ command.
 Internal to the register could be a flag for tracing, and when on print the present contents and the value being set.
+
+** IN PROGRESS 5.19
+
+*** confused about the question
+
+This is very confusing.
+Why are breakpoints set relative to labels?
+
+Well, okay.
+Lots of code and no line numbers, then labels are a good landmark as these are unique.
+
+And, putting breakpoints directly into the control sequence isn't ideal, as then breakpoints can't be dynamically assigned.
+
+So, then, the next issue is whether the nth insturction refers to the nth instruction executed after the given label, or the nth instruction in the controller.
+The example in the text does nothing to disambiguate these two cases…
+
+And, it surely matters in some cases.
+For, there are plausibly various goto statements between two labels…
+
+So, my guess is it's the nth instruction in the controller.
+And, in any case, it's easy to obtain the other behavious by procedures I've already written by going to the label and then inputting the number of executions to perform.
+
+*** storing relative location and modifying ~assemble~
+
+The goal is to store relative location indexed to a (group of) labels along with instruction text.
+
+As we're dealing with labels, ~extract-labels~ or ~extract-info~ is the place to look.
+However, the original ~extract-labels/info~ works recursively.
+
+This is very helpful for easily getting the right location for the label to point to in the instruction sequence as we end up processing the text in reverse.
+
+However, this is not very helpful for storing relative position.
+For, we have no idea of what labels are to come.
+
+We could try to store information about labels on the way down (so to speak).
+
+But, instead, we could also process everything as we work through the controller text.
+We've got a lot of procedures that modify state, so let's add a few more!
+
+~extract-labels/info~ is now merged into ~assemble~ as follows:
+
+#+BEGIN_SRC racket
+  (define (assemble controller-text machine)
+  (let ((text-pointer controller-text)
+	(next-inst nil)
+	(label-buffer (list "No label"))
+	(count-buffer 0)
+	(prev-label #f)
+	(instructions (list nil))
+	(instructions-pointer '())
+	(labels '()))
+    (define (extract-info-loop)
+      (cond ((null? text-pointer)
+	     (set! instructions (cdr instructions))
+	     (for-each (lambda (x) (set-cdr! x (cddr x))) labels)
+	     (update-insts! instructions labels machine))
+	    (else
+	     (set! next-inst (car text-pointer))
+	     (cond ((symbol? next-inst)
+		    (cond ((assoc next-inst labels) ; just searching the labels already have
+			   (error "Multiply defined label:" next-inst))
+			  (else
+			   (if (not prev-label)
+			       (set! label-buffer '()))
+			   (set! prev-label #t)
+			   (set! count-buffer 0)
+			   (set! label-buffer (cons next-inst label-buffer))
+			   (set! labels (cons (make-label-entry next-inst (end-of instructions))
+					      labels)))))
+		   (else
+		    (set! prev-label #f)
+		    (append-elem! instructions (make-instruction (cons label-buffer count-buffer) next-inst))
+		    (set! instructions-pointer (cdr instructions))
+		    (set! count-buffer (+ count-buffer 1))))
+	     (set! text-pointer (cdr text-pointer))
+	     (extract-info-loop))))
+    (extract-info-loop)
+    instructions))
+#+END_SRC
+
+There's a few things to be careful of here.
+First, we want to keep ~instructions~ fixed to point to all of the instructions as we need this for ~update-insts!~.
+
+And, we want to append new instructions to ~instructions~.
+So, ~instructions~ is 'once shifted' to have a ~nil~ head which remains constant and a tail which adjusts.
+
+(There are other ways to do this, but this functions.)
+
+So, when it comes to ~update-insts!~ we shift all the label points with ~(for-each (lambda (x) (set-cdr! x (cddr x))) labels)~
+
+Further, we also want to find the current end point of ~instructions~ in order to point labels to the right place.
+To do this, we simply look to the current terminal point of ~instructions~ with ~end-of~, defined as:
+
+#+BEGIN_SRC racket
+  (define (end-of l)
+    (cond ((null? l) l)
+	  ((null? (cdr l)) l)
+	  (else (end-of (cdr l)))))
+#+END_SRC
+
+And, ~append-elem!~ is just:
+
+#+BEGIN_SRC racket
+  (define (append-elem! l e)
+  (cond ((null? l)
+         (set! l (list e)))
+        ((null? (cdr l))
+         (set-cdr! l (cons e nil)))
+        (else (append-elem! (cdr l) e))))
+#+END_SRC
+
+~make-instruction~ is updated to take a location arguement and structured as a table:
+
+#+BEGIN_SRC racket
+  (define (make-instruction location text)
+  (list (cons 'location location) (cons 'text text) (cons 'proc '())))
+#+END_SRC
+
+And, related functions are updated to deal with this.
+
+At this point, breakpoints should be ok.
+We can search through the instruction sequence for the right location.
+And, then wrap the assembled procedure in an additional function.
+
+One issue is the inspector is currently broken.
+But, that's for another time.
+
+Also, took the opportunity to rewrite register registration to happen when a register is searched for but not found.

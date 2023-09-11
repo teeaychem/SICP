@@ -15,6 +15,9 @@
 ;; * option to pgoress a fixed number of executions directly or interactively
 ;; * added tracing to fixed executions
 ;; * extended tracing to print contents of registers before and after execution.
+;; * relative locations stored with instructions.
+;; * registers are now created when needed.
+;; * inspector is broken
 
 ;; from the past
 
@@ -170,19 +173,25 @@
                (assoc name register-table)))
           (if val
               (cadr val)
-              (error "Unknown register:" name))))
+              (let ((new-register (make-register name)))
+                (set! register-table
+                      (cons
+                       (list name new-register)
+                       register-table))
+                new-register))))
       (define (execute-n-trace n trace)
         (let* ((insts (get-contents pc))
                (f-registers
                 (if (null? insts)
                     '()
-                    (filter-unique (lambda (x) x) (lambda (x) x) (found-registers (caar insts))))))
+                    (filter-unique (lambda (x) x) (lambda (x) x) (found-registers (instruction-text (car insts))))
+                    )))
           (if (or (= n 0) (null? insts))
               'done
               (begin
                 (if trace
                     (begin
-                      (for-each display (list "Executing instruction: " (caar insts)))
+                      (for-each display (list "Todo : " (instruction-index (car insts)) " : "  (instruction-text (car insts))))
                       (cond ((not (null? f-registers))
                              (newline)
                              (display " - Before execution:")
@@ -331,6 +340,18 @@
     dispatch))
 
 ;; the assembler
+(define (append-elem! l e)
+  (cond ((null? l)
+         (set! l (list e)))
+        ((null? (cdr l))
+         (set-cdr! l (cons e nil)))
+        (else (append-elem! (cdr l) e))))
+
+(define (end-of l)
+  (cond ((null? l) l)
+        ((null? (cdr l)) l)
+        (else (end-of (cdr l)))))
+
 (define (append-elem-if-new e l)
   (cond ((null? l) (list e))
         ((equal? (car l) e) l)
@@ -346,42 +367,46 @@
          (cons (assign-reg-name exp) (found-registers (assign-value-exp exp))))
         ((or (tagged-list? exp 'restore) (tagged-list? exp 'save))
          (cdr exp))
-        ((tagged-list? (car exp) 'reg)
+        ((tagged-list? (car exp) 'reg) ; car exp as reg is only as some arg.
          (cons (cadar exp) (found-registers (cdr exp))))
         (else (found-registers (cdr exp)))))
 
 (define (assemble controller-text machine)
-  (extract-info-loop controller-text
-                (lambda (insts labels register-names)
-                  (for-each (lambda (register-name)
-                              ((machine 'allocate-register)
-                               register-name))
-                            register-names)
-                  (update-insts! insts labels machine)
-                  insts)))
-
-;(define (extract-info text receive)
-  (define (extract-info-loop text receive) ; builds lists (labels, instructions, etc) and
-    (if (null? text)                  ; passes these to whatever recieve is (see assemble)
-        (receive '() '() '())     ; though, this isn't straightforward.
-        (extract-info-loop                 ; recieve is specifying the task for the next recursive call.
-         (cdr text)                   ; so, it's only the first call where receive isn't overwritten.
-         (lambda (insts labels registers)
-           (let ((next-inst (car text)))
+  (let ((text-pointer controller-text)
+        (next-inst nil)
+        (label-buffer (list "No label"))
+        (count-buffer 0)
+        (prev-label #f)
+        (instructions (list nil)) ; instruction is offset by nil
+        (instructions-pointer '())
+        (labels '()))
+    (define (extract-info-loop)
+      (cond ((null? text-pointer)
+             (set! instructions (cdr instructions))
+             (for-each (lambda (x) (set-cdr! x (cddr x))) labels) ; fix instruction offset
+             (update-insts! instructions labels machine))
+            (else
+             (set! next-inst (car text-pointer))
              (cond ((symbol? next-inst)
-                    (if (assoc next-inst labels)
-                        (error "Multiply defined label:" next-inst)
-                        (receive insts
-                            (cons (make-label-entry next-inst insts)
-                                  labels)
-                          registers)))
+                    (cond ((assoc next-inst labels) ; just searching the labels already have
+                           (error "Multiply defined label:" next-inst))
+                          (else
+                           (if (not prev-label)
+                               (set! label-buffer '()))
+                           (set! prev-label #t)
+                           (set! count-buffer 0)
+                           (set! label-buffer (cons next-inst label-buffer))
+                           (set! labels (cons (make-label-entry next-inst (end-of instructions))
+                                              labels)))))
                    (else
-                    (receive
-                        (cons (make-instruction next-inst)
-                              insts)
-                        labels
-                      (append-if-new (found-registers next-inst) registers)))))))))
-;  (extract-info-loop text receive))
+                    (set! prev-label #f)
+                    (append-elem! instructions (make-instruction (cons label-buffer count-buffer) next-inst))
+                    (set! instructions-pointer (cdr instructions))
+                    (set! count-buffer (+ count-buffer 1))))
+             (set! text-pointer (cdr text-pointer))
+             (extract-info-loop))))
+    (extract-info-loop)
+    instructions))
 
 (define (update-insts! insts labels machine)
   (let ((pc (get-register machine 'pc))
@@ -390,29 +415,33 @@
         (ops (machine 'operations)))
     (for-each
      (lambda (inst)
-       (set-instruction-execution-proc!
-        inst
-        (make-execution-procedure
-         (instruction-text inst)
-         labels
-         machine
-         pc
-         flag
-         stack
-         ops)))
-     insts)))
+       (begin
+         (set-instruction-execution-proc!
+          inst
+          (make-execution-procedure
+           (instruction-text inst)
+           labels
+           machine
+           pc
+           flag
+           stack
+           ops))))
+       insts)))
 
-(define (make-instruction text)
-  (cons text '()))
+(define (make-instruction location text)
+  (list (cons 'location location) (cons 'text text) (cons 'proc '())))
+
+(define (instruction-index inst)
+  (cdar inst))
 
 (define (instruction-text inst)
-  (car inst))
+  (cdadr inst))
 
 (define (instruction-execution-proc inst)
-  (cdr inst))
+  (cdaddr inst))
 
 (define (set-instruction-execution-proc! inst proc)
-  (set-cdr! inst proc))
+  (set-cdr! (caddr inst) proc))
 
 (define (make-label-entry label-name insts)
   (cons label-name insts))
@@ -628,7 +657,8 @@
                     (make-primitive-exp e machine labels)
                  (error "Operation on something other than reg/const: ASSEMBLE" e)))
               (operation-exp-operands exp))))
-    (lambda () (apply op (map (lambda (p) (p)) aprocs)))))
+    (lambda ()
+      (apply op (map (lambda (p) (p)) aprocs)))))
 
 (define (operation-exp? exp)
   (and (pair? exp)
@@ -665,31 +695,31 @@
        (goto (label test-b))
      gcd-done)))
 
-;; (display "running gcd-machine:")
-;; (newline)
-;; (set-register-contents! gcd-machine 'a 206)
-;; (set-register-contents! gcd-machine 'b 40)
-;; (start gcd-machine)
-;; (get-register-contents gcd-machine 'a)
-;; (display "ran gcd-machine")
+ (display "running gcd-machine:")
+ (newline)
+ (set-register-contents! gcd-machine 'a 206)
+ (set-register-contents! gcd-machine 'b 40)
+ (start gcd-machine)
+ (get-register-contents gcd-machine 'a)
+ (display "ran gcd-machine")
 
 ;; factorial machine
 
-(define fact-machine
-  (make-machine
-   ;; '(counter n product)
-   (list (list '> >) (list '* *) (list '+ +))
-   '(
-     (assign counter (const 1))
-     (assign product (const 1))
-     test-n
-     (test (op >) (reg counter) (reg n))
-     (branch (label fact-done))
-     (assign product (op *) (reg counter) (reg product))
-     (assign counter (op +) (reg counter) (const 1))
-     (goto (label test-n))
-     fact-done
-     )))
+;; (define fact-machine
+;;   (make-machine
+;;    ;; '(counter n product)
+;;    (list (list '> >) (list '* *) (list '+ +))
+;;    '(
+;;      (assign counter (const 1))
+;;      (assign product (const 1))
+;;      test-n
+;;      (test (op >) (reg counter) (reg n))
+;;      (branch (label fact-done))
+;;      (assign product (op *) (reg counter) (reg product))
+;;      (assign counter (op +) (reg counter) (const 1))
+;;      (goto (label test-n))
+;;      fact-done
+;;      )))
 
 ;; (display "running fact-machine:")
 ;; (newline)
@@ -701,26 +731,26 @@
 
 ;; square-root machine
 
-(define sqrt-machine
-  (make-machine
-   ;; '(x guess div)
-   (list (list '< <) (list '* *) (list '- -)
-         (list '/ /) (list '+ +)
-         (list 'abs abs))
-   '(
-     (assign guess (const 1.0))
-     good-enough?
-     (assign div (op *) (reg guess) (reg guess))
-     (assign div (op -) (reg div) (reg x))
-     (assign div (op abs) (reg div))
-     (test (op <) (reg div) (const 0.001))
-     (branch (label sqrt-done))
-     (assign div (op /) (reg x) (reg guess))
-     (assign guess (op +) (reg div) (reg guess))
-     (assign guess (op /) (reg guess) (const 2.0))
-     (goto (label good-enough?))
-     sqrt-done
-     )))
+;; (define sqrt-machine
+;;   (make-machine
+;;    ;; '(x guess div)
+;;    (list (list '< <) (list '* *) (list '- -)
+;;          (list '/ /) (list '+ +)
+;;          (list 'abs abs))
+;;    '(
+;;      (assign guess (const 1.0))
+;;      good-enough?
+;;      (assign div (op *) (reg guess) (reg guess))
+;;      (assign div (op -) (reg div) (reg x))
+;;      (assign div (op abs) (reg div))
+;;      (test (op <) (reg div) (const 0.001))
+;;      (branch (label sqrt-done))
+;;      (assign div (op /) (reg x) (reg guess))
+;;      (assign guess (op +) (reg div) (reg guess))
+;;      (assign guess (op /) (reg guess) (const 2.0))
+;;      (goto (label good-enough?))
+;;      sqrt-done
+;;      )))
 
 ;; (display "running sqrt-machine:")
 ;; (newline)
@@ -731,28 +761,28 @@
 
 ;; expt machine (recursive)
 
-(define expt-machine-recursive
-  (make-machine
-   ;; '(n continue val b)
-   (list (list '= =) (list '* *) (list '- -))
-   '(
-     (assign continue (label expt-done))
-     expt-loop
-     (test (op =) (reg n) (const 0))
-     (branch (label base-case))
-     (save continue)
-     (assign n (op -) (reg n) (const 1))
-     (assign continue (label after-expt))
-     (goto (label expt-loop))
-     after-expt
-     (restore continue)
-     (assign val (op *) (reg b) (reg val))
-     (goto (reg continue))
-     base-case
-     (assign val (const 1))
-     (goto (reg continue))
-     expt-done
-     )))
+;; (define expt-machine-recursive
+;;   (make-machine
+;;    ;; '(n continue val b)
+;;    (list (list '= =) (list '* *) (list '- -))
+;;    '(
+;;      (assign continue (label expt-done))
+;;      expt-loop
+;;      (test (op =) (reg n) (const 0))
+;;      (branch (label base-case))
+;;      (save continue)
+;;      (assign n (op -) (reg n) (const 1))
+;;      (assign continue (label after-expt))
+;;      (goto (label expt-loop))
+;;      after-expt
+;;      (restore continue)
+;;      (assign val (op *) (reg b) (reg val))
+;;      (goto (reg continue))
+;;      base-case
+;;      (assign val (const 1))
+;;      (goto (reg continue))
+;;      expt-done
+;;      )))
 
 ;; (display "running expt-machine-recursive:")
 ;; (newline)
@@ -764,20 +794,20 @@
 
 ;; expt machine (iterative)
 
-(define expt-machine-iterative
-  (make-machine
-   ;; '(n val b)
-   (list (list '= =) (list '* *) (list '- -))
-   '(
-     (assign val (const 1))
-     expt-loop
-     (test (op =) (reg n) (const 0))
-     (branch (label expt-done))
-     (assign n (op -) (reg n) (const 1))
-     (assign val (op *) (reg b) (reg val))
-     (goto (label expt-loop))
-   expt-done
-     )))
+;; (define expt-machine-iterative
+;;   (make-machine
+;;    ;; '(n val b)
+;;    (list (list '= =) (list '* *) (list '- -))
+;;    '(
+;;      (assign val (const 1))
+;;      expt-loop
+;;      (test (op =) (reg n) (const 0))
+;;      (branch (label expt-done))
+;;      (assign n (op -) (reg n) (const 1))
+;;      (assign val (op *) (reg b) (reg val))
+;;      (goto (label expt-loop))
+;;    expt-done
+;;      )))
 
 ;; (display "running expt-machine-iterative:")
 ;; (newline)
@@ -834,16 +864,16 @@
   (display "ran fib-machine")
 )
 
-(define fib-machine-inspector (machine-inspector fib-machine))
+;(define fib-machine-inspector (machine-inspector fib-machine))
 
-;; (run-fib-machine 5)
+(run-fib-machine 5)
 
 ;; (fib-machine-inspector 'instructions)
 ;; ((fib-machine-inspector 'filter-by-type) 'goto)
 ;; (fib-machine-inspector 'entry-regs)
 ;; (fib-machine-inspector 'save-rest)
 ;; ((fib-machine-inspector 'sources) 'val)
-(fib-machine-inspector 'instruction-count)
+;; (fib-machine-inspector 'instruction-count)
 
 (display "running fib-machine:")
 (newline)
@@ -927,14 +957,14 @@
      (display-stack-stats)
      )))
 
-(define (run-recursive-fact-machine n)
-  (display "running recursive-fact-machine-machine:")
-  (newline)
-  (set-register-contents! recursive-fact-machine 'n n)
-  (start recursive-fact-machine)
-  (get-register-contents recursive-fact-machine 'val)
-  (display "ran recursive-fact-machine-machine")
-)
+;; (define (run-recursive-fact-machine n)
+;;   (display "running recursive-fact-machine-machine:")
+;;   (newline)
+;;   (set-register-contents! recursive-fact-machine 'n n)
+;;   (start recursive-fact-machine)
+;;   (get-register-contents recursive-fact-machine 'val)
+;;   (display "ran recursive-fact-machine-machine")
+;; )
 
 ;; (run-recursive-fact-machine 1)
 ;; (run-recursive-fact-machine 2)
