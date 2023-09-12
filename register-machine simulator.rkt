@@ -19,8 +19,28 @@
 ;; * registers are now created when needed.
 ;; * inspector is broken
 ;; * ability to inject procedures before instruction specififed by relative offset to label
+;; * more general way to print inputs and outputs of simulations
+;; * basic recursive machine for counting leaves
 
 ;; misc
+
+(define (run-wiith-args-and-display-reg-vals machine reg-arg-pairs regs)
+  (for-each (lambda (pair)
+              (begin
+                (for-each display (list "Register " (car pair) " was set to value " (cdr pair)))
+                (newline)) pair)
+            reg-arg-pairs)
+  (for-each (lambda (pair)
+              (set-register-contents! machine (car pair) (cdr pair)))
+            reg-arg-pairs)
+  (start machine)
+  (for-each (lambda (reg)
+              (begin
+                (for-each display
+                          (list "Register: " reg " end with value: " (get-register-contents machine reg)))
+                (newline)))
+            regs)
+  (newline))
 
 (define (contains-elem l e)
   (cond ((null? l) #f)
@@ -251,7 +271,6 @@
               (let ((inst (car instruction-pointer)))
                 (cond ((and (contains-elem (instruction-index-labels inst) label)
                             (equal? (instruction-index-offset inst) offset))
-                       (display (instruction-execution-proc-head inst))
                        (let ((ori-inst (instruction-execution-proc inst)))
                          (set-cdr! (instruction-execution-proc-head inst)
                                    (lambda ()
@@ -890,13 +909,10 @@
      )))
 
 (define (run-fib-machine n)
-  (display "running fib-machine:")
+  (display "running fib-machine!")
   (newline)
-  (set-register-contents! fib-machine 'n n)
-  (start fib-machine)
-  (get-register-contents fib-machine 'val)
-  (display "ran fib-machine")
-)
+  (run-wiith-args-and-display-reg-vals fib-machine (list (cons 'n n)) (list 'val))
+  )
 
 ;(define fib-machine-inspector (machine-inspector fib-machine))
 
@@ -909,25 +925,25 @@
 ;; ((fib-machine-inspector 'sources) 'val)
 ;; (fib-machine-inspector 'instruction-count)
 
-(display "running fib-machine:")
-(newline)
-(set-register-contents! fib-machine 'n 7)
-;((fib-machine 'execute-n-trace) 120)
-(get-register-contents fib-machine 'val)
-(display "ran fib-machine")
-(newline)
-((machine-inspector fib-machine) 'instruction-count)
-((fib-machine 'inject-before-index) 'afterfib-n-1
-                                    1
-                                    (lambda () (begin
-                                                 (newline)
-                                                 (display "well, we're here")
-                                                 (newline)
-                                                 (display "instructions executed so far: ")
-                                                 (display (fib-machine 'instruction-count))
-                                                 (newline)
-                                                 )))
-((fib-machine 'manual-execute-trace) #t)
+;; (display "running fib-machine:")
+;; (newline)
+;; (set-register-contents! fib-machine 'n 7)
+;; ;((fib-machine 'execute-n-trace) 120)
+;; (get-register-contents fib-machine 'val)
+;; (display "ran fib-machine")
+;; (newline)
+;; ((machine-inspector fib-machine) 'instruction-count)
+;; ((fib-machine 'inject-before-index) 'afterfib-n-1
+;;                                     1
+;;                                     (lambda () (begin
+;;                                                  (newline)
+;;                                                  (display "well, we're here")
+;;                                                  (newline)
+;;                                                  (display "instructions executed so far: ")
+;;                                                  (display (fib-machine 'instruction-count))
+;;                                                  (newline)
+;;                                                  )))
+;; ((fib-machine 'manual-execute-trace) #t)
 
 ;; machine from ex 5.8 machine
 
@@ -1015,3 +1031,59 @@
 ;; (run-recursive-fact-machine 3)
 ;; (run-recursive-fact-machine 4)
 ;; (run-recursive-fact-machine 8)
+
+
+(define recursive-count-leaves-machine
+  (make-machine
+   (list (list '+ +) (list 'car car) (list 'cdr cdr)
+         (list 'null? null?) (list 'pair? pair?)
+         )
+   '(
+     (assign continue (label cl-done))
+       cl-loop
+       (test (op null?) (reg tree))
+       (branch (label null-case))
+       (test (op pair?) (reg tree))
+       (branch (label ok-case))
+       (goto (label not-pair-case))
+       ok-case
+       ;; set up for car
+       (save continue)
+       (assign continue (label cl-after-car))
+       (save tree) ; save the way the tree looks.
+       (assign tree (op car) (reg tree)) ; focus on car of tree.
+       (goto (label cl-loop)) ; recursive call
+       cl-after-car ; val has leaves on car.
+       (restore tree) ; restore the tree.
+       (assign tree (op cdr) (reg tree)) ; explore cdr of tree.
+       (assign continue (label cl-after-cdr))
+       (save val) ; count-leaves of car is saved
+       (goto (label cl-loop))
+       cl-after-cdr
+       (assign val-temp (reg val)) ; val-temp has count-leaves of cdr
+       (restore val) ; val has count-leaves of car
+       (assign val (op +) (reg val-temp) (reg val))
+       (restore continue)
+       (goto (reg continue))
+       null-case
+       (assign val (const 0))
+       (goto (reg continue))
+       not-pair-case
+       (assign val (const 1))
+       (goto (reg continue))
+       cl-done
+     )))
+
+(define (run-recursive-count-leaves-machine tree)
+  (display "Run of recursive-count-leaves-machine-machine:")
+  (newline)
+  (run-wiith-args-and-display-reg-vals recursive-count-leaves-machine (list (cons 'tree tree)) (list 'val))
+)
+
+
+
+(run-recursive-count-leaves-machine (cons (cons 1 2) (cons 3 4)))
+(run-recursive-count-leaves-machine (cons (cons 1 2) 3))
+(define x (cons (list 1 2) (list 3 4)))
+(run-recursive-count-leaves-machine x)
+(run-recursive-count-leaves-machine (list x x))
