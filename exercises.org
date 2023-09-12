@@ -14555,3 +14555,34 @@ None of this is particularly interesting to me.
 Liekwise, ~cancel-all-breakpoints~ would easily implemented given a list of all modified labels.
 
 So, this is where things are left for now.
+
+** 5.20
+
+After:
+
+#+BEGIN_SRC racket
+  (define x (cons 1 2))
+  (define y (list x x))
+#+END_SRC
+
+We have something like this:
+
+|          | 0 | 1  | 2  | 3  | … |
+| the-cars |   | n1 | p1 | p1 |   |
+| the-cdrs |   | n2 | e0 | p2 |   |
+
+Where ~x~ points to ~p1~ and ~y~ points to ~p2~.
+
+It's not clear to me whether ~p0~ is ever used, as we're just told ~free~ holds the next available index and is incremented by 1.
+
+~y~ is added backwards, as we're still doing everything in applicative order.
+And, expanded, ~(list x x)~ reads ~(cons x (cons x nil))~.
+So, we first evaluate ~(cons x nil)~ and then do ~(cons x …)~.
+
+Though, I'm not sure whether this really matters.
+It seems one could speculatevely assign a pointer and then work on whatever is to be stored at the pointer.
+And, as soon as something more complex than a list is considered, there's not going to be much structure to the pointers in either case.
+
+
+
+
