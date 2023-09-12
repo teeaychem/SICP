@@ -14584,7 +14584,7 @@ It seems one could speculatevely assign a pointer and then work on whatever is t
 And, as soon as something more complex than a list is considered, there's not going to be much structure to the pointers in either case.
 
 
-** IN PROGRESS 5.21
+** 5.21
 
 *** 1. Recursive count leaves
 
@@ -14639,3 +14639,55 @@ Taking ~null?~, ~pair?~ ~car~, and ~cdr~ as primitive, the following register ma
 
 It's stated ~null?~ and ~pair?~ check the type of pointer.
 So, at the moment I don't think there's anything else to do, other than substituting in the alterantive implementations of ~car~ and ~cdr~.
+
+*** 2. Recursive count-leaves with explicit counter:
+
+The procedure:
+
+#+BEGIN_SRC racket
+  (define (count-leaves tree)
+    (define (count-iter tree n)
+      (cond ((null? tree) n)
+	    ((not (pair? tree)) (+ n 1))
+	    (else
+	     (count-iter (cdr tree)
+			 (count-iter (car tree)
+				     n)))))
+    (count-iter tree 0))
+#+END_SRC
+
+The following is a simple variation on the previous.
+The only real difference is ~val~ is set to ~0~ intially, and directly update on the relevant base case.
+This means we don't need to save and restore ~val~ from the stack.
+
+#+BEGIN_SRC racket
+  (assign continue (label cl-done))
+  (assign val (const 0))
+  cl-loop
+  (test (op null?) (reg tree))
+  (branch (label null-case))
+  (test (op pair?) (reg tree))
+  (branch (label ok-case))
+  (goto (label not-pair-case))
+  ok-case
+  ;; set up for car
+  (save continue)
+  (assign continue (label cl-after-car))
+  (save tree) ; save the way the tree looks.
+  (assign tree (op car) (reg tree)) ; focus on car of tree.
+  (goto (label cl-loop)) ; recursive call
+  cl-after-car ; val has leaves on car.
+  (restore tree) ; restore the tree.
+  (assign tree (op cdr) (reg tree)) ; explore cdr of tree.
+  (assign continue (label cl-after-cdr))
+  (goto (label cl-loop))
+  cl-after-cdr
+  (restore continue)
+  (goto (reg continue))
+  null-case
+  (goto (reg continue))
+  not-pair-case
+  (assign val (op +) (reg val) (const 1))
+  (goto (reg continue))
+  cl-done
+#+END_SRC

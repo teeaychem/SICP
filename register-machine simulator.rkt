@@ -1087,3 +1087,54 @@
 (define x (cons (list 1 2) (list 3 4)))
 (run-recursive-count-leaves-machine x)
 (run-recursive-count-leaves-machine (list x x))
+
+
+(define recursive-count-leaves-counter-machine
+  (make-machine
+   (list (list '+ +) (list 'car car) (list 'cdr cdr)
+         (list 'null? null?) (list 'pair? pair?)
+         )
+   '(
+     (assign continue (label cl-done))
+  (assign val (const 0))
+  cl-loop
+  (test (op null?) (reg tree))
+  (branch (label null-case))
+  (test (op pair?) (reg tree))
+  (branch (label ok-case))
+  (goto (label not-pair-case))
+  ok-case
+  ;; set up for car
+  (save continue)
+  (assign continue (label cl-after-car))
+  (save tree) ; save the way the tree looks.
+  (assign tree (op car) (reg tree)) ; focus on car of tree.
+  (goto (label cl-loop)) ; recursive call
+  cl-after-car ; val has leaves on car.
+  (restore tree) ; restore the tree.
+  (assign tree (op cdr) (reg tree)) ; explore cdr of tree.
+  (assign continue (label cl-after-cdr))
+  (goto (label cl-loop))
+  cl-after-cdr
+  (restore continue)
+  (goto (reg continue))
+  null-case
+  (goto (reg continue))
+  not-pair-case
+  (assign val (op +) (reg val) (const 1))
+  (goto (reg continue))
+  cl-done
+     )))
+
+(define (run-recursive-count-leaves-counter-machine tree)
+  (display "Run of recursive-count-leaves-counter-machine-machine:")
+  (newline)
+  (run-wiith-args-and-display-reg-vals recursive-count-leaves-counter-machine (list (cons 'tree tree)) (list 'val))
+)
+
+
+
+(run-recursive-count-leaves-counter-machine (cons (cons 1 2) (cons 3 4)))
+(run-recursive-count-leaves-counter-machine (cons (cons 1 2) 3))
+(run-recursive-count-leaves-counter-machine x)
+(run-recursive-count-leaves-counter-machine (list x x))
