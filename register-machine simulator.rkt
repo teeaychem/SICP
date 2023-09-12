@@ -1132,9 +1132,45 @@
   (run-wiith-args-and-display-reg-vals recursive-count-leaves-counter-machine (list (cons 'tree tree)) (list 'val))
 )
 
-
-
 (run-recursive-count-leaves-counter-machine (cons (cons 1 2) (cons 3 4)))
 (run-recursive-count-leaves-counter-machine (cons (cons 1 2) 3))
 (run-recursive-count-leaves-counter-machine x)
 (run-recursive-count-leaves-counter-machine (list x x))
+
+(define append!-machine
+  (make-machine
+   (list (list 'cdr cdr)
+         (list 'null? null?)
+         (list 'set-cdr! set-cdr!)
+         )
+   '(
+     (test (op null?) (reg l1))
+     (branch (label empty-l1))
+     (save l1)
+     last-pair-loop
+     (save l1)
+     (assign l1 (op cdr) (reg l1))
+     (test (op null?) (reg l1))
+     (branch (label make-append!))
+     (restore l1)
+     (assign l1 (op cdr) (reg l1))
+     (goto (label last-pair-loop))
+     make-append!
+     (restore l1)
+     (assign (reg l1) (op set-cdr!) (reg l1) (reg l2))
+     (restore l1)
+     (goto (label done))
+     empty-l1
+     (assign l1 (reg l2))
+     done
+     )))
+
+(define (run-append!-machine l1 l2)
+  (display "Run of append!-machine-machine:")
+  (newline)
+  (run-wiith-args-and-display-reg-vals append!-machine (list (cons 'l1 l1) (cons 'l2 l2)) (list 'l1))
+)
+
+(run-append!-machine (list 0 1 2) (list 3 4))
+(run-append!-machine (list 0 1 2) (list ))
+(run-append!-machine (list ) (list 3 4))

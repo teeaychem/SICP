@@ -14691,3 +14691,47 @@ This means we don't need to save and restore ~val~ from the stack.
   (goto (reg continue))
   cl-done
 #+END_SRC
+
+** 5.22
+
+Goal is a register machine for ~append!~.
+
+#+BEGIN_SRC racket
+  (define (last-pair l)
+    (if (null? (cdr l))
+	l
+	(last-pair (cdr l))))
+
+  (define (append! x y)
+    (set-cdr! (last-pair x) y))
+#+END_SRC
+
+The following works (and works when ~x~ is empty):
+
+#+BEGIN_SRC racket
+  (test (op null?) (reg l1))
+  (branch (label empty-l1))
+  (save l1)
+  last-pair-loop
+  (save l1)
+  (assign l1 (op cdr) (reg l1))
+  (test (op null?) (reg l1))
+  (branch (label make-append!))
+  (restore l1)
+  (assign l1 (op cdr) (reg l1))
+  (goto (label last-pair-loop))
+  make-append!
+  (restore l1)
+  (assign (reg l1) (op set-cdr!) (reg l1) (reg l2))
+  (restore l1)
+  (goto (label done))
+  empty-l1
+  (assign l1 (reg l2))
+  done
+#+END_SRC
+
+I'm not sure whether an optomisation is possible.
+We save ~l1~ to test whether ~(cdr l1)~ is ~null?~.
+Then, restore everything.
+This is done to preserve the state of the stack.
+But…
