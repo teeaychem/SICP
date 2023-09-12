@@ -18,8 +18,14 @@
 ;; * relative locations stored with instructions.
 ;; * registers are now created when needed.
 ;; * inspector is broken
+;; * ability to inject procedures before instruction specififed by relative offset to label
 
-;; from the past
+;; misc
+
+(define (contains-elem l e)
+  (cond ((null? l) #f)
+        ((equal? (car l) e) #t)
+        (else (contains-elem (cdr l) e))))
 
 (define (tagged-list? exp tag)
   (if (pair? exp)
@@ -238,6 +244,22 @@
                    ((instruction-execution-proc (car insts)))
                    (set! instruction-count (+ instruction-count 1))
                    (execute))))))
+      (define (inject-before-index label offset proc)
+        (define (inject-before-index-helper instruction-pointer label offset)
+          (if (null? instruction-pointer)
+              #f
+              (let ((inst (car instruction-pointer)))
+                (cond ((and (contains-elem (instruction-index-labels inst) label)
+                            (equal? (instruction-index-offset inst) offset))
+                       (display (instruction-execution-proc-head inst))
+                       (let ((ori-inst (instruction-execution-proc inst)))
+                         (set-cdr! (instruction-execution-proc-head inst)
+                                   (lambda ()
+                                     (begin
+                                       (proc)
+                                       (ori-inst))))))
+                      (else (inject-before-index-helper (cdr instruction-pointer) label offset))))))
+        (inject-before-index-helper the-instruction-sequence label offset))
       (define (dispatch message)
         (cond ((eq? message 'start)
                (set-contents! pc the-instruction-sequence)
@@ -266,6 +288,8 @@
                the-instruction-sequence)
               ((eq? message 'instruction-count)
                instruction-count)
+              ((eq? message 'inject-before-index)
+               inject-before-index)
               ((eq? message 'reset-instruction-count)
                (set! instruction-count 0))
               (else (error "Unknown request: MACHINE" message))))
@@ -434,8 +458,18 @@
 (define (instruction-index inst)
   (cdar inst))
 
+(define (instruction-index-labels inst)
+  (cadar inst))
+
+(define (instruction-index-offset inst)
+  (cddar inst))
+
 (define (instruction-text inst)
   (cdadr inst))
+
+(define (instruction-execution-proc-head inst)
+  (caddr inst))
+
 
 (define (instruction-execution-proc inst)
   (cdaddr inst))
@@ -883,6 +917,16 @@
 (display "ran fib-machine")
 (newline)
 ((machine-inspector fib-machine) 'instruction-count)
+((fib-machine 'inject-before-index) 'afterfib-n-1
+                                    1
+                                    (lambda () (begin
+                                                 (newline)
+                                                 (display "well, we're here")
+                                                 (newline)
+                                                 (display "instructions executed so far: ")
+                                                 (display (fib-machine 'instruction-count))
+                                                 (newline)
+                                                 )))
 ((fib-machine 'manual-execute-trace) #t)
 
 ;; machine from ex 5.8 machine

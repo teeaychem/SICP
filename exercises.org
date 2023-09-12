@@ -14369,7 +14369,7 @@ Tracing of registers is kind of already included with the tracing I've implement
 And alternative way to do this is to modify the ~set~ command.
 Internal to the register could be a flag for tracing, and when on print the present contents and the value being set.
 
-** IN PROGRESS 5.19
+** 5.19
 
 *** confused about the question
 
@@ -14496,3 +14496,62 @@ One issue is the inspector is currently broken.
 But, that's for another time.
 
 Also, took the opportunity to rewrite register registration to happen when a register is searched for but not found.
+
+*** injecting a procedure
+
+With instructions tagged, it's now possible to 'inject' a procedure to run before the instruction associated with a label.
+
+Here's the procedure:
+
+#+BEGIN_SRC racket
+  (define (inject-before-index label offset proc)
+    (define (inject-before-index-helper instruction-pointer label offset)
+      (if (null? instruction-pointer)
+	  #f
+	  (let ((inst (car instruction-pointer)))
+	    (cond ((and (contains-elem (instruction-index-labels inst) label)
+			(equal? (instruction-index-offset inst) offset))
+		   (display (instruction-execution-proc-head inst))
+		   (let ((ori-inst (instruction-execution-proc inst)))
+		     (set-cdr! (instruction-execution-proc-head inst)
+			       (lambda ()
+				 (begin
+				   (proc)
+				   (ori-inst))))))
+		  (else (inject-before-index-helper (cdr instruction-pointer) label offset))))))
+    (inject-before-index-helper the-instruction-sequence label offset))
+#+END_SRC
+
+Most of this is finding the right label.
+Then, once this is found, we substitue the procedure for a new procedure which first executes ~proc~ and then executes whatever the original instruction was.
+
+With dispatch updated, we can do things like:
+
+#+BEGIN_SRC racket
+  ((fib-machine 'inject-before-index) 'afterfib-n-1
+				      1
+				      (lambda () (begin
+						   (newline)
+						   (display "instructions executed so far: ")
+						   (display (fib-machine 'instruction-count))
+						   (newline))))
+#+END_SRC
+
+And this printout happens before every call to the instruction at ~(afterfib-n-1 . 1)~.
+
+*** beyond what's written
+
+At the moment, we just inject a procedure.
+
+Ideally, this should unfold to a dispatch procedure which processes various messages.
+
+Once message would be to perform the original instruction (i.e. 'proceed').
+
+And, another would return the original instruction.
+This could then be used to remove the injection, by setting the cdr of the instruction entry back to the original instruction.
+
+None of this is particularly interesting to me.
+
+Liekwise, ~cancel-all-breakpoints~ would easily implemented given a list of all modified labels.
+
+So, this is where things are left for now.
