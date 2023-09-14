@@ -12,7 +12,9 @@
 ;; * ability to inject procedures before instruction specififed by relative offset to label
 ;; * more general way to print inputs and outputs of simulations
 ;; * added the explicit-control evaluator
-;; * support for transforming conds to ifs in the explicit-control evaluator
+;; - support for transforming conds to ifs in the explicit-control evaluator
+;; + main expand-clauses logic written in the explicit-control evaluator
+;; * evaluator updated to require same save/restore regs to help debug.
 
 ;; misc
 
@@ -619,20 +621,44 @@
 ;; other instructions
 
 (define (make-save inst machine stack pc)
-  (let ((reg (get-register
+  (let* ((reg-name (stack-inst-reg-name inst))
+        (reg (get-register
               machine
-              (stack-inst-reg-name inst))))
+              reg-name)))
     (lambda ()
-      (push stack (get-contents reg))
+      (push stack (cons reg-name (get-contents reg)))
       (advance-pc pc))))
 
 (define (make-restore inst machine stack pc)
-  (let ((reg (get-register
+  (let* ((reg-name (stack-inst-reg-name inst))
+        (reg (get-register
               machine
-              (stack-inst-reg-name inst))))
+              reg-name)))
     (lambda ()
-      (set-contents! reg (pop stack))
-      (advance-pc pc))))
+      (let* ((stack-pop (pop stack))
+             (stack-name (car stack-pop))
+             (stack-val (cdr stack-pop)))
+        (cond ((eq? reg-name stack-name)
+               (set-contents! reg stack-val)
+               (advance-pc pc))
+              (else
+               (error "Bad RESTORE request" inst)))))))
+
+;; (define (make-save inst machine stack pc)
+;;   (let ((reg (get-register
+;;               machine
+;;               (stack-inst-reg-name inst))))
+;;     (lambda ()
+;;       (push stack (get-contents reg))
+;;       (advance-pc pc))))
+
+;; (define (make-restore inst machine stack pc)
+;;   (let ((reg (get-register
+;;               machine
+;;               (stack-inst-reg-name inst))))
+;;     (lambda ()
+;;       (set-contents! reg (pop stack))
+;;       (advance-pc pc))))
 
 (define (stack-inst-reg-name stack-instruction)
   (cadr stack-instruction))
@@ -814,14 +840,11 @@
             (if (null? rest)
                 (sequence->exp
                  (cond-actions first))
-                (error "ELSE clause isn't
-                        last: COND->IF"
-                       clauses))
+                (error "ELSE clause isn't last: COND->IF" clauses))
             (make-if (cond-predicate first)
                      (sequence->exp
                       (cond-actions first))
-                     (expand-clauses
-                      rest))))))
+                     (expand-clauses rest))))))
 
 (define primitive-procedures
   (list (list 'car car)
@@ -846,8 +869,7 @@
 (define (primitive-procedure-names)
   (map car primitive-procedures))
 (define (primitive-procedure-objects)
-  (map (lambda (proc)
-         (list 'primitive (cadr proc)))
+  (map (lambda (proc) (list 'primitive (cadr proc)))
        primitive-procedures))
 
 (define (enclosing-environment env) (cdr env))
@@ -993,6 +1015,14 @@
         (list 'no-more-exps? no-more-exps?)
         (list 'cond? cond?)
         (list 'cond->if cond->if)
+        (list 'car car)
+        (list 'cdr cdr)
+        (list 'null? null?)
+        (list 'cond-else-clause? cond-else-clause?)
+        (list 'cond-predicate cond-predicate)
+        (list 'make-if make-if)
+        (list 'sequence->exp sequence->exp)
+        (list 'cond-clauses cond-clauses)
         ))
 
 (define eceval
@@ -1015,18 +1045,15 @@
      (perform (op user-print) (reg val))
      (goto (label read-eval-print-loop))
      unknown-expression-type
-     (assign
-      val
-      (const unknown-expression-type-error))
+     (assign val (const unknown-expression-type-error))
      (goto (label signal-error))
      unknown-procedure-type
 
      ;; clean up stack (from apply-dispatch):
      (restore continue)
-     (assign
-      val
-      (const unknown-procedure-type-error))
+     (assign val (const unknown-procedure-type-error))
      (goto (label signal-error))
+
      signal-error
      (perform (op user-print) (reg val))
      (goto (label read-eval-print-loop))
@@ -1059,17 +1086,20 @@
      ev-self-eval
      (assign val (reg exp))
      (goto (reg continue))
+
      ev-variable
      (assign val
              (op lookup-variable-value)
              (reg exp)
              (reg env))
      (goto (reg continue))
+
      ev-quoted
      (assign val
              (op text-of-quotation)
              (reg exp))
      (goto (reg continue))
+
      ev-lambda
      (assign unev
              (op lambda-parameters)
@@ -1091,9 +1121,9 @@
      (assign unev (op operands) (reg exp))
      (save unev)
      (assign exp (op operator) (reg exp))
-     (assign
-      continue (label ev-appl-did-operator))
+     (assign continue (label ev-appl-did-operator))
      (goto (label eval-dispatch))
+
      ev-appl-did-operator
      (restore unev)             ; the operands
      (restore env)
@@ -1130,6 +1160,7 @@
      (assign continue
              (label ev-appl-accum-last-arg))
      (goto (label eval-dispatch))
+
      ev-appl-accum-last-arg
      (restore argl)
      (assign argl
@@ -1138,18 +1169,21 @@
              (reg argl))
      (restore proc)
      (goto (label apply-dispatch))
+
      apply-dispatch
      (test (op primitive-procedure?) (reg proc))
      (branch (label primitive-apply))
      (test (op compound-procedure?) (reg proc))
      (branch (label compound-apply))
      (goto (label unknown-procedure-type))
+
      primitive-apply
      (assign val (op apply-primitive-procedure)
              (reg proc)
              (reg argl))
      (restore continue)
      (goto (reg continue))
+
      compound-apply
      (assign unev
              (op procedure-parameters)
@@ -1184,6 +1218,7 @@
      (assign continue
              (label ev-sequence-continue))
      (goto (label eval-dispatch))
+
      ev-sequence-continue
      (restore env)
      (restore unev)
@@ -1290,9 +1325,74 @@
 
      ;; cond-if
      cond->if
-     (assign exp (op cond->if) (reg exp))
-     (branch (label eval-dispatch))
+     ;; will use exp, unev, argl.
+     ;; goal is to overwrite exp. save only others
+     (save unev)
+     (save argl)
+     (save continue)
+     (assign unev (op cond-clauses) (reg exp)) ;; work until unev is empty
+     (assign continue (label expand-clauses-over)) ;; once done, restore here.
+     (goto (label expand-clauses-loop)) ;; start the loop
+
+     expand-clauses-loop
+     (test (op null?) (reg unev)) ;; any clauses?
+     (branch (label expand-clauses-no-clauses)) ;; branch
+     (assign argl (op car) (reg unev)) ;; first clause
+     (assign unev (op cdr) (reg unev)) ;; rest of clauses
+     (test (op cond-else-clause?) (reg argl)) ;; do we have an else clause?
+     (branch (label expand-clauses-else)) ;; if so, go to else
+     (goto (label expand-clauses-intermediate)) ;; otherwise intermediate case
+
+     expand-clauses-intermediate
+     (save continue)
+     (save argl) ;; save for later
+     (assign continue (label join-clauses)) ;; update continue to join
+     (goto (label expand-clauses-loop))
+
+     join-clauses ;; make an if and then continue
+     (restore argl)
+     (save val)
+     (assign val (op cdr) (reg argl))
+     (assign val (op sequence->exp) (reg val))
+     (assign argl (op car) (reg argl))
+     (assign exp (op make-if) (reg argl) (reg val) (reg exp))
+     (restore val)
+     (restore continue)
+     (goto (reg continue))
+
+     ;; else clause
+     expand-clauses-else
+     (test (op null?) (reg unev))
+     (branch (label expand-clauses-else-ok)) ;; else is last
+     (goto (label expand-clauses-else-not-last)) ;; else is not last
+     ;; ok to process else
+     expand-clauses-else-ok
+     (assign argl (op cdr) (reg argl)) ;; get the contents
+     (assign exp (op sequence->exp) (reg argl)) ;; return the updated expression
+     (goto (reg continue)) ;; whatever continue is
+     ;; else is not last so signal error
+     expand-clauses-else-not-last
+     (assign val (const "ELSE clause isn't last: COND->IF"))
+     (goto (label signal-error))
+     ;; if no else clause, then exp is #f and done
+     expand-clauses-no-clauses
+     (assign exp (const #f))
+     (goto (reg continue))
+
+     ;; when things are done
+     expand-clauses-over
+     (restore continue)
+     (restore argl)
+     (restore unev)
+     (goto (label eval-dispatch))
      )))
 
 ;; ((eceval 'manual-execute-trace) #t)
 (start eceval)
+
+
+;; So, goal is to make an new expression.
+;; Hence, expression is what we're writing everything to.
+;; Use unev to store expression not evaluated so far.
+;; Use argl to store the first part of the argument.
+

@@ -14757,3 +14757,114 @@ And, somewhere in the controller we add:
 
 Any other derived expression will be added in a parallel manner.
 
+** 5.24
+
+As a first pass, the logic of ~expand-clauses~ is expanded as follows:
+
+#+BEGIN_SRC racket
+  ;; cond-if
+  cond->if
+  ;; will use exp, unev, argl.
+  ;; goal is to overwrite exp. save only others
+  (save unev)
+  (save argl)
+  (save continue)
+  (assign unev (op cond-clauses) (reg exp)) ;; work until unev is empty
+  (assign continue (label expand-clauses-over)) ;; once done, restore here.
+  (goto (label expand-clauses-loop)) ;; start the loop
+
+  expand-clauses-loop
+  (test (op null?) (reg unev)) ;; any clauses?
+  (branch (label expand-clauses-no-clauses)) ;; branch
+  (assign argl (op car) (reg unev)) ;; first clause
+  (assign unev (op cdr) (reg unev)) ;; rest of clauses
+  (test (op cond-else-clause?) (reg argl)) ;; do we have an else clause?
+  (branch (label expand-clauses-else)) ;; if so, go to else
+  (goto (label expand-clauses-intermediate)) ;; otherwise intermediate case
+
+  expand-clauses-intermediate
+  (save continue)
+  (save argl) ;; save for later
+  (assign continue (label join-clauses)) ;; update continue to join
+  (goto (label expand-clauses-loop))
+
+  join-clauses ;; make an if and then continue
+  (restore argl)
+  (save val)
+  (assign val (op cdr) (reg argl))
+  (assign val (op sequence->exp) (reg val))
+  (assign argl (op car) (reg argl))
+  (assign exp (op make-if) (reg argl) (reg val) (reg exp))
+  (restore val)
+  (restore continue)
+  (goto (reg continue))
+
+  ;; else clause
+  expand-clauses-else
+  (test (op null?) (reg unev))
+  (branch (label expand-clauses-else-ok)) ;; else is last
+  (goto (label expand-clauses-else-not-last)) ;; else is not last
+  ;; ok to process else
+  expand-clauses-else-ok
+  (assign argl (op cdr) (reg argl)) ;; get the contents
+  (assign exp (op sequence->exp) (reg argl)) ;; return the updated expression
+  (goto (reg continue)) ;; whatever continue is
+  ;; else is not last so signal error
+  expand-clauses-else-not-last
+  (assign val (const "ELSE clause isn't last: COND->IF"))
+  (goto (label signal-error))
+  ;; if no else clause, then exp is #f and done
+  expand-clauses-no-clauses
+  (assign exp (const #f))
+  (goto (reg continue))
+
+  ;; when things are done
+  expand-clauses-over
+  (restore continue)
+  (restore argl)
+  (restore unev)
+  (goto (label eval-dispatch))
+#+END_SRC
+
+In short, ~argl~ is used to store the (relative) first argument, and after the expression is broken down the contents of ~exp~ is no longer needed and so used to store the new expression, which is paired with what's stored in ~argl~.
+
+To pair, however, we need to break ~argl~ into predicate and consequent.
+To do this, ~val~ is used.
+
+Tested on some inputs, and I don't see any clear issues, but will return and modify things if something turns up.
+
+E.g. the first exercise can be completed fine:
+
+#+BEGIN_SRC racket
+;;; EC-Eval input:
+(define a 3)
+
+;;; EC-Eval value:
+ok
+
+;;; EC-Eval input:
+(define b (+ a 1))
+
+;;; EC-Eval value:
+ok
+
+;;; EC-Eval input:
+(cond ((= a 4) 6) ;; #f
+	((= b 4) (+ 6 7 a)) ;; #t
+	(else 25))
+
+;;; EC-Eval value:
+16
+#+END_SRC
+
+
+Two things helped.
+
+1. The manual evaluator so I could trace where a problem happened.
+I didn't pay attention to ~make-if~ and so didn't split pred and conseq.
+And, this highlighted when there was register read/write confusion.
+(Surprisingly, this only happened once, though there isn't really too much potential for things to go wrong.)
+
+2. (Re-)implementing the constraint on reading and writing only to the same register.
+Mostly for ease of verifying things are okay.
+
