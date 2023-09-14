@@ -12,6 +12,7 @@
 ;; * ability to inject procedures before instruction specififed by relative offset to label
 ;; * more general way to print inputs and outputs of simulations
 ;; * added the explicit-control evaluator
+;; * support for transforming conds to ifs in the explicit-control evaluator
 
 ;; misc
 
@@ -782,6 +783,46 @@
 (define (true? x) (not (eq? x false)))
 (define (false? x) (eq? x false))
 
+(define (make-if predicate
+                 consequent
+                 alternative)
+  (list 'if
+        predicate
+        consequent
+        alternative))
+(define (sequence->exp seq)
+  (cond ((null? seq) seq)
+        ((last-exp? seq) (first-exp seq))
+        (else (make-begin seq))))
+(define (make-begin seq) (cons 'begin seq))
+(define (cond? exp) (tagged-list? exp 'cond))
+(define (cond-clauses exp) (cdr exp))
+(define (cond-else-clause? clause)
+  (eq? (cond-predicate clause) 'else))
+(define (cond-predicate clause)
+  (car clause))
+(define (cond-actions clause)
+  (cdr clause))
+(define (cond->if exp)
+  (expand-clauses (cond-clauses exp)))
+(define (expand-clauses clauses)
+  (if (null? clauses)
+      'false     ; no else clause
+      (let ((first (car clauses))
+            (rest (cdr clauses)))
+        (if (cond-else-clause? first)
+            (if (null? rest)
+                (sequence->exp
+                 (cond-actions first))
+                (error "ELSE clause isn't
+                        last: COND->IF"
+                       clauses))
+            (make-if (cond-predicate first)
+                     (sequence->exp
+                      (cond-actions first))
+                     (expand-clauses
+                      rest))))))
+
 (define primitive-procedures
   (list (list 'car car)
         (list 'cdr cdr)
@@ -950,6 +991,8 @@
         (list 'announce-output announce-output)
         (list 'user-print user-print)
         (list 'no-more-exps? no-more-exps?)
+        (list 'cond? cond?)
+        (list 'cond->if cond->if)
         ))
 
 (define eceval
@@ -1006,6 +1049,8 @@
      (branch (label ev-lambda))
      (test (op begin?) (reg exp))
      (branch (label ev-begin))
+     (test (op cond?) (reg exp))
+     (branch (label cond->if))
      (test (op application?) (reg exp))
      (branch (label ev-application))
      (goto (label unknown-expression-type))
@@ -1129,6 +1174,7 @@
              (reg exp))
      (save continue)
      (goto (label ev-sequence))
+
      ev-sequence
      (assign exp (op first-exp) (reg unev))
      (test (op last-exp?) (reg unev))
@@ -1149,7 +1195,7 @@
      (restore continue)
      (goto (label eval-dispatch))
 
-     ;;tail-recursion
+     ;; non-tail-recursion
      ;; ev-sequence
      ;; (test (op no-more-exps?) (reg unev))
      ;; (branch (label ev-sequence-end))
@@ -1241,6 +1287,11 @@
               (reg env))
      (assign val (const ok))
      (goto (reg continue))
+
+     ;; cond-if
+     cond->if
+     (assign exp (op cond->if) (reg exp))
+     (branch (label eval-dispatch))
      )))
 
 ;; ((eceval 'manual-execute-trace) #t)

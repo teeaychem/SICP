@@ -14735,3 +14735,25 @@ We save ~l1~ to test whether ~(cdr l1)~ is ~null?~.
 Then, restore everything.
 This is done to preserve the state of the stack.
 But…
+
+** 5.23
+
+Given we have ~cond?~ and ~cond->if~, the goal is to test for a ~cond~ expression, translate this to an ~if~ expression, and evaluate the resulting expression.
+
+So, to ~eval-dispatch~ we add:
+
+#+BEGIN_SRC racket
+  (test (op cond?) (reg exp))
+  (branch (label cond->if))
+#+END_SRC
+
+And, somewhere in the controller we add:
+
+#+BEGIN_SRC racket
+  cond->if
+  (assign exp (op cond->if) (reg exp))
+  (branch (label eval-dispatch))
+#+END_SRC
+
+Any other derived expression will be added in a parallel manner.
+
