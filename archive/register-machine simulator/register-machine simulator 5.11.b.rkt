@@ -42,8 +42,7 @@
              (lambda (value)
                (set! contents value)))
             (else
-             (error "Unknown request: REGISTER"
-                    message))))
+             (error "Unknown request: REGISTER" message))))
     dispatch))
 
 (define (get-contents register)
@@ -73,8 +72,7 @@
             ((eq? message 'initialize)
              (initialize))
             (else
-             (error "Unknown request: STACK"
-                    message))))
+             (error "Unknown request: STACK" message))))
     dispatch))
 
 (define (pop stack)
@@ -99,9 +97,7 @@
                  (list 'flag flag))))
       (define (allocate-register name)
         (if (assoc name register-table)
-            (error
-             "Multiply defined register:"
-             name)
+            (error "Multiply defined register:" name)
             (set! register-table
                   (cons
                    (list name (make-register name))
@@ -112,8 +108,7 @@
                (assoc name register-table)))
           (if val
               (cadr val)
-              (error "Unknown register:"
-                     name))))
+              (error "Unknown register:" name))))
       (define (execute)
         (let ((insts (get-contents pc)))
           (if (null? insts)
@@ -148,8 +143,7 @@
               ((eq? message 'stack) stack)
               ((eq? message 'operations)
                the-ops)
-              (else (error "Unknown request: MACHINE"
-                           message))))
+              (else (error "Unknown request: MACHINE" message))))
       dispatch)))
 
 (define (start machine)
@@ -239,8 +233,7 @@
   (let ((val (assoc label-name labels)))
     (if val
         (cdr val)
-        (error "Undefined label: ASSEMBLE"
-               label-name))))
+        (error "Undefined label: ASSEMBLE" label-name))))
 
 ;; generating execution procedures for instructions
 
@@ -263,8 +256,7 @@
         ((eq? (car inst) 'perform)
          (make-perform
           inst machine labels ops pc))
-        (else (error "Unknown instruction type: ASSEMBLE"
-                     inst))))
+        (else (error "Unknown instruction type: ASSEMBLE" inst))))
 
 ;; assign instructions
 
@@ -314,8 +306,7 @@
             (set-contents!
              flag (condition-proc))
             (advance-pc pc)))
-        (error "Bad TEST instruction: ASSEMBLE"
-               inst))))
+        (error "Bad TEST instruction: ASSEMBLE" inst))))
 
 (define (test-condition test-instruction)
   (cdr test-instruction))
@@ -331,8 +322,7 @@
             (if (get-contents flag)
                 (set-contents! pc insts)
                 (advance-pc pc))))
-        (error "Bad BRANCH instruction: ASSEMBLE"
-               inst))))
+        (error "Bad BRANCH instruction: ASSEMBLE" inst))))
 
 (define (branch-dest branch-instruction)
   (cadr branch-instruction))
@@ -355,8 +345,7 @@
                (set-contents!
                 pc
                 (get-contents reg)))))
-          (else (error "Bad GOTO instruction: ASSEMBLE"
-                       inst)))))
+          (else (error "Bad GOTO instruction: ASSEMBLE" inst)))))
 
 (define (goto-dest goto-instruction)
   (cadr goto-instruction))
@@ -385,8 +374,7 @@
                (set-contents! reg stack-val)
                (advance-pc pc))
               (else
-               (error "Bad RESTORE request"
-                       inst)))))))
+               (error "Bad RESTORE request" inst)))))))
 
 (define (stack-inst-reg-name stack-instruction)
   (cadr stack-instruction))
@@ -403,8 +391,7 @@
           (lambda ()
             (action-proc)
             (advance-pc pc)))
-        (error "Bad PERFORM instruction: ASSEMBLE"
-               inst))))
+        (error "Bad PERFORM instruction: ASSEMBLE" inst))))
 
 (define (perform-action inst)
   (cdr inst))
@@ -426,8 +413,7 @@
                    machine
                    (register-exp-reg exp))))
            (lambda () (get-contents r))))
-        (else (error "Unknown expression type: ASSEMBLE"
-                     exp))))
+        (else (error "Unknown expression type: ASSEMBLE" exp))))
 
 (define (register-exp? exp)
   (tagged-list? exp 'reg))
@@ -478,8 +464,7 @@
   (let ((val (assoc symbol operations)))
     (if val
         (cadr val)
-        (error "Unknown operation: ASSEMBLE"
-               symbol))))
+        (error "Unknown operation: ASSEMBLE" symbol))))
 
 ;; end
 
@@ -666,3 +651,8 @@
 ;; (start fib-machie)
 ;; (get-register-contents fib-machie 'val)
 ;; (display "ran fib-machie")
+
+
+;;  (cond ((= 1 1) 1) (else 0))
+
+(cond ((= 1 1) 1) ((= 2 2) 2) (else 0))

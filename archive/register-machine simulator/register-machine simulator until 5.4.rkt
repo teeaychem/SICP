@@ -158,8 +158,7 @@
             ((eq? message 'print-statistics)
              (print-statistics))
             (else
-             (error "Unknown request: STACK"
-                    message))))
+             (error "Unknown request: STACK"  message))))
     dispatch))
 
 (define (pop stack)
