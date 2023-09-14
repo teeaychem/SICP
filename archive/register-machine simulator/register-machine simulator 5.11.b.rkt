@@ -651,8 +651,3 @@
 ;; (start fib-machie)
 ;; (get-register-contents fib-machie 'val)
 ;; (display "ran fib-machie")
-
-
-;;  (cond ((= 1 1) 1) (else 0))
-
-(cond ((= 1 1) 1) ((= 2 2) 2) (else 0))
