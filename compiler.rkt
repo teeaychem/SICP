@@ -564,3 +564,19 @@
            (statements seq2))))
 
 ;; compile collection over
+
+;; (compile
+;;  '(define (factorial n)
+;;     (if (= n 1)
+;;         1
+;;         (* (factorial (- n 1)) n)))
+;;  'val
+;;  'next)
+
+;; (compile
+;;  '(define (factorial-alt n)
+;;     (if (= n 1)
+;;       1
+;;       (* n (factorial-alt (- n 1)))))
+;;  'val
+;;  'next)
