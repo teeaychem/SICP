@@ -15,7 +15,6 @@
 ;; - support for transforming conds to ifs in the explicit-control evaluator
 ;; + main expand-clauses logic written in the explicit-control evaluator
 ;; * evaluator updated to require same save/restore regs to help debug.
-;; * lazy eval
 
 ;; misc
 
@@ -962,9 +961,6 @@
   (setup-environment))
 (define (get-global-environment) the-global-environment)
 
-(define (thunk? exp)
-  (tagged-list? exp 'thunk))
-
 (define eceval-operations
   (list (list 'self-evaluating? self-evaluating?)
         (list 'variable? variable?)
@@ -1026,10 +1022,6 @@
         (list 'make-if make-if)
         (list 'sequence->exp sequence->exp)
         (list 'cond-clauses cond-clauses)
-        (list 'thunk? thunk?)
-        (list 'list list)
-        (list 'cadr cadr)
-        (list 'caddr caddr)
         ))
 
 (define eceval
@@ -1045,7 +1037,7 @@
      (assign exp (op read))
      (assign env (op get-global-environment))
      (assign continue (label print-result))
-     (goto (label actual-value))
+     (goto (label eval-dispatch))
      print-result
      (perform (op announce-output)
               (const ";;; EC-Eval value:"))
@@ -1122,27 +1114,6 @@
              (reg env))
      (goto (reg continue))
 
-     actual-value
-     (save continue)
-     (assign continue (label actual-value-return))
-     (goto (label eval-dispatch))
-
-     actual-value-return
-     (assign exp (reg val))
-     (restore continue)
-     (goto (label force-it))
-
-     ;; thunks
-     force-it
-     (test (op thunk?) (reg exp))
-     (branch (label process-thunk))
-     (goto (reg continue))
-
-     process-thunk
-     (assign env (op caddr) (reg exp))
-     (assign exp (op cadr) (reg exp))
-     (goto (label actual-value))
-
      ;; evaluating procedure applications
      ev-application
      (save continue)
@@ -1151,7 +1122,7 @@
      (save unev)
      (assign exp (op operator) (reg exp))
      (assign continue (label ev-appl-did-operator))
-     (goto (label actual-value))
+     (goto (label eval-dispatch))
 
      ev-appl-did-operator
      (restore unev)             ; the operands
@@ -1162,45 +1133,38 @@
      (branch (label apply-dispatch))
      (save proc)
 
-     ;; working through operands, so if compound op, make thunks
-     (test (op compound-procedure?) (reg proc))
-     (branch (label ev-appl-operand-loop-compound))
-     (goto (label ev-appl-operand-loop-basic))
-
-     ev-appl-operand-loop-basic
+     ev-appl-operand-loop
      (save argl)
      (assign exp
              (op first-operand)
              (reg unev))
-
      (test (op last-operand?) (reg unev))
-     (branch (label ev-appl-last-arg-basic))
+     (branch (label ev-appl-last-arg))
      (save env)
      (save unev)
-
-     ev-appl-did-operator-basic
-     (assign continue (label ev-appl-accumulate-arg-basic))
-     (goto (label actual-value))
-
-     ev-appl-accumulate-arg-basic
-     (restore unev)
-     (restore env)
-     (restore argl)
-     (assign argl
-             (op adjoin-arg)
-             (reg val)
-             (reg argl))
-     (assign unev
-             (op rest-operands)
-             (reg unev))
-     (goto (label ev-appl-operand-loop-basic))
-
-     ev-appl-last-arg-basic
      (assign continue
-             (label ev-appl-accum-last-arg-basic))
-     (goto (label actual-value))
+             (label ev-appl-accumulate-arg))
+     (goto (label eval-dispatch))
 
-     ev-appl-accum-last-arg-basic
+     ev-appl-accumulate-arg
+     (restore unev)
+     (restore env)
+     (restore argl)
+     (assign argl
+             (op adjoin-arg)
+             (reg val)
+             (reg argl))
+     (assign unev
+             (op rest-operands)
+             (reg unev))
+     (goto (label ev-appl-operand-loop))
+
+     ev-appl-last-arg
+     (assign continue
+             (label ev-appl-accum-last-arg))
+     (goto (label eval-dispatch))
+
+     ev-appl-accum-last-arg
      (restore argl)
      (assign argl
              (op adjoin-arg)
@@ -1208,55 +1172,6 @@
              (reg argl))
      (restore proc)
      (goto (label apply-dispatch))
-
-
-     ;; the same loop, but for the compound case
-
-     ev-appl-operand-loop-compound
-     (save argl)
-     (assign exp
-             (op first-operand)
-             (reg unev))
-     (assign exp (op list) (const thunk) (reg exp) (reg env))
-
-     (test (op last-operand?) (reg unev))
-     (branch (label ev-appl-last-arg-compound))
-     (save env)
-     (save unev)
-
-     ev-appl-did-operator-compound
-     (assign continue (label ev-appl-accumulate-arg-compound))
-     ;; (goto (label actual-value))
-
-     ev-appl-accumulate-arg-compound
-     (restore unev)
-     (restore env)
-     (restore argl)
-     (assign argl
-             (op adjoin-arg)
-             (reg exp) ;; exp rather than val as no evaluation
-             (reg argl))
-     (assign unev
-             (op rest-operands)
-             (reg unev))
-     (goto (label ev-appl-operand-loop-compound))
-
-     ev-appl-last-arg-compound
-     ;; (assign continue
-     ;;         (label ev-appl-accum-last-arg-compound))
-     ;; (goto (label eval-dispatch))
-     (goto (label ev-appl-accum-last-arg-compound))
-
-
-     ev-appl-accum-last-arg-compound
-     (restore argl)
-     (assign argl
-             (op adjoin-arg)
-             (reg exp) ;; exp rather than val as no evaluation
-             (reg argl))
-     (restore proc)
-     (goto (label apply-dispatch))
-
 
      apply-dispatch
      (test (op primitive-procedure?) (reg proc))
@@ -1303,7 +1218,8 @@
      (branch (label ev-sequence-last-exp))
      (save unev)
      (save env)
-     (assign continue (label ev-sequence-continue))
+     (assign continue
+             (label ev-sequence-continue))
      (goto (label eval-dispatch))
 
      ev-sequence-continue
@@ -1317,6 +1233,25 @@
      (restore continue)
      (goto (label eval-dispatch))
 
+     ;; non-tail-recursion
+     ;; ev-sequence
+     ;; (test (op no-more-exps?) (reg unev))
+     ;; (branch (label ev-sequence-end))
+     ;; (assign exp (op first-exp) (reg unev))
+     ;; (save unev)
+     ;; (save env)
+     ;; (assign continue
+     ;;         (label ev-sequence-continue))
+     ;; (goto (label eval-dispatch))
+     ;; ev-sequence-continue
+     ;; (restore env)
+     ;; (restore unev)
+     ;; (assign unev (op rest-exps) (reg unev))
+     ;; (goto (label ev-sequence))
+     ;; ev-sequence-end
+     ;; (restore continue)
+     ;; (goto (reg continue))
+     ;; conditionals, assignments, and definitions
      ev-if
      (save exp)   ; save expression for later
      (save env)
@@ -1325,19 +1260,16 @@
      (assign exp (op if-predicate) (reg exp))
 
      ;; evaluate the predicate:
-     (goto (label actual-value))
-
+     (goto (label eval-dispatch))
      ev-if-decide
      (restore continue)
      (restore env)
      (restore exp)
      (test (op true?) (reg val))
      (branch (label ev-if-consequent))
-
      ev-if-alternative
      (assign exp (op if-alternative) (reg exp))
      (goto (label eval-dispatch))
-
      ev-if-consequent
      (assign exp (op if-consequent) (reg exp))
      (goto (label eval-dispatch))
@@ -1369,7 +1301,6 @@
      (assign val
              (const ok))
      (goto (reg continue))
-
      ev-definition
      (assign unev
              (op definition-variable)
@@ -1381,7 +1312,7 @@
      (save env)
      (save continue)
      (assign continue (label ev-definition-1))
-
+ 
      ; evaluate the definition value:
      (goto (label eval-dispatch))
      ev-definition-1
@@ -1456,8 +1387,6 @@
      (restore argl)
      (restore unev)
      (goto (label eval-dispatch))
-
-     end
      )))
 
 ;; ((eceval 'manual-execute-trace) #t)

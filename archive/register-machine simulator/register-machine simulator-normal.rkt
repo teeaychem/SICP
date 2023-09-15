@@ -1141,14 +1141,7 @@
      process-thunk
      (assign env (op caddr) (reg exp))
      (assign exp (op cadr) (reg exp))
-     ;(save continue)
-     ;; (assign continue (label processed-thunk))
      (goto (label actual-value))
-
-     ;; processed-thunk
-     ;; (assign exp (reg val))
-     ;; (restore continue)
-     ;; (goto (label force-it))
 
      ;; evaluating procedure applications
      ev-application
