@@ -113,7 +113,7 @@
 (define (make-label name)
   (string->symbol
    (string-append (symbol->string name)
-    (number->string (new-label-number)))))
+                  (number->string (new-label-number)))))
 
 (define all-regs '(env proc val argl continue))
 
@@ -578,5 +578,16 @@
 ;;     (if (= n 1)
 ;;       1
 ;;       (* n (factorial-alt (- n 1)))))
+;;  'val
+;;  'next)
+
+;; (compile
+;;  '(define (factorial n)
+;;   (define (iter product counter)
+;;     (if (> counter n)
+;;         product
+;;         (iter (* counter product)
+;;               (+ counter 1))))
+;;   (iter 1 1))
 ;;  'val
 ;;  'next)
