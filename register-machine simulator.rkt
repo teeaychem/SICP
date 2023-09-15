@@ -15,7 +15,9 @@
 ;; - support for transforming conds to ifs in the explicit-control evaluator
 ;; + main expand-clauses logic written in the explicit-control evaluator
 ;; * evaluator updated to require same save/restore regs to help debug.
-;; * added print statistics
+;; * commented print statistics
+;; * optimisation to eval by testing for symbol
+
 
 ;; misc
 
@@ -856,6 +858,7 @@
         (list '- -)
         (list '< <)
         (list '> >)
+        (list '/ /)
         (list 'display display)
         (list 'newline newline)
         (list 'not not)
@@ -892,10 +895,13 @@
             ((eq? var (car vars)) (car vals))
             (else (scan (cdr vars) (cdr vals)))))
     (if (eq? env the-empty-environment)
-        (error "Unbound variable" var)
+        env
         (let ((frame (first-frame env)))
           (scan (frame-variables frame) (frame-values frame)))))
   (env-loop env))
+
+(define (unassigned-variable? exp)
+  (eq? exp the-empty-environment))
 
 (define (empty-arglist) '())
 (define (adjoin-arg arg arglist) (append arglist (list arg)))
@@ -912,7 +918,7 @@
              (set-car! vals val))
             (else (scan (cdr vars) (cdr vals)))))
     (if (eq? env the-empty-environment)
-        (error "Unbound variable: SET!" var)
+        env
         (let ((frame (first-frame env)))
           (scan (frame-variables frame) (frame-values frame)))))
   (env-loop env))
@@ -1020,6 +1026,8 @@
         (list 'make-if make-if)
         (list 'sequence->exp sequence->exp)
         (list 'cond-clauses cond-clauses)
+        (list 'unassigned-variable? unassigned-variable?)
+        (list 'symbol? symbol?)
         ))
 
 (define eceval
@@ -1030,17 +1038,15 @@
      ;; running the evaluator
      read-eval-print-loop
      (perform (op initialize-stack))
-     (perform (op prompt-for-input)
-              (const ";;; EC-Eval input:"))
+     (perform (op prompt-for-input) (const ";;; EC-Eval input:"))
      (assign exp (op read))
      (assign env (op get-global-environment))
      (assign continue (label print-result))
      (goto (label eval-dispatch))
 
      print-result
-     (perform (op print-stack-statistics))
-     (perform (op announce-output)
-              (const ";;; EC-Eval value:"))
+     ;; (perform (op print-stack-statistics))
+     (perform (op announce-output) (const ";;; EC-Eval value:"))
      (perform (op user-print) (reg val))
      (goto (label read-eval-print-loop))
 
@@ -1089,7 +1095,13 @@
 
      ev-variable
      (assign val (op lookup-variable-value) (reg exp) (reg env))
+     (test (op unassigned-variable?) (reg val))
+     (branch (label unbound-val-error))
      (goto (reg continue))
+
+     unbound-val-error
+     (assign val (const unbound-variable-error))
+     (goto (label signal-error))
 
      ev-quoted
      (assign val (op text-of-quotation) (reg exp))
@@ -1112,21 +1124,34 @@
      ;; evaluating procedure applications
      ev-application
      (save continue)
-     (save env)
      (assign unev (op operands) (reg exp))
-     (save unev)
      (assign exp (op operator) (reg exp))
-     (assign continue (label ev-appl-did-operator))
+     (test (op symbol?) (reg exp))
+     (branch (label ev-have-symbol-op))
+     (goto (label ev-go-and-eval-op))
+
+     ev-have-symbol-op
+     (assign val (op lookup-variable-value) (reg exp) (reg env))
+     (goto (label ev-appl-did-operator))
+
+     ev-go-and-eval-op
+     (save unev)
+     (save env)
+     (assign continue (label ev-appl-did-operator-dispatch))
      (goto (label eval-dispatch))
 
-     ev-appl-did-operator
+     ev-appl-did-operator-dispatch
      (restore unev)             ; the operands
      (restore env)
+     (goto (label ev-appl-did-operator))
+
+     ev-appl-did-operator
      (assign argl (op empty-arglist))
      (assign proc (reg val))    ; the operator
-     (test (op no-operands?) (reg unev))
+     (test (op no-operands?) (reg unev)) ; optimise when no operands
      (branch (label apply-dispatch))
      (save proc)
+     (goto (label ev-appl-operand-loop))
 
      ev-appl-operand-loop
      (save argl)

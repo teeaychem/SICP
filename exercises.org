@@ -15444,3 +15444,62 @@ A table with some justification.
 |---------------+------------------------------------------------+----------------------------------+-------------------------+----------------------------|
 
 The key thing to think about is the order the various registers are used, and whether or not any subsequent task may make use of the registers.
+
+** 5.32
+
+*** a.
+
+Changes:
+
+#+BEGIN_SRC racket
+  ev-application
+  (save continue)
+  (assign unev (op operands) (reg exp))
+  (assign exp (op operator) (reg exp))
+  (test (op symbol?) (reg exp))
+  (branch (label ev-have-symbol-op))
+  (goto (label ev-go-and-eval-op))
+
+  ev-have-symbol-op
+  (assign val (op lookup-variable-value) (reg exp) (reg env))
+  (goto (label ev-appl-did-operator))
+
+  ev-go-and-eval-op
+  (save unev)
+  (save env)
+  (assign continue (label ev-appl-did-operator-dispatch))
+  (goto (label eval-dispatch))
+
+  ev-appl-did-operator-dispatch
+  (restore unev)             ; the operands
+  (restore env)
+  (goto (label ev-appl-did-operator))
+
+  ev-appl-did-operator
+  (assign argl (op empty-arglist))
+  (assign proc (reg val))    ; the operator
+  (test (op no-operands?) (reg unev)) ; optimise when no operands
+  (branch (label apply-dispatch))
+  (save proc)
+  (goto (label ev-appl-operand-loop))
+#+END_SRC
+
+We still need to save the previous continue.
+And, we still need to break down the expression.
+But, saving ~env~ and ~unev~ is required only if we need to evaluate the operator.
+
+So, we branch on whether the proc is a symbol.
+
+If so, then lookup the symbol.
+
+Else, save ~env~ and ~unev~ and go to ~eval-dispatch~.
+Then, take a detour before returning to ~ev-appl-did-operator~ to restore these.
+
+*** b.
+
+This won't eliminate the advantage of compliation altogether as these optimisations only affect the evaluation of instructions.
+The constructions themselves remain uncompiled.
+
+Unless the idea is to build in pre-compiled code.
+In this case, compilation wouldn't do much better, as the first evaluation effectively functions as a compliation step.
+The problem, however, is that this sort of machine is impossible to build, as it would need to contain compiled code for any procedure.
