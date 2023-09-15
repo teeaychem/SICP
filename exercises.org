@@ -15125,3 +15125,208 @@ Prediction for 60 is 1904.
 Confirmed.
 Preducation for 91 is 2896.
 Also confirmed.
+
+** 5.28
+
+*** factorial
+
+|---+--------------+---------------|
+| n | total-pushes | maximum-depth |
+| 1 |           70 |            17 |
+| 2 |          107 |            20 |
+| 3 |          144 |            23 |
+| 4 |          181 |            26 |
+| 5 |          218 |            29 |
+| 6 |          255 |            32 |
+|---+--------------+---------------|
+
+*** recursive
+
+|---+--------------+---------------|
+| n | total-pushes | maximum-depth |
+| 1 |           18 |            11 |
+| 2 |           52 |            19 |
+| 3 |           86 |            27 |
+| 4 |          120 |            35 |
+| 5 |          154 |            43 |
+| 6 |          188 |            51 |
+|---+--------------+---------------|
+
+*** another variation
+
+#+BEGIN_SRC racket
+  (define (factorial n)
+    (define counter 1)
+    (define product 1)
+      (define (loop)
+	(if (> counter n)
+	    product
+	    (begin
+	      (set! product (* counter product))
+	      (set! counter (+ counter 1))
+	      (loop))))
+      (loop))
+#+END_SRC
+
+|---+--------------+---------------|
+| n | total-pushes | maximum-depth |
+| 1 |           83 |            20 |
+| 2 |          128 |            26 |
+| 3 |          173 |            32 |
+| 4 |          218 |            38 |
+| 5 |          263 |            44 |
+| 6 |          308 |            50 |
+|---+--------------+---------------|
+
+So, this is worse than the factorial given in terms of depth, but still better than recursive.
+
+It seems tail-recursion is important.
+In particular, because there's no way to repeatedly do something without calling a procedure.
+
+** 5.29
+
+Some initial values:
+
+|---+--------------+---------------|
+| n | total-pushes | maximum-depth |
+| 1 |           16 |             8 |
+| 2 |           72 |            13 |
+| 3 |          128 |            18 |
+| 4 |          240 |            23 |
+| 5 |          408 |            28 |
+| 6 |          688 |            33 |
+|---+--------------+---------------|
+
+*** 1.
+
+Maximum depth is the same as recursive factorial.
+
+#+BEGIN_SRC racket
+  (define (maximum-depth n) (+ 8 (* 5 (- n 1))))
+#+END_SRC
+
+*** 2.
+
+So, total pushes is a variation on the fib sequence.
+
+#+BEGIN_SRC racket
+  (define (total-pushes n)
+    (cond ((= n 0) 16)
+	  ((= n 1) 16)
+	  (else
+	   (+ 40 (total-pushes (- n 1)) (total-pushes (- n 2))))))
+
+  (total-pushes 1)
+  (total-pushes 2)
+  (total-pushes 3)
+  (total-pushes 4)
+  (total-pushes 5)
+  (total-pushes 6)
+#+END_SRC
+
+#+RESULTS:
+: 16
+: 72
+: 128
+: 240
+: 408
+: 688
+
+So, we multiply the fibonacci sequence by 16, and the ratio also increases by 40 each time.
+
+#+BEGIN_SRC racket
+  (define (fib n)
+  (if (< n 2)
+      n
+      (+ (fib (- n 1)) (fib (- n 2)))))
+
+  (define (total-pushes n)
+    (* (+ 40 16) (fib (+ n 1))))
+
+  (total-pushes 1)
+  (total-pushes 2)
+  (total-pushes 3)
+  (total-pushes 4)
+  (total-pushes 5)
+  (total-pushes 6)
+#+END_SRC
+
+#+RESULTS:
+: 56
+: 112
+: 168
+: 280
+: 448
+: 728
+
+But, this is 40 too much…
+
+#+BEGIN_SRC racket
+  (define (fib n)
+  (if (< n 2)
+      n
+      (+ (fib (- n 1)) (fib (- n 2)))))
+
+  (define (total-pushes n)
+    (- (* (+ 40 16) (fib (+ n 1))) 40))
+
+  (total-pushes 1)
+  (total-pushes 2)
+  (total-pushes 3)
+  (total-pushes 4)
+  (total-pushes 5)
+  (total-pushes 6)
+#+END_SRC
+
+#+RESULTS:
+: 16
+: 16
+: 72
+: 128
+: 240
+: 408
+: 688
+
+This looks right…
+
+Right, of course, we want to offset the 40 by one, as this isn't applied to the first (two) element(s) in the sequence.
+
+To prove, go by induction.
+We've already covered the base case.
+
+Our goal is to show:
+
+#+BEGIN_SRC racket
+  (- (* 56 (fib (+ n 1))) 40) = (+ 40 (total-pushes (- n 1)) (total-pushes (- n 2))
+#+END_SRC
+
+This works out by a bit of substituation, granting the induction hypothesis.
+The key observation is going from the fourth to fifth step.
+~(+ (fib n) (fib (- n 1)))~ just is ~(fib (+ n 1))~.
+
+#+BEGIN_SRC racket
+  (- (* 56 (fib (+ n 1))) 40) = (+ 40
+				   (- (* 56 (fib n)) 40)
+				   (- (* 56 (fib (- n 1))) 40)
+                              = (+ 40
+				   (- (+(* 56 (fib n))
+					(* 56 (fib (- n 1)))) 80))
+			      = (+ 40
+				   (- (* 56 (+ (fib n) (fib (- n 1))))
+				      80))
+
+			      = (+ 40
+				   (- (* 56 (fib (+ n 1)))
+				      80))
+
+			      = (- (* 56 (fib (+ n 1))) 40))
+#+END_SRC
+
+This is really cool.
+In our case, ~a = 16~ and ~b = 40~, but this induction step doesn't rely on the specific values.
+
+Hence, this is a general observation about formulas which capture fibonacci sequences with an initial offset ~a~ and constant addition ~b~:
+
+#+BEGIN_SRC racket
+  (mod-fib n) = (- (* (+ a b) (fib (+ n 1))) b)
+#+END_SRC
