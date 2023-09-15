@@ -15,6 +15,7 @@
 ;; - support for transforming conds to ifs in the explicit-control evaluator
 ;; + main expand-clauses logic written in the explicit-control evaluator
 ;; * evaluator updated to require same save/restore regs to help debug.
+;; * added print statistics
 
 ;; misc
 
@@ -147,8 +148,7 @@
       'done)
     (define (print-statistics)
       (display (list 'total-pushes '= number-pushes
-                     'maximum-depth '= max-depth
-                     'current-depth '= current-depth))
+                     'maximum-depth '= max-depth))
       (newline))
     (define (dispatch message)
       (cond ((eq? message 'push) push)
@@ -158,8 +158,7 @@
             ((eq? message 'print-statistics)
              (print-statistics))
             (else
-             (error "Unknown request: STACK"
-                    message))))
+             (error "Unknown request: STACK" message))))
     dispatch))
 
 (define (pop stack)
@@ -373,8 +372,7 @@
              input-inst-seq))))
         ((eq? message 'instruction-count)
          (for-each display (list (machine 'instruction-count) " instructions executed"))
-         (newline))
-        ))
+         (newline))))
     dispatch))
 
 ;; the assembler
@@ -1038,7 +1036,9 @@
      (assign env (op get-global-environment))
      (assign continue (label print-result))
      (goto (label eval-dispatch))
+
      print-result
+     (perform (op print-stack-statistics))
      (perform (op announce-output)
               (const ";;; EC-Eval value:"))
      (perform (op user-print) (reg val))
@@ -1088,16 +1088,11 @@
      (goto (reg continue))
 
      ev-variable
-     (assign val
-             (op lookup-variable-value)
-             (reg exp)
-             (reg env))
+     (assign val (op lookup-variable-value) (reg exp) (reg env))
      (goto (reg continue))
 
      ev-quoted
-     (assign val
-             (op text-of-quotation)
-             (reg exp))
+     (assign val (op text-of-quotation) (reg exp))
      (goto (reg continue))
 
      ev-lambda
@@ -1135,15 +1130,12 @@
 
      ev-appl-operand-loop
      (save argl)
-     (assign exp
-             (op first-operand)
-             (reg unev))
+     (assign exp (op first-operand) (reg unev))
      (test (op last-operand?) (reg unev))
      (branch (label ev-appl-last-arg))
      (save env)
      (save unev)
-     (assign continue
-             (label ev-appl-accumulate-arg))
+     (assign continue (label ev-appl-accumulate-arg))
      (goto (label eval-dispatch))
 
      ev-appl-accumulate-arg
@@ -1160,8 +1152,7 @@
      (goto (label ev-appl-operand-loop))
 
      ev-appl-last-arg
-     (assign continue
-             (label ev-appl-accum-last-arg))
+     (assign continue (label ev-appl-accum-last-arg))
      (goto (label eval-dispatch))
 
      ev-appl-accum-last-arg
@@ -1212,6 +1203,8 @@
      (save continue)
      (goto (label ev-sequence))
 
+     ;; tail recursive
+
      ev-sequence
      (assign exp (op first-exp) (reg unev))
      (test (op last-exp?) (reg unev))
@@ -1234,15 +1227,16 @@
      (goto (label eval-dispatch))
 
      ;; non-tail-recursion
+
      ;; ev-sequence
      ;; (test (op no-more-exps?) (reg unev))
      ;; (branch (label ev-sequence-end))
      ;; (assign exp (op first-exp) (reg unev))
      ;; (save unev)
      ;; (save env)
-     ;; (assign continue
-     ;;         (label ev-sequence-continue))
+     ;; (assign continue (label ev-sequence-continue))
      ;; (goto (label eval-dispatch))
+
      ;; ev-sequence-continue
      ;; (restore env)
      ;; (restore unev)
@@ -1251,6 +1245,7 @@
      ;; ev-sequence-end
      ;; (restore continue)
      ;; (goto (reg continue))
+
      ;; conditionals, assignments, and definitions
      ev-if
      (save exp)   ; save expression for later
@@ -1258,18 +1253,20 @@
      (save continue)
      (assign continue (label ev-if-decide))
      (assign exp (op if-predicate) (reg exp))
-
      ;; evaluate the predicate:
      (goto (label eval-dispatch))
+
      ev-if-decide
      (restore continue)
      (restore env)
      (restore exp)
      (test (op true?) (reg val))
      (branch (label ev-if-consequent))
+
      ev-if-alternative
      (assign exp (op if-alternative) (reg exp))
      (goto (label eval-dispatch))
+
      ev-if-consequent
      (assign exp (op if-consequent) (reg exp))
      (goto (label eval-dispatch))
@@ -1312,9 +1309,10 @@
      (save env)
      (save continue)
      (assign continue (label ev-definition-1))
- 
+
      ; evaluate the definition value:
      (goto (label eval-dispatch))
+
      ev-definition-1
      (restore continue)
      (restore env)
@@ -1363,20 +1361,24 @@
      (goto (reg continue))
 
      ;; else clause
+
      expand-clauses-else
      (test (op null?) (reg unev))
      (branch (label expand-clauses-else-ok)) ;; else is last
      (goto (label expand-clauses-else-not-last)) ;; else is not last
      ;; ok to process else
+
      expand-clauses-else-ok
      (assign argl (op cdr) (reg argl)) ;; get the contents
      (assign exp (op sequence->exp) (reg argl)) ;; return the updated expression
      (goto (reg continue)) ;; whatever continue is
      ;; else is not last so signal error
+
      expand-clauses-else-not-last
      (assign val (const "ELSE clause isn't last: COND->IF"))
      (goto (label signal-error))
      ;; if no else clause, then exp is #f and done
+
      expand-clauses-no-clauses
      (assign exp (const #f))
      (goto (reg continue))
@@ -1387,7 +1389,7 @@
      (restore argl)
      (restore unev)
      (goto (label eval-dispatch))
-     )))
+  )))
 
 ;; ((eceval 'manual-execute-trace) #t)
 (start eceval)
