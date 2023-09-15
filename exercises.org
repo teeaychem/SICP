@@ -15415,3 +15415,32 @@ Perhaps the idea is to rewrite the lookup inside the machine?
 Figuring out how to test for certain errors seems interesting.
 But, on the whole I don't think there's much to be gained from this exercise.
 Moving things inside the machine would be nice assmebly practice, but I've got other plans for this.
+
+** 5.31
+
+A table with some justification.
+
+|---------------+------------------------------------------------+----------------------------------+-------------------------+----------------------------|
+| procedure     | env operator                                   | env operand                      | argl operand            | proc around op sequence    |
+|---------------+------------------------------------------------+----------------------------------+-------------------------+----------------------------|
+| (f 'x 'y)     | No need.                                       | No need.                         | No need.                | No need.                   |
+|               | No change is made to the environment           | The arguments are characters     | No other argument lists | No other operators         |
+|---------------+------------------------------------------------+----------------------------------+-------------------------+----------------------------|
+| ((f) 'x 'y)   | No need.                                       | No need.                         | No need.                | No need.                   |
+|               | f can do whatever (take us to env where        | The arguments are characters     | No other argument lists | No other operators         |
+|               | defined) but we're only looking up chars after |                                  |                         |                            |
+|---------------+------------------------------------------------+----------------------------------+-------------------------+----------------------------|
+| (f (g 'x) y)  | No need.                                       | Need.                            | Need.                   | Need.                      |
+|               | Just looking up lambda in current env          | Don't know what y is             | Will eval (g 'x)        | g is a different proc to f |
+|               |                                                | It need the original env after   | And, y may be anything  |                            |
+|               |                                                | any changes made by (g 'x)       |                         |                            |
+|---------------+------------------------------------------------+----------------------------------+-------------------------+----------------------------|
+| (f (g 'x) 'y) | No need.                                       | No need.                         | Need.                   | Need.                      |
+|               | Just looking up lambda in current env          | g could require part of the env  | Will eval (g 'x)        | g is a different proc to f |
+|               |                                                | is overwritten, etc.             |                         |                            |
+|               |                                                | However, what remains is only    |                         |                            |
+|               |                                                | to lookup 'y so any overwrite is |                         |                            |
+|               |                                                | ok.                              |                         |                            |
+|---------------+------------------------------------------------+----------------------------------+-------------------------+----------------------------|
+
+The key thing to think about is the order the various registers are used, and whether or not any subsequent task may make use of the registers.
