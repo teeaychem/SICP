@@ -5084,7 +5084,7 @@ To do this we filter the list of lists by equality of the first element of the f
 Here are some tests:
 
 #+BEGIN_SRC racket
-   <<def:first-match-lists>>
+  <<def:first-match-lists>>
 
   (first-match-lists (list (list 'a 'b 'c 'd) (list 'a 'b 'c 'd)))
 
@@ -15330,3 +15330,88 @@ Hence, this is a general observation about formulas which capture fibonacci sequ
 #+BEGIN_SRC racket
   (mod-fib n) = (- (* (+ a b) (fib (+ n 1))) b)
 #+END_SRC
+
+** 5.30
+
+*** 1.
+
+So, a key place is ~lookup-variable-value~.
+Instead of going directly to whatever is in ~(reg continue)~, we branch to ~unbound-val-error~ if ~unassigned-variable?~ returns true.
+
+#+BEGIN_SRC racket
+  ev-variable
+  (assign val (op lookup-variable-value) (reg exp) (reg env))
+  (test (op unassigned-variable?) (reg val))
+  (branch (label unbound-val-error))
+  (goto (reg continue))
+
+  unbound-val-error
+  (assign val (const unbound-variable-error))
+  (goto (label signal-error))
+#+END_SRC
+
+~unassigned-variable?~ looks to see if the variable points to the empty environment.
+
+#+BEGIN_SRC racket
+  (define (unassigned-variable? exp)
+    (eq? exp the-empty-environment))
+#+END_SRC
+
+And, ~lookup-variable-value~ is modified to return the empty environment, rather than an error.
+
+#+BEGIN_SRC racket
+  (define (lookup-variable-value var env)
+  (define (env-loop env)
+    (define (scan vars vals)
+      (cond ((null? vars) (env-loop (enclosing-environment env)))
+            ((eq? var (car vars)) (car vals))
+            (else (scan (cdr vars) (cdr vals)))))
+    (if (eq? env the-empty-environment)
+        env ;; no error signaled here, just returning empty env
+        (let ((frame (first-frame env)))
+          (scan (frame-variables frame) (frame-values frame)))))
+  (env-loop env))
+#+END_SRC
+
+The same holds for ~set-variable-value!~.
+Where, instead of returning an unbound variable error we return the empty env.
+
+At this point, I'm not really sure what else to do.
+
+It will be work to ensure that there is no other place where a variable is read.
+At the moment, this is the only place where it makes sense for a variable to be read.
+But, something could be hiding.
+
+Still, various tests don't show anything.
+
+~(* n 1)~ fails.
+~(define n 1)~ then ~(define n m)~ and ~(set! n m)~ fail.
+~(define b (+ c 1))~ fails.
+
+Though, something that did come up was with ~try~:
+
+#+BEGIN_SRC racket
+  (define (try a b)
+    (if (= a 0) 1 b))
+#+END_SRC
+
+~(try 0 (/ 1 0))~ returned the unbound variable error rather than failing.
+And, the problem was ~/~ wasn't listed as a primitive procedure.
+
+One question is whether this was the right error, before the primitive procedure was added.
+In a sense, this seems right.
+Any non-primitive procedure is really just a variable pointing to a lambda expression.
+But, at the same time it's not clear this error is helpful.
+
+Though, the regualr error checker doesn't distinguish between ~(n 1)~ and ~(+ n 1)~ when ~n~ is unassigned.
+So, maybe this is fine.
+
+So, I'm at a loss with this exercise.
+It doesn't seem to be lots of work, but I'm not sure what I'm missing…
+Perhaps the idea is to rewrite the lookup inside the machine?
+
+*** TODO b.
+
+Figuring out how to test for certain errors seems interesting.
+But, on the whole I don't think there's much to be gained from this exercise.
+Moving things inside the machine would be nice assmebly practice, but I've got other plans for this.
