@@ -15034,3 +15034,94 @@ In hindsight, this isn't too much work, but figuring out the way everything work
   (goto (label apply-dispatch))
 
 #+END_SRC
+
+** 5.26
+
+|---+--------------+---------------|
+| n | total-pushes | maximum-depth |
+| 1 |           64 |            10 |
+| 2 |           99 |            10 |
+| 3 |          134 |            10 |
+| 4 |          169 |            10 |
+| 5 |          204 |            10 |
+| 6 |          239 |            10 |
+|---+--------------+---------------|
+
+*** 1.
+
+The maximum depth is a constant 10.
+
+*** 2.
+
+#+BEGIN_SRC racket
+  (define (total-pushes n)
+    (+ 29 (* 35 n)))
+
+  (total-pushes 1)
+  (total-pushes 2)
+  (total-pushes 3)
+#+END_SRC
+
+#+RESULTS:
+: 64
+: 99
+: 134
+
+** 5.27
+
+These are the results I get for small n.
+
+|---+--------------+---------------|
+| n | total-pushes | maximum-depth |
+| 1 |           16 |             8 |
+| 2 |           48 |            13 |
+| 3 |           80 |            18 |
+| 4 |          112 |            23 |
+| 5 |          144 |            28 |
+| 6 |          176 |            33 |
+|---+--------------+---------------|
+
+#+BEGIN_SRC racket
+  (define (maximum-depth n) (+ 8 (* 5 (- n 1))))
+
+  (maximum-depth 1)
+  (maximum-depth 2)
+  (maximum-depth 3)
+  (maximum-depth 6)
+#+END_SRC
+
+#+RESULTS:
+: 8
+: 13
+: 18
+: 33
+
+Predication, maximum-depth of 60 is 303.
+Confirmed.
+
+|---+--------------+-----------------------+---------------|
+| n | total-pushes | pushes-alt-mult-of-16 | maximum-depth |
+| 1 |           16 |                     1 |             8 |
+| 2 |           48 |                     3 |            13 |
+| 3 |           80 |                     5 |            18 |
+| 4 |          112 |                     7 |            23 |
+| 5 |          144 |                     9 |            28 |
+| 6 |          176 |                    11 |            33 |
+|---+--------------+-----------------------+---------------|
+
+#+BEGIN_SRC racket
+  (define (total-pushes n)
+    (* 16 (- (* n 2) 1)))
+
+  (total-pushes 1)
+  (total-pushes 3)
+#+END_SRC
+
+#+RESULTS:
+: 16
+: 80
+
+Prediction for 60 is 1904.
+Confirmed.
+Preducation for 91 is 2896.
+Also confirmed.
