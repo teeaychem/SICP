@@ -16140,3 +16140,298 @@ Things work fine!
     (assign val (const ok))
     (goto (reg continue))))
 #+END_SRC
+
+** 5.35
+
+The compiled code is equivalent to that obtained from:
+
+#+BEGIN_SRC racket
+  (compile
+ '(define (f x)
+    (+ x (g (+ x 2))))
+ 'val
+ 'next)
+#+END_SRC
+
+Below are the two sequences.
+Then, a quick diff tool is defined and we see only the label names differ.
+
+(Process of figuring this out amounted to tracing through the procedures looked up and then a little trial and error to get the order right.)
+
+*** original
+
+#+NAME: def:asse-a
+#+BEGIN_SRC racket
+  (define asse-a
+    '((assign val (op make-compiled-procedure) 
+	      (label entry16) 
+	      (reg env))
+    (goto (label after-lambda15))
+  entry16
+    (assign env (op compiled-procedure-env)
+		(reg proc))
+    (assign env (op extend-environment) 
+		(const (x)) 
+		(reg argl) 
+		(reg env))
+    (assign proc (op lookup-variable-value) 
+		 (const +) 
+		 (reg env))
+    (save continue) (save proc) (save env)
+    (assign proc (op lookup-variable-value) 
+		 (const g) 
+		 (reg env))
+    (save proc)
+    (assign proc (op lookup-variable-value) 
+		 (const +) 
+		 (reg env))
+    (assign val (const 2))
+    (assign argl (op list) (reg val))
+    (assign val (op lookup-variable-value)
+		(const x) 
+		(reg env))
+    (assign argl (op cons)
+		 (reg val)
+		 (reg argl))
+    (test (op primitive-procedure?)
+	  (reg proc))
+    (branch (label primitive-branch19))
+  compiled-branch18
+    (assign continue (label after-call17))
+    (assign val
+	    (op compiled-procedure-entry)
+	    (reg proc))
+    (goto (reg val))
+  primitive-branch19
+    (assign val
+	    (op apply-primitive-procedure)
+	    (reg proc) 
+	    (reg argl))
+  after-call17
+    (assign argl (op list) (reg val))
+    (restore proc)
+    (test (op primitive-procedure?)
+	  (reg proc))
+    (branch (label primitive-branch22))
+  compiled-branch21
+    (assign continue (label after-call20))
+    (assign val
+	    (op compiled-procedure-entry)
+	    (reg proc))
+    (goto (reg val))
+  primitive-branch22
+    (assign val 
+	    (op apply-primitive-procedure) 
+	    (reg proc) 
+	    (reg argl))
+  after-call20
+    (assign argl (op list) (reg val))
+    (restore env)
+    (assign val
+	    (op lookup-variable-value) 
+	    (const x) 
+	    (reg env))
+    (assign argl
+	    (op cons)
+	    (reg val)
+	    (reg argl))
+    (restore proc)
+    (restore continue)
+    (test (op primitive-procedure?)
+	  (reg proc))
+    (branch (label primitive-branch25))
+  compiled-branch24
+    (assign val (op compiled-procedure-entry)
+		(reg proc))
+    (goto (reg val))
+  primitive-branch25
+    (assign val 
+	    (op apply-primitive-procedure)
+	    (reg proc) 
+	    (reg argl))
+    (goto (reg continue))
+  after-call23
+  after-lambda15
+    (perform (op define-variable!) 
+	     (const f) 
+	     (reg val) 
+	     (reg env))
+    (assign val (const ok))))
+#+END_SRC
+
+*** complied
+
+#+NAME: def:asse-b
+#+BEGIN_SRC racket
+  (define asse-b
+    '((assign val (op make-compiled-procedure) (label entry1) (reg env))
+   (goto (label after-lambda2))
+   entry1
+   (assign env (op compiled-procedure-env) (reg proc))
+   (assign env (op extend-environment) (const (x)) (reg argl) (reg env))
+   (assign proc (op lookup-variable-value) (const +) (reg env))
+   (save continue)
+  (save proc)
+  (save env)
+  (assign proc (op lookup-variable-value) (const g) (reg env))
+  (save proc)
+  (assign proc (op lookup-variable-value) (const +) (reg env))
+  (assign val (const 2))
+  (assign argl (op list) (reg val))
+  (assign val (op lookup-variable-value) (const x) (reg env))
+  (assign argl (op cons) (reg val) (reg argl))
+  (test (op primitive-procedure?) (reg proc))
+  (branch (label primitive-branch3))
+  compiled-branch4
+  (assign continue (label after-call5))
+  (assign val (op compiled-procedure-entry) (reg proc))
+  (goto (reg val))
+  primitive-branch3
+  (assign val (op apply-primitive-procedure) (reg proc) (reg argl))
+  after-call5
+  (assign argl (op list) (reg val))
+  (restore proc)
+  (test (op primitive-procedure?) (reg proc))
+  (branch (label primitive-branch6))
+  compiled-branch7
+  (assign continue (label after-call8))
+  (assign val (op compiled-procedure-entry) (reg proc))
+  (goto (reg val))
+  primitive-branch6
+  (assign val (op apply-primitive-procedure) (reg proc) (reg argl))
+  after-call8
+  (assign argl (op list) (reg val))
+  (restore env)
+  (assign val (op lookup-variable-value) (const x) (reg env))
+  (assign argl (op cons) (reg val) (reg argl))
+  (restore proc)
+  (restore continue)
+  (test (op primitive-procedure?) (reg proc))
+  (branch (label primitive-branch9))
+  compiled-branch10
+  (assign val (op compiled-procedure-entry) (reg proc))
+  (goto (reg val))
+  primitive-branch9
+  (assign val (op apply-primitive-procedure) (reg proc) (reg argl))
+  (goto (reg continue))
+  after-call11
+  after-lambda2
+  (perform (op define-variable!) (const f) (reg val) (reg env))
+  (assign val (const ok))))
+#+END_SRC
+
+*** diff
+
+This procedure works through two lists, and prints the ~car~ of both when not equal.
+
+#+NAME: def:diff
+#+BEGIN_SRC racket
+  (define (diff a b)
+    (cond
+      ((and (null? a) (null? b))
+       (display "finish!"))
+      ((and (null? a) (not (null? b)))
+	   (display "list b is longer than list a"))
+	  ((and (null? b) (not (null? a)))
+	   (display "list a is longer than list b"))
+	  ((not (equal? (car a) (car b)))
+	   (begin
+	     (display "Difference found!")
+	     (newline)
+	     (display "left  reads: ")
+	     (display (car a))
+	     (newline)
+	     (display "right reads: ")
+	     (display (car b))
+	     (newline)
+	     (newline)
+	     (diff (cdr a) (cdr b))))
+	  (else (diff (cdr a) (cdr b)))))
+#+END_SRC
+
+Now, to test:
+
+#+BEGIN_SRC racket
+  <<def:diff>>
+  <<def:asse-a>>
+  <<def:asse-b>>
+  (diff asse-a asse-b)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+Difference found!
+left  reads: (assign val (op make-compiled-procedure) (label entry16) (reg env))
+right reads: (assign val (op make-compiled-procedure) (label entry1) (reg env))
+
+Difference found!
+left  reads: (goto (label after-lambda15))
+right reads: (goto (label after-lambda2))
+
+Difference found!
+left  reads: entry16
+right reads: entry1
+
+Difference found!
+left  reads: (branch (label primitive-branch19))
+right reads: (branch (label primitive-branch3))
+
+Difference found!
+left  reads: compiled-branch18
+right reads: compiled-branch4
+
+Difference found!
+left  reads: (assign continue (label after-call17))
+right reads: (assign continue (label after-call5))
+
+Difference found!
+left  reads: primitive-branch19
+right reads: primitive-branch3
+
+Difference found!
+left  reads: after-call17
+right reads: after-call5
+
+Difference found!
+left  reads: (branch (label primitive-branch22))
+right reads: (branch (label primitive-branch6))
+
+Difference found!
+left  reads: compiled-branch21
+right reads: compiled-branch7
+
+Difference found!
+left  reads: (assign continue (label after-call20))
+right reads: (assign continue (label after-call8))
+
+Difference found!
+left  reads: primitive-branch22
+right reads: primitive-branch6
+
+Difference found!
+left  reads: after-call20
+right reads: after-call8
+
+Difference found!
+left  reads: (branch (label primitive-branch25))
+right reads: (branch (label primitive-branch9))
+
+Difference found!
+left  reads: compiled-branch24
+right reads: compiled-branch10
+
+Difference found!
+left  reads: primitive-branch25
+right reads: primitive-branch9
+
+Difference found!
+left  reads: after-call23
+right reads: after-call11
+
+Difference found!
+left  reads: after-lambda15
+right reads: after-lambda2
+
+finish!
+#+end_example
+
