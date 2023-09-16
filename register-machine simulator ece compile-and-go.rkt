@@ -1889,10 +1889,8 @@
   (if (null? regs)
       (append-instruction-sequences seq1 seq2)
       (let ((first-reg (car regs)))
-        (if (and
-             (needs-register? seq2 first-reg)
-             (modifies-register? seq1
-                                 first-reg))
+        (if (and (needs-register? seq2 first-reg)     ;; to always save/restore comment here
+                 (modifies-register? seq1 first-reg)) ;; to remove the if check
             (preserving
              (cdr regs)
              (make-instruction-sequence
@@ -1902,14 +1900,16 @@
               (list-difference
                (registers-modified seq1)
                (list first-reg))
-              (append `((save ,first-reg))
-                      (statements seq1)
-                      `((restore ,first-reg))))
+              (append
+               `((save ,first-reg))
+               (statements seq1)
+               `((restore ,first-reg))))
              seq2)
-            (preserving
-             (cdr regs)
-             seq1
-             seq2)))))
+            (preserving                              ;; and here to remove the alternative
+             (cdr regs)                              ;; that also includes
+             seq1                                    ;; these
+             seq2))                                  ;; few lines
+        )))
 
 (define (tack-on-instruction-sequence seq body-seq)
   (make-instruction-sequence
