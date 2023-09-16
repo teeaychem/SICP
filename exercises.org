@@ -16435,3 +16435,89 @@ right reads: after-lambda2
 finish!
 #+end_example
 
+** 5.36
+
+Right to left.
+
+To change this we look at where the argument list is constructed.
+
+Specifically, ~construct-arglist~ and by extension ~code-to-get-rest-args~.
+
+Instead of reversing the operand codes, we work through these as given.
+
+#+BEGIN_SRC racket
+  (define (construct-arglist operand-codes)
+    ;; (let ((operand-codes (reverse operand-codes)))
+    (let ((operand-codes operand-codes))
+      (if (null? operand-codes)
+	  (make-instruction-sequence
+	   '()
+	   '(argl)
+	   '((assign argl (const ()))))
+	  (let ((code-to-get-last-arg
+		 (append-instruction-sequences
+		  (car operand-codes)
+		  (make-instruction-sequence
+		   '(val)
+		   '(argl)
+		   '((assign argl
+			     (op list)
+			     (reg val)))))))
+	    (if (null? (cdr operand-codes))
+		code-to-get-last-arg
+		(preserving
+		 '(env)
+		 code-to-get-last-arg
+		 (code-to-get-rest-args
+		  (cdr operand-codes))))))))
+#+END_SRC
+
+~code-to-get-last-arg~ is misnamed in this case.
+We're taking the first argument, rather than the last, as the list isn't reversed.
+
+But, the idea is the same:
+Start constructing a list.
+
+This is separated from the other arguments as the op involves creating the list.
+While, for the remaining arguments we'll append elements to the list.
+
+#+BEGIN_SRC racket
+  (define (code-to-get-rest-args operand-codes)
+    (let ((code-for-next-arg
+	   (preserving
+	    '(argl)
+	    (car operand-codes)
+	    (make-instruction-sequence
+	     '(val argl)
+	     '(argl)
+	     '((assign argl
+		       ;; (op car)
+		       (op append-elem)
+		       (reg val)
+		       (reg argl)))))))
+      (if (null? (cdr operand-codes))
+	  code-for-next-arg
+	  (preserving
+	   '(env)
+	   code-for-next-arg
+	   (code-to-get-rest-args
+	    (cdr operand-codes))))))
+#+END_SRC
+
+Efficiency is depends on the way ~append~ is implemented.
+But, given the memory structure set out before, this is likely costly as we'll need to replicate the standard ~append-elem~ procedure.
+
+An similar case to consider is ~cond->if~.
+This is constructed so arguments are evaluated left to right.
+Switching the order would break implicit testing of earlier conditions by later, and also else.
+
+So, it's reasonable to expect a user to consider argument evaluation in general happens the same way.
+And, if there are intended side-effects…
+
+I guess there's probably /some/ cases where append-elem comes out faster.
+
+Is there an alternative to ~append-elem~?
+Maybe.
+We just need to keep a pointer to the last element in the list.
+This would involve saving and restoring the pointer.
+But, that's not too bad compared to a search every time.

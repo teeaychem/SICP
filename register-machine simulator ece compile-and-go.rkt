@@ -22,6 +22,21 @@
 
 ;; misc
 
+(define (append-elem e list)
+    (if (null? list)
+	(cons e nil)
+	(cons (car list) (append-elem e (cdr list)))))
+
+(define (last l)
+  (cond ((null? l) (error "empty list"))
+        ((null? (cdr l)) l)
+        (else (last (cdr l)))))
+
+(define (without-last l)
+  (cond ((null? l) l)
+        ((null? (cdr l)) nil)
+        (else (cons (car l) (without-last (cdr l))))))
+
 (define (run-wiith-args-and-display-reg-vals machine reg-arg-pairs regs)
   (for-each (lambda (pair)
               (begin
@@ -1037,6 +1052,7 @@
 
         (list 'list list)
         (list 'cons cons)
+        (list 'append-elem append-elem)
         ))
 
 (define eceval
@@ -1444,8 +1460,7 @@
 ;; ((eceval 'manual-execute-trace) #t)
 ;; (start eceval)
 
-
-;;
+;; the compiler
 
 ;; present
 
@@ -1690,6 +1705,7 @@
 
 (define (construct-arglist operand-codes)
   (let ((operand-codes (reverse operand-codes)))
+    ;;(let ((operand-codes operand-codes))
     (if (null? operand-codes)
         (make-instruction-sequence
          '()
@@ -1722,6 +1738,7 @@
            '(argl)
            '((assign argl
                      (op cons)
+                     ;; (op append-elem)
                      (reg val)
                      (reg argl)))))))
     (if (null? (cdr operand-codes))
@@ -1923,6 +1940,17 @@
     (set-register-contents! eceval 'flag true)
     (start eceval)))
 
+(define (compile-display-and-go expression)
+  (let ((instructions
+         (assemble
+          (statements (compile expression 'val 'return)) eceval)))
+    (set! the-global-environment (setup-environment))
+    (set-register-contents! eceval 'val instructions)
+    (set-register-contents! eceval 'flag true)
+    (for-each (lambda (i) (display (cadr i)) (newline)) instructions)
+    (start eceval)))
+
+
 (define (go-compiled compiled)
   (define (print-statements s)
     (if (symbol? s) (list s) (cddr s))) ;; cddr rather than caddr
@@ -1934,3 +1962,21 @@
     (set-register-contents! eceval 'flag true)
     (start eceval)))
 
+;; (compile
+;;  '(define (factorial n)
+;;     (if (= n 1)
+;;         1
+;;         (* (factorial (- n 1)) n)))
+;;  'val 'return)
+
+(compile-and-go '(define (factorial n)
+                   (if (= n 1)
+                       1
+                       (* (factorial (- n 1)) n))))
+
+;; (compile-display-and-go '(define (count-down n m)
+;;                    (if (= n (- m 1))
+;;                        'done
+;;                        (begin
+;;                          (display n)
+;;                          (count-down (- n 1) m)))))
