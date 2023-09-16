@@ -15824,7 +15824,6 @@ And as this isn't more than a pointer, it seems the procedures should be on par.
 Note, both of these are recursive, as ~*~ is the 'final' operation, rather than ~factorial(-alt)~.
 
 ** 5.34
-
 *** procedure
 
 #+BEGIN_SRC racket
@@ -16521,3 +16520,40 @@ Maybe.
 We just need to keep a pointer to the last element in the list.
 This would involve saving and restoring the pointer.
 But, that's not too bad compared to a search every time.
+
+** 5.37
+
+The change to preserving is simple.
+
+#+BEGIN_SRC racket
+  (define (preserving regs seq1 seq2)
+    (if (null? regs)
+	(append-instruction-sequences seq1 seq2)
+	(let ((first-reg (car regs)))
+	  ;; (if (and
+	  ;;      (needs-register? seq2 first-reg)
+	  ;;      (modifies-register? seq1
+	  ;; 		    first-reg))
+	  (preserving
+	   (cdr regs)
+	   (make-instruction-sequence
+	    (list-union
+	     (list first-reg)
+	     (registers-needed seq1))
+	    (list-difference
+	     (registers-modified seq1)
+	     (list first-reg))
+	    (append
+	     `((save ,first-reg))
+	     (statements seq1)
+	     `((restore ,first-reg))))
+	   seq2)
+	  ;; (preserving
+	  ;;  (cdr regs)
+	  ;;  seq1
+	  ;;  seq2))
+	  )))
+#+END_SRC
+
+But, I think I've done sufficient save/restore chekcing for now.
+(See Ex. 5.34)
