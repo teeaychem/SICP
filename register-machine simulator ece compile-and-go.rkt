@@ -20,7 +20,6 @@
 ;; compile-and-go added
 ;; go-compiled added for testing hand-tuned code
 ;; support for open-coded primitives
-[\]
 
 
 ;; misc
