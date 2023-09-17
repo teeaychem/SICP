@@ -306,7 +306,7 @@ goodCubeGuess? could also be adjusted, as with previous exercise.
 
 #+NAME: def:cube
 #+BEGIN_SRC racket
-(define (cube x) (* x x x))
+  (define (cube x) (* x x x))
 #+END_SRC
 
 #+NAME: def:cubeRt
@@ -16559,7 +16559,6 @@ But, I think I've done sufficient save/restore chekcing for now.
 (See Ex. 5.34)
 
 ** 5.38
-
 *** 1.
 
 I'm not too sure whether this was the expectation.
@@ -16861,3 +16860,30 @@ compiles to:
   (text assign val (const ok))
   (text goto (reg continue))
 #+END_SRC
+
+** 5.39
+
+Ran into something odd.
+~abs~ isn't ok in the ece simulator.
+Figure out why tomorrow.
+
+
+#+BEGIN_SRC racket
+    (define (count l n)
+      (if (null? (cdr l))
+	  n
+	  (count (cdr l) (+ n 1))))
+  (define (do-n n proc l)
+    (if (= n 0)
+	l
+	(do-n (- n 1) proc (proc l))))
+
+  (define x (list 1 2 3))
+  (count (cdr x) 1)
+  (do-n 1 cdr x)
+
+#+END_SRC
+
+#+RESULTS:
+: 2
+: (2 3)
