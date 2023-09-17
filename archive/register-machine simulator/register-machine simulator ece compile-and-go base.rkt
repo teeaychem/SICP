@@ -16,8 +16,7 @@
 ;; + main expand-clauses logic written in the explicit-control evaluator
 ;; * evaluator updated to require same save/restore regs to help debug.
 ;; * commented print statistics
-;; * optimisation to eval by testing for symbol
-;; compile-and-go added
+;; * compile-and-go added
 
 ;; misc
 
@@ -1036,6 +1035,12 @@
 
         (list 'list list)
         (list 'cons cons)
+        (list 'abs abs)
+        (list '/ /)
+        (list '* *)
+        (list '+ +)
+        (list '- -)
+        (list '< <)
         ))
 
 (define eceval
@@ -1139,34 +1144,22 @@
      ;; evaluating procedure applications
      ev-application
      (save continue)
-     (assign unev (op operands) (reg exp))
-     (assign exp (op operator) (reg exp))
-     (test (op symbol?) (reg exp))
-     (branch (label ev-have-symbol-op))
-     (goto (label ev-go-and-eval-op))
-
-     ev-have-symbol-op
-     (assign val (op lookup-variable-value) (reg exp) (reg env))
-     (goto (label ev-appl-did-operator))
-
-     ev-go-and-eval-op
-     (save unev)
      (save env)
-     (assign continue (label ev-appl-did-operator-dispatch))
+     (assign unev (op operands) (reg exp))
+     (save unev)
+     (assign exp (op operator) (reg exp))
+     (assign
+      continue (label ev-appl-did-operator))
      (goto (label eval-dispatch))
 
-     ev-appl-did-operator-dispatch
+     ev-appl-did-operator
      (restore unev)             ; the operands
      (restore env)
-     (goto (label ev-appl-did-operator))
-
-     ev-appl-did-operator
      (assign argl (op empty-arglist))
      (assign proc (reg val))    ; the operator
-     (test (op no-operands?) (reg unev)) ; optimise when no operands
+     (test (op no-operands?) (reg unev))
      (branch (label apply-dispatch))
      (save proc)
-     (goto (label ev-appl-operand-loop))
 
      ev-appl-operand-loop
      (save argl)
@@ -1344,8 +1337,7 @@
               (reg unev)
               (reg val)
               (reg env))
-     (assign val
-             (const ok))
+     ;(assign val (const ok))
      (goto (reg continue))
      ev-definition
      (assign unev
@@ -1370,7 +1362,7 @@
               (reg unev)
               (reg val)
               (reg env))
-     (assign val (const ok))
+     ;(assign val (const ok))
      (goto (reg continue))
 
      cond->if
@@ -1558,7 +1550,8 @@
                              (const ,var)
                              (reg val)
                              (reg env))
-                    (assign ,target (const ok))))))))
+                    (assign ,target (const ok))
+                    ))))))
 
 (define (compile-definition exp target linkage)
   (let ((var (definition-variable exp))
@@ -1576,7 +1569,8 @@
                   (const ,var)
                   (reg val)
                   (reg env))
-         (assign ,target (const ok))))))))
+         ;(assign ,target (const nok))
+         ))))))
 
 ;; Compiling conditional expressions
 
@@ -1923,8 +1917,31 @@
     (start eceval)))
 
 
-(compile-and-go
- '(define (factorial n)
-    (if (= n 1)
-        1
-        (* (factorial (- n 1)) n))))
+;; (compile-and-go
+;;  '(define (factorial n)
+;;     (if (= n 1)
+;;         1
+;;         (* (factorial (- n 1)) n))))
+
+;; (compile-and-go '(define (cr x)
+;;                    (define (cube-int guess)
+;;                      (define (cube x) (* x x x))
+;;                      (define (good-guess? guess) (< (abs (- (cube guess) x)) 0.001))
+;;                      (define (cube-improve guess) (/ (+ (/ x (* guess guess)) (* 2 guess)) 3))
+;;                      (if (good-guess? guess)
+;;                          guess
+;;                          (cube-int (cube-improve guess))))
+;;                    (cube-int 1.0)))
+
+
+;; (compile-and-go
+;;  '(define (f n)
+;;     (define (cube x) (* x x x))
+;;     (define (square x) (* x x))
+;;     (define (g m)
+;;       (define (test? a)
+;;         (= n (square m)))
+;;       (if (test? (= 1 (cube m)))
+;;           2
+;;           (+ m (cube n))))
+;;     (+ n (g (- n 1)))))
