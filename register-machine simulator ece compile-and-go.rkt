@@ -245,8 +245,7 @@
                                          (display " - + ")
                                          (display x)
                                          (display " has value: ")
-                                         (display ((lookup-register x) 'get-simple))) f-registers)
-                             ))
+                                         (display ((lookup-register x) 'get-simple))) f-registers)))
                       (newline)))
                 (execute-n-trace (- n 1) trace)))))
       (define (manual-execute-trace trace)
@@ -896,45 +895,51 @@
           (error "Too few arguments supplied" vars vals))))
 
 (define (lookup-variable-value var env)
-  (lookup-variable-value-trace var env #f))
+  (lookup-variable-value-trace var env #t))
 
-(define (lookup-variable-value-trace var env trace)
+(define (count l n)
+  (if (null? (cdr l))
+      n
+      (count (cdr l) (+ n 1))))
+
+(define (lookup-variable-value-trace var main-env trace)
   (cond ((eq? #t trace)
          (for-each display (list "looking for: " var))
-  (newline)))
-  (let ((env-n -1)
-        (pos-n -1))
+         (newline)))
+  (let ((env-n 0)
+        (pos-n 0))
     (define (env-loop env)
-      (set! env-n (+ 1 env-n))
+      (set! pos-n 0)
       (define (scan vars vals)
-        (set! pos-n (+ 1 pos-n))
-        (cond ((null? vars) (env-loop (enclosing-environment env)))
+        (cond ((null? vars)
+               (set! env-n (+ env-n 1))
+               (env-loop (enclosing-environment env)))
               ((eq? var (car vars))
                (begin
                  (cond ((eq? #t trace)
-                        (for-each display (list "found at: (" env-n ", " pos-n ")"))
+                        (for-each display (list "found at: " env-n ", " pos-n))
                         (newline)
-                        (for-each display (list "lookup: (" (lexical-address-lookup env-n pos-n env) ")"))
-                        (newline)
-                        (for-each display (list "next: (" (lexical-address-lookup env-n (+ pos-n 1) env) ")"))))
-                (car vals)))
+                        (for-each display (list "lookup: " (lexical-address-lookup env-n pos-n main-env)))
+                        (newline)))
+                 (car vals)))
               (else
                (begin
+                 (set! pos-n (+ 1 pos-n))
                  (scan (cdr vars) (cdr vals))))))
       (if (eq? env the-empty-environment)
           env
           (let ((frame (first-frame env)))
             (scan (frame-variables frame) (frame-values frame)))))
-    (env-loop env)))
+    (env-loop main-env)))
 
-(define (lexical-address-lookup env-n pos-n)
-  (define (goto n l)
-    (display l)
-    (newline)
+(define (lexical-address-lookup env-n pos-n env)
+  (define (do-n n proc l)
     (if (= n 0)
         l
-        (goto (- n 1) (cdr l))))
-    (car (goto pos-n (goto env-n (caar the-global-environment)))))
+        (do-n (- n 1) proc (proc l))))
+  (let ((e (do-n env-n cdr env)))
+    (let ((p (do-n pos-n cdr (car e))))
+      (cadr p))))
 
 (define (unassigned-variable? exp)
   (eq? exp the-empty-environment))
@@ -1116,7 +1121,7 @@
      print-result
      ;; (perform (op print-stack-statistics))
      (perform (op announce-output) (const ";;; EC-Eval value:"))
-     ;; (perform (op user-print) (reg val))
+     (perform (op user-print) (reg val))
      (goto (label read-eval-print-loop))
 
      unknown-expression-type
@@ -1602,14 +1607,14 @@
          (compile-sequence (begin-actions exp) target linkage))
         ((cond? exp)
          (compile (cond->if exp) target linkage))
-        ((open-coded-test-op? exp '=)
-         (open-coded-op exp target linkage '=))
-        ((open-coded-test-op? exp '*)
-         (open-coded-op (binarise exp) target linkage '*))
-        ((open-coded-test-op? exp '-)
-         (open-coded-op exp target linkage '-))
-        ((open-coded-test-op? exp '+)
-         (open-coded-op (binarise exp) target linkage '+))
+        ;; ((open-coded-test-op? exp '=)
+        ;;  (open-coded-op exp target linkage '=))
+        ;; ((open-coded-test-op? exp '*)
+        ;;  (open-coded-op (binarise exp) target linkage '*))
+        ;; ((open-coded-test-op? exp '-)
+        ;;  (open-coded-op exp target linkage '-))
+        ;; ((open-coded-test-op? exp '+)
+        ;;  (open-coded-op (binarise exp) target linkage '+))
         ((application? exp)
          (compile-application exp target linkage))
         (else
@@ -1815,7 +1820,6 @@
 
 (define (construct-arglist operand-codes)
   (let ((operand-codes (reverse operand-codes)))
-    ;;(let ((operand-codes operand-codes))
     (if (null? operand-codes)
         (make-instruction-sequence
          '()
@@ -2111,13 +2115,43 @@
 ;;                          (count-up (- n 1) m)
 ;;                          (display n)))))
 
-(compile-and-go '((lambda (x y)
-                            (lambda (a b c d e)
-                              ((lambda (y z) (* x y z))
-                               (* a b x)
-                               (+ c d x))))
-                          3
-                          4))
+;; (compile-and-go '((lambda (x y)
+;;                             (lambda (a b c d e)
+;;                               ((lambda (y z) (* x y z))
+;;                                (* a b x)
+;;                                (+ c d x))))
+;;                           3
+;;                           4))
 
 
+;; (compile-and-go '(define (cr x)
+;;                    (define (cubeInt guess)
+;;                      (define (cube x) (* x x x))
+;;                      (define (goodCubeGuess? guess) (< (abs (- (cube guess) x)) 0.001))
+;;                      (define (cubeImprove guess) (/ (+ (/ x (* guess guess)) (* 2 guess)) 3))
+;;                      (if (goodCubeGuess? guess)
+;;                          guess
+;;                          (cubeInt (cubeImprove guess))))
+;;                    (cubeInt 1.0)))
 
+(compile-and-go
+ '(define (f n)
+    (define (cube x) (* x x x))
+    (define (square x) (* x x))
+    (define (g m)
+      (define (test? a)
+        (= (abs n) (square m)))
+      (if (test? (= 1 (cube m)))
+          2
+          (+ m (cube n))))
+    (+ n (g (- n 1)))))
+
+;; (compile-and-go '(define (f x)
+;;                    (define (cube-it guess)
+;;                      (define (cube x) (* x x x))
+;;                      (define (goodCubeGuess? guess) (< (- (* guess guess guess) x) 0.001))
+;;                      (define (cubeImprove guess) (- guess 2))
+;;                      (if (goodCubeGuess? guess)
+;;                          guess
+;;                          (cube-it (cubeImprove guess))))
+;;                    (cube-it 1)))
