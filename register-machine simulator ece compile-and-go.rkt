@@ -20,7 +20,7 @@
 ;; compile-and-go added
 ;; go-compiled added for testing hand-tuned code
 ;; support for open-coded primitives
-
+;; option to trace lookup and basic lexical-address-lookup
 
 ;; misc
 
@@ -894,17 +894,47 @@
       (if (< (length vars) (length vals))
           (error "Too many arguments supplied" vars vals)
           (error "Too few arguments supplied" vars vals))))
+
 (define (lookup-variable-value var env)
-  (define (env-loop env)
-    (define (scan vars vals)
-      (cond ((null? vars) (env-loop (enclosing-environment env)))
-            ((eq? var (car vars)) (car vals))
-            (else (scan (cdr vars) (cdr vals)))))
-    (if (eq? env the-empty-environment)
-        env
-        (let ((frame (first-frame env)))
-          (scan (frame-variables frame) (frame-values frame)))))
-  (env-loop env))
+  (lookup-variable-value-trace var env #f))
+
+(define (lookup-variable-value-trace var env trace)
+  (cond ((eq? #t trace)
+         (for-each display (list "looking for: " var))
+  (newline)))
+  (let ((env-n -1)
+        (pos-n -1))
+    (define (env-loop env)
+      (set! env-n (+ 1 env-n))
+      (define (scan vars vals)
+        (set! pos-n (+ 1 pos-n))
+        (cond ((null? vars) (env-loop (enclosing-environment env)))
+              ((eq? var (car vars))
+               (begin
+                 (cond ((eq? #t trace)
+                        (for-each display (list "found at: (" env-n ", " pos-n ")"))
+                        (newline)
+                        (for-each display (list "lookup: (" (lexical-address-lookup env-n pos-n env) ")"))
+                        (newline)
+                        (for-each display (list "next: (" (lexical-address-lookup env-n (+ pos-n 1) env) ")"))))
+                (car vals)))
+              (else
+               (begin
+                 (scan (cdr vars) (cdr vals))))))
+      (if (eq? env the-empty-environment)
+          env
+          (let ((frame (first-frame env)))
+            (scan (frame-variables frame) (frame-values frame)))))
+    (env-loop env)))
+
+(define (lexical-address-lookup env-n pos-n)
+  (define (goto n l)
+    (display l)
+    (newline)
+    (if (= n 0)
+        l
+        (goto (- n 1) (cdr l))))
+    (car (goto pos-n (goto env-n (caar the-global-environment)))))
 
 (define (unassigned-variable? exp)
   (eq? exp the-empty-environment))
@@ -1086,7 +1116,7 @@
      print-result
      ;; (perform (op print-stack-statistics))
      (perform (op announce-output) (const ";;; EC-Eval value:"))
-     (perform (op user-print) (reg val))
+     ;; (perform (op user-print) (reg val))
      (goto (label read-eval-print-loop))
 
      unknown-expression-type
@@ -2070,7 +2100,24 @@
 ;;                                (* n (factorial (- n 1))))))
 
 
-(compile-display-and-go '(define (f n)
-                            (+ (+ n 1) (+ 3 2 1))))
+;; (compile-display-and-go '(define (f n)
+;;                             (+ (+ n 1) (+ 3 2 1))))
+
+
+;; (compile-display-and-go '(define (count-up n m)
+;;                    (if (= n (- m 1))
+;;                        'done
+;;                        (begin
+;;                          (count-up (- n 1) m)
+;;                          (display n)))))
+
+(compile-and-go '((lambda (x y)
+                            (lambda (a b c d e)
+                              ((lambda (y z) (* x y z))
+                               (* a b x)
+                               (+ c d x))))
+                          3
+                          4))
+
 
 
