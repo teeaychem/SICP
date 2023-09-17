@@ -19,6 +19,9 @@
 ;; * optimisation to eval by testing for symbol
 ;; compile-and-go added
 ;; go-compiled added for testing hand-tuned code
+;; support for open-coded primitives
+[\]
+
 
 ;; misc
 
@@ -1053,11 +1056,16 @@
         (list 'list list)
         (list 'cons cons)
         (list 'append-elem append-elem)
+
+        (list '= =)
+        (list '* *)
+        (list '- -)
+        (list '+ +)
         ))
 
 (define eceval
   (make-machine
-   '(exp env val proc argl continue unev)
+   '(exp env val proc argl continue unev arg1 arg2)
    eceval-operations
    '(
      ;; running the evaluator
@@ -1479,7 +1487,72 @@
 
 (define all-regs '(env proc val argl continue))
 
-;; compile
+;; open-coded
+
+(define (spread-arguments operand-codes)
+  (cond ((or (null? operand-codes)
+             (null? (car operand-codes))
+             (null? (cdr operand-codes)))
+         (error "Open coded primitive without two arguments"))
+        ((and
+          (not (null? (cdr operand-codes)))
+          (not (null? (cddr operand-codes))))
+         (error "Open coded primitive with more than two arguments"))
+        (else
+         (append-instruction-sequences
+         (car operand-codes) ;; figoure out the first
+         (preserving
+          '(val)
+          (append-instruction-sequences
+           (cadr operand-codes)
+           (make-instruction-sequence
+            '(val)
+            '(arg2)
+            '((assign arg2 (reg val)))))
+          (make-instruction-sequence
+           '(val)
+           '(arg1)
+           '((assign arg1 (reg val)))))))))
+
+;; plus
+
+(define (open-coded-test-op? exp operation)
+  (and (pair? exp) (eq? (car exp) operation)))
+
+
+(define (open-coded-op exp target linkage operation)
+  (let ((operand-codes
+         (map (lambda (operand)
+                (compile operand 'val 'next))
+              (operands exp))))
+    (preserving
+     '(continue)
+     (spread-arguments operand-codes)
+     (end-with-linkage
+      linkage
+      (make-instruction-sequence
+       '(arg1 arg2)
+       '(val)
+       `((assign ,target (op ,operation) (reg arg1) (reg arg2))))))))
+
+(define (make-binary-exp op operands)
+    (if (null? (cddr operands))
+	(list op (car operands) (cadr operands))
+	(list op (car operands) (make-binary-exp op (cdr operands)))))
+
+(define (binarise exp)
+    (if (null? exp)
+	(error "No expression")
+	(let ((op (car exp))
+	      (operands (cdr exp)))
+	  (if (or (null? operands)
+		  (null? (car operands))
+		  (null? (cdr operands)))
+	      (error "Not enoguh operands")
+	      (make-binary-exp op operands)))))
+
+
+;;
 
 (define (compile exp target linkage)
   (cond ((self-evaluating? exp)
@@ -1500,6 +1573,14 @@
          (compile-sequence (begin-actions exp) target linkage))
         ((cond? exp)
          (compile (cond->if exp) target linkage))
+        ((open-coded-test-op? exp '=)
+         (open-coded-op exp target linkage '=))
+        ((open-coded-test-op? exp '*)
+         (open-coded-op (binarise exp) target linkage '*))
+        ((open-coded-test-op? exp '-)
+         (open-coded-op exp target linkage '-))
+        ((open-coded-test-op? exp '+)
+         (open-coded-op (binarise exp) target linkage '+))
         ((application? exp)
          (compile-application exp target linkage))
         (else
@@ -1969,10 +2050,10 @@
 ;;         (* (factorial (- n 1)) n)))
 ;;  'val 'return)
 
-(compile-and-go '(define (factorial n)
-                   (if (= n 1)
-                       1
-                       (* (factorial (- n 1)) n))))
+;; (compile-and-go '(define (factorial n)
+;;                    (if (= n 1)
+;;                        1
+;;                        (* (factorial (- n 1)) n))))
 
 ;; (compile-display-and-go '(define (count-down n m)
 ;;                    (if (= n (- m 1))
@@ -1980,3 +2061,17 @@
 ;;                        (begin
 ;;                          (display n)
 ;;                          (count-down (- n 1) m)))))
+
+;; (compile-display-and-go '(define (f n)
+;;                            (+ (+ n 1) (+ 3 1))))
+
+;; (compile-display-and-go '(define (factorial n)
+;;                            (if (= n 1)
+;;                                1
+;;                                (* n (factorial (- n 1))))))
+
+
+(compile-display-and-go '(define (f n)
+                            (+ (+ n 1) (+ 3 2 1))))
+
+
