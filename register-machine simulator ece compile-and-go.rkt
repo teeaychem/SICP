@@ -492,7 +492,6 @@
 (define (instruction-execution-proc-head inst)
   (caddr inst))
 
-
 (define (instruction-execution-proc inst)
   (cdaddr inst))
 
@@ -870,6 +869,7 @@
         (list 'memq memq)
         (list 'eq? eq?)
         (list 'remainder remainder)
+        (list 'abs abs)
         ; ⟨more primitives⟩
         ))
 (define (primitive-procedure-names)
@@ -919,8 +919,11 @@
                  (cond ((eq? #t trace)
                         (for-each display (list "found at: " env-n ", " pos-n))
                         (newline)
-                        (for-each display (list "lookup: " (lexical-address-lookup env-n pos-n main-env)))
-                        (newline)))
+                        (let ((lookup (lexical-address-lookup env-n pos-n main-env)))
+                          (if (tagged-list? lookup 'compiled-procedure)
+                              (set! lookup 'compiled-procedure))
+                          (for-each display (list "lookup: " lookup))
+                        (newline))))
                  (car vals)))
               (else
                (begin
@@ -2115,43 +2118,12 @@
 ;;                          (count-up (- n 1) m)
 ;;                          (display n)))))
 
-;; (compile-and-go '((lambda (x y)
-;;                             (lambda (a b c d e)
-;;                               ((lambda (y z) (* x y z))
-;;                                (* a b x)
-;;                                (+ c d x))))
-;;                           3
-;;                           4))
-
-
-;; (compile-and-go '(define (cr x)
-;;                    (define (cubeInt guess)
-;;                      (define (cube x) (* x x x))
-;;                      (define (goodCubeGuess? guess) (< (abs (- (cube guess) x)) 0.001))
-;;                      (define (cubeImprove guess) (/ (+ (/ x (* guess guess)) (* 2 guess)) 3))
-;;                      (if (goodCubeGuess? guess)
-;;                          guess
-;;                          (cubeInt (cubeImprove guess))))
-;;                    (cubeInt 1.0)))
-
-(compile-and-go
- '(define (f n)
-    (define (cube x) (* x x x))
-    (define (square x) (* x x))
-    (define (g m)
-      (define (test? a)
-        (= (abs n) (square m)))
-      (if (test? (= 1 (cube m)))
-          2
-          (+ m (cube n))))
-    (+ n (g (- n 1)))))
-
-;; (compile-and-go '(define (f x)
-;;                    (define (cube-it guess)
-;;                      (define (cube x) (* x x x))
-;;                      (define (goodCubeGuess? guess) (< (- (* guess guess guess) x) 0.001))
-;;                      (define (cubeImprove guess) (- guess 2))
-;;                      (if (goodCubeGuess? guess)
-;;                          guess
-;;                          (cube-it (cubeImprove guess))))
-;;                    (cube-it 1)))
+(compile-and-go '(define (cube-root x)
+                   (define (cube-iter guess)
+                     (define (cube x) (* x x x))
+                     (define (good-guess? guess) (< (abs (- (cube guess) x)) 0.001))
+                     (define (improve guess) (/ (+ (/ x (* guess guess)) (* 2 guess)) 3))
+                     (if (good-guess? guess)
+                         guess
+                         (cube-iter (improve guess))))
+                   (cube-iter 1.0)))

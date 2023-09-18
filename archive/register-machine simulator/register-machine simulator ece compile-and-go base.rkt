@@ -474,7 +474,6 @@
 (define (instruction-execution-proc-head inst)
   (caddr inst))
 
-
 (define (instruction-execution-proc inst)
   (cdaddr inst))
 
@@ -852,6 +851,7 @@
         (list 'memq memq)
         (list 'eq? eq?)
         (list 'remainder remainder)
+        (list 'abs abs)
         ; ⟨more primitives⟩
         ))
 (define (primitive-procedure-names)
@@ -1035,12 +1035,8 @@
 
         (list 'list list)
         (list 'cons cons)
-        (list 'abs abs)
-        (list '/ /)
-        (list '* *)
-        (list '+ +)
-        (list '- -)
-        (list '< <)
+;        (list 'abs abs)
+
         ))
 
 (define eceval
@@ -1905,8 +1901,6 @@
 
 ;; compile collection over
 
-;;
-
 (define (compile-and-go expression)
   (let ((instructions
          (assemble
@@ -1916,32 +1910,18 @@
     (set-register-contents! eceval 'flag true)
     (start eceval)))
 
-
 ;; (compile-and-go
 ;;  '(define (factorial n)
 ;;     (if (= n 1)
 ;;         1
 ;;         (* (factorial (- n 1)) n))))
 
-;; (compile-and-go '(define (cr x)
-;;                    (define (cube-int guess)
+;; (compile-and-go '(define (cube-root x)
+;;                    (define (cube-iter guess)
 ;;                      (define (cube x) (* x x x))
 ;;                      (define (good-guess? guess) (< (abs (- (cube guess) x)) 0.001))
-;;                      (define (cube-improve guess) (/ (+ (/ x (* guess guess)) (* 2 guess)) 3))
+;;                      (define (improve guess) (/ (+ (/ x (* guess guess)) (* 2 guess)) 3))
 ;;                      (if (good-guess? guess)
 ;;                          guess
-;;                          (cube-int (cube-improve guess))))
-;;                    (cube-int 1.0)))
-
-
-;; (compile-and-go
-;;  '(define (f n)
-;;     (define (cube x) (* x x x))
-;;     (define (square x) (* x x))
-;;     (define (g m)
-;;       (define (test? a)
-;;         (= n (square m)))
-;;       (if (test? (= 1 (cube m)))
-;;           2
-;;           (+ m (cube n))))
-;;     (+ n (g (- n 1)))))
+;;                          (cube-iter (improve guess))))
+;;                    (cube-iter 1.0)))
