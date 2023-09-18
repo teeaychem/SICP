@@ -1537,19 +1537,19 @@
          (error "Open coded primitive with more than two arguments"))
         (else
          (append-instruction-sequences
-         (car operand-codes) ;; figoure out the first
-         (preserving
-          '(val)
-          (append-instruction-sequences
-           (cadr operand-codes)
+          (cadr operand-codes) ;; figoure out the first
+          (preserving
+           '(val)
+           (append-instruction-sequences
+            (car operand-codes)
+            (make-instruction-sequence
+             '(val)
+             '(arg1)
+             '((assign arg1 (reg val)))))
            (make-instruction-sequence
             '(val)
             '(arg2)
-            '((assign arg2 (reg val)))))
-          (make-instruction-sequence
-           '(val)
-           '(arg1)
-           '((assign arg1 (reg val)))))))))
+            '((assign arg2 (reg val)))))))))
 
 ;; plus
 
