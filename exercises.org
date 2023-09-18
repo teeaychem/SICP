@@ -16577,31 +16577,36 @@ This works recursively as we're only interested in getting the right results in 
 At the start, the contents don't matter, and after the result of evaluting the first argument is stored, there's no need to preserve either register.
 
 #+BEGIN_SRC racket
-(define (spread-arguments operand-codes)
-  (cond ((or (null? operand-codes)
-             (null? (car operand-codes))
-             (null? (cdr operand-codes)))
-         (error "Open coded primitive without two arguments"))
-        ((and
-          (not (null? (cdr operand-codes)))
-          (not (null? (cddr operand-codes))))
-         (error "Open coded primitive with more than two arguments"))
-        (else
-         (append-instruction-sequences
-         (car operand-codes) ;; figoure out the first
-         (preserving
-          '(val) ;; will save val to arg1 after
-          (append-instruction-sequences
-           (cadr operand-codes) ;; figure out second
-           (make-instruction-sequence
-            '(val)
-            '(arg2)
-            '((assign arg2 (reg val))))) ;; second saved to arg2
-          (make-instruction-sequence
-           '(val)
-           '(arg1)
-           '((assign arg1 (reg val))))))))) ;; val is restored, save to arg1
+  (define (spread-arguments operand-codes)
+    (cond ((or (null? operand-codes)
+	       (null? (car operand-codes))
+	       (null? (cdr operand-codes)))
+	   (error "Open coded primitive without two arguments"))
+	  ((and
+	    (not (null? (cdr operand-codes)))
+	    (not (null? (cddr operand-codes))))
+	   (error "Open coded primitive with more than two arguments"))
+	  (else
+	   (append-instruction-sequences
+	    (cadr operand-codes) ;; figoure out the second
+	   (preserving
+	    '(val) ;; will save val to arg2 after
+	    (append-instruction-sequences
+	     (cadr operand-codes) ;; figure out first
+	     (make-instruction-sequence
+	      '(val)
+	      '(arg1)
+	      '((assign arg1 (reg val))))) ;; second saved to arg1
+	    (make-instruction-sequence
+	     '(val)
+	     '(arg2)
+	     '((assign arg2 (reg val))))))))) ;; val is restored, save to arg2
 #+END_SRC
+
+Note, initial version eval'ed the first argument then the second.
+
+On reflection, to keep consistency with the way a list of arguments is evaluated this is switched.
+The above is current, but the code generated below has the initial order.
 
 *** 2.
 
@@ -16861,29 +16866,5 @@ compiles to:
   (text goto (reg continue))
 #+END_SRC
 
-** 5.39
-
-Ran into something odd.
-~abs~ isn't ok in the ece simulator.
-Figure out why tomorrow.
 
 
-#+BEGIN_SRC racket
-    (define (count l n)
-      (if (null? (cdr l))
-	  n
-	  (count (cdr l) (+ n 1))))
-  (define (do-n n proc l)
-    (if (= n 0)
-	l
-	(do-n (- n 1) proc (proc l))))
-
-  (define x (list 1 2 3))
-  (count (cdr x) 1)
-  (do-n 1 cdr x)
-
-#+END_SRC
-
-#+RESULTS:
-: 2
-: (2 3)
