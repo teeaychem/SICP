@@ -895,7 +895,7 @@
           (error "Too few arguments supplied" vars vals))))
 
 (define (lookup-variable-value var env)
-  (lookup-variable-value-trace var env #t))
+  (lookup-variable-value-trace var env #f))
 
 (define (count l n)
   (if (null? (cdr l))
@@ -919,7 +919,7 @@
                  (cond ((eq? #t trace)
                         (for-each display (list "found at: " env-n ", " pos-n))
                         (newline)
-                        (let ((lookup (lexical-address-lookup env-n pos-n main-env)))
+                        (let ((lookup (lexical-address-lookup (cons env-n pos-n) main-env)))
                           (if (tagged-list? lookup 'compiled-procedure)
                               (set! lookup 'compiled-procedure))
                           (for-each display (list "lookup: " lookup))
@@ -935,14 +935,28 @@
             (scan (frame-variables frame) (frame-values frame)))))
     (env-loop main-env)))
 
-(define (lexical-address-lookup env-n pos-n env)
+(define (lexical-address-get address env)
   (define (do-n n proc l)
     (if (= n 0)
         l
         (do-n (- n 1) proc (proc l))))
-  (let ((e (do-n env-n cdr env)))
-    (let ((p (do-n pos-n cdr (car e))))
-      (cadr p))))
+  (let ((env-n (car address))
+        (pos-n (cdr address)))
+    (let ((e (do-n env-n cdr env)))
+      (if (eq? e the-empty-environment)
+          (error "No environment found LEXICAL-ADDRESS-GET" address)
+          (let ((p (do-n pos-n cdr (car e))))
+            (cdr p))))))
+
+(define (lexical-address-lookup address env)
+  (let ((val (car (lexical-address-get address env))))
+  (if (eq? val '*unassigned*)
+      (error "Unassigned val LEXICAL-ADDRESS-LOOKUP" address)
+      val)))
+
+(define (lexical-address-set! address env val)
+  (set-car! (lexical-address-get address env) val))
+
 
 (define (unassigned-variable? exp)
   (eq? exp the-empty-environment))
