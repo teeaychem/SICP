@@ -32,8 +32,9 @@
   (start machine)
   (for-each (lambda (reg)
               (begin
-                (for-each display
-                          (list "Register: " reg " end with value: " (get-register-contents machine reg)))
+                (for-each
+                 display
+                 (list "Register: " reg " end with value: " (get-register-contents machine reg)))
                 (newline)))
             regs)
   (newline))
@@ -65,7 +66,7 @@
   (let ((seen '()))
     (define (seen? elem sequence)
       (cond ((null? sequence) #f)
-            ((equal? (car sequence) elem) #t) ;; need equal? rather than eq? as testing strings not pointers
+            ((equal? (car sequence) elem) #t) ;; need equal? over eq? testing strings not pointers
             (else (seen? elem (cdr sequence)))))
     (define (do-it sequence)
       (cond ((null? sequence) nil)
@@ -428,7 +429,8 @@
                                               labels)))))
                    (else
                     (set! prev-label #f)
-                    (append-elem! instructions (make-instruction (cons label-buffer count-buffer) next-inst))
+                    (append-elem! instructions
+                                  (make-instruction (cons label-buffer count-buffer) next-inst))
                     (set! instructions-pointer (cdr instructions))
                     (set! count-buffer (+ count-buffer 1))))
              (set! text-pointer (cdr text-pointer))
