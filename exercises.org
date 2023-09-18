@@ -16866,5 +16866,85 @@ compiles to:
   (text goto (reg continue))
 #+END_SRC
 
+** 5.39
 
+~lexical-address-lookup~ and ~lexical-address-set!~ both take an address.
+And, this address is flexible.
+All that matters is that the address stored can be used for lookup.
 
+So, first, is a variation on ~lookup-variable-value~ which traces the address of a lookup and then uses ~lexical-address-lookup~ to display the value.
+
+Then, the two procedures are given.
+
+*** lookup-variable-value-trace
+
+In short, the address is calculated from (0 . 0), left is +1 each time new env is set for scanning, and right is fresh on each env, +1 for every var/val scanned.
+
+Various ~cond~ instances allow the tracing to be hidden.
+
+#+BEGIN_SRC racket
+  (define (lookup-variable-value-trace var main-env trace)
+  (cond ((eq? #t trace)
+         (for-each display (list "looking for: " var))
+         (newline)))
+  (let ((env-n 0)
+        (pos-n 0))
+    (define (env-loop env)
+      (set! pos-n 0)
+      (define (scan vars vals)
+        (cond ((null? vars)
+               (set! env-n (+ env-n 1))
+               (env-loop (enclosing-environment env)))
+              ((eq? var (car vars))
+               (begin
+                 (cond ((eq? #t trace)
+                        (for-each display (list "found at: " env-n ", " pos-n))
+                        (newline)
+                        (let ((lookup (lexical-address-lookup (cons env-n pos-n) main-env)))
+                          (if (tagged-list? lookup 'compiled-procedure)
+                              (set! lookup 'compiled-procedure))
+                          (for-each display (list "lookup: " lookup))
+                        (newline))))
+                 (car vals)))
+              (else
+               (begin
+                 (set! pos-n (+ 1 pos-n))
+                 (scan (cdr vars) (cdr vals))))))
+      (if (eq? env the-empty-environment)
+          env
+          (let ((frame (first-frame env)))
+            (scan (frame-variables frame) (frame-values frame)))))
+    (env-loop main-env)))
+#+END_SRC
+
+*** lexical-address-… lookup & set!
+
+Both ~lookup~ and ~set!~ share a common core of going to and address.
+So, this is split to a separate procedure.
+Internally, ~do-n~ is a general procedure to do something to something n times.
+
+#+BEGIN_SRC racket
+(define (lexical-address-get address env)
+  (define (do-n n proc l)
+    (if (= n 0)
+        l
+        (do-n (- n 1) proc (proc l))))
+  (let ((env-n (car address))
+        (pos-n (cdr address)))
+    (let ((e (do-n env-n cdr env)))
+      (if (eq? e the-empty-environment)
+          (error "No environment found LEXICAL-ADDRESS-GET" address)
+          (let ((p (do-n pos-n cdr (car e))))
+            (cdr p))))))
+#+END_SRC
+
+#+BEGIN_SRC racket
+  (define (lexical-address-lookup address env)
+    (let ((val (car (lexical-address-get address env))))
+      (if (eq? val '*unassigned*)
+	  (error "Unassigned val LEXICAL-ADDRESS-LOOKUP" address)
+	  val)))
+
+  (define (lexical-address-set! address env val)
+    (set-car! (lexical-address-get address env) val))
+#+END_SRC
