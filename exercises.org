@@ -16920,66 +16920,119 @@ Various ~cond~ instances allow the tracing to be hidden.
 *** lexical-address-… lookup & set!
 
 Both ~lookup~ and ~set!~ share a common core of going to and address.
-So, this is split to a separate procedure.
-Internally, ~do-n~ is a general procedure to do something to something n times.
+However, after some headache (see next ex) these been set to individual procs.
+
+Both use ~do-n~, which does some proc n times to something.
 
 #+BEGIN_SRC racket
-(define (lexical-address-get address env)
   (define (do-n n proc l)
     (if (= n 0)
-        l
-        (do-n (- n 1) proc (proc l))))
-  (let ((env-n (car address))
-        (pos-n (cdr address)))
-    (let ((e (do-n env-n cdr env)))
-      (if (eq? e the-empty-environment)
-          (error "No environment found LEXICAL-ADDRESS-GET" address)
-          (let ((p (do-n pos-n cdr (car e))))
-            (cdr p))))))
+      l
+      (do-n (- n 1) proc (proc l))))
 #+END_SRC
 
 #+BEGIN_SRC racket
-  (define (lexical-address-lookup address env)
-    (let ((val (car (lexical-address-get address env))))
-      (if (eq? val '*unassigned*)
-	  (error "Unassigned val LEXICAL-ADDRESS-LOOKUP" address)
-	  val)))
+(define (lexical-address-lookup addr env)
+  (let ((frm-n (frame-p addr))
+        (val-n (val-p addr)))
+    (let ((frame (do-n frm-n enclosing-environment env)))
+      (if (eq? frame the-empty-environment)
+          (error "No environment found LEXICAL-ADDRESS-GET" addr)
+          (let ((val (car (do-n val-n cdr (frame-values (first-frame frame))))))
+            (if (eq? val '*unassigned*)
+                (error "Unassigned val LEXICAL-ADDRESS-GET" addr)
+                val))))))
+#+END_SRC
 
-  (define (lexical-address-set! address env val)
-    (set-car! (lexical-address-get address env) val))
+#+BEGIN_SRC racket
+(define (lexical-address-set! addr env val)
+  (let ((frm-n (frame-p addr))
+        (val-n (val-p addr)))
+    (let ((frame (do-n frm-n enclosing-environment env)))
+      (if (eq? frame the-empty-environment)
+          (error "No environment found LEXICAL-ADDRESS-SET!" addr)
+          (cond ((= val-n 0)
+                 (set-car! (frame-values (first-frame frame)) val))
+                (else
+                 (set-cdr! (do-n (- val-n 1) cdr (frame-values (first-frame frame))) val)))))))
+#+END_SRC
+
+Lexical addresses are given by:
+
+#+BEGIN_SRC racket
+  (define (make-lex-addr frame-n val-n)
+  (list frame-n val-n))
+
+(define (frame-p lex-addr)
+  (car lex-addr))
+
+(define (val-p lex-addr)
+  (cadr lex-addr))
 #+END_SRC
 
 ** 5.40
 
-This is all straightforward.
-The compile time environment is added as 'ct-env' to the end of the relevant procedures.
-And, ~compile-lambda-body~ already extracts the relevant variables, so the only task is to construct a list of /something/ to function as values.
-Here, we use '*lex-addr-val*'.
+A first attempt claimed this was all straightforward.
+I retract this.
 
-At the moment I see no interest in distinguishing the compile time environment from the environments already in use.
-The only downside is carrying around 'empty' values.
+There are two issues.
+
+First, the difference between run-time, compile-time and global envs is super important.
+These all share the same structure, but what's present in compile-time won't match what's in global, and it's easy to get distracted by global when investigating run-time.
+
+Second, the run-time enviroment isn't amenable to general compile time analysis.
+The most significant difficulty I had was attempting to test everything with the cube-root proc.
+This has a bunch of nested definitions, and these don't work well with what's asked in these exercises (hence Ex. 5.43, I guess).
+
+The problem is definitions update the environment, but do so dynamically.
+That is, at least as far as the compiler is concerned.
+Hence, lexical lookups are often to the wrong place.
+E.g., if made before definitinos take place.
+
+There's no problem updating the compile-time environment when this happens (just parallel the manipulation of the main env).
+But, this is incompatible with the static result of lexical addressing.
+
+Now, all of this is clear if you pay enough attention to the way the compiler is set up, and don't think of definitions as assigning lambda expressions to variables.
+But, I didn't pay super close attention, and I only had a handful of hours sleep.
+And, when you're testing to ensure you haven't broken anything unexpected, this issue does come up, and it's not obvious from the ex that things are kind of broken for a moment, well…
+
+In any case…
+
+The compile time environment is added as 'ct-env' to the end of the relevant procedures.
+And, ~compile-lambda-body~ already extracts the relevant variables, so the only task is to add these to the env.
+
+A compile time enviroment is a list of lists of variables.
+I.e. the variable fragment of an enviroment.
+
+Extensions look like this:
 
 #+BEGIN_SRC racket
-  (define (compile-lambda-body exp proc-entry ct-env)
+  (define (extend-ct-environment base-env frame)
+  (cons frame base-env))
+#+END_SRC
+
+~compile-lambda-body~ is:
+
+#+BEGIN_SRC racket
+(define (compile-lambda-body exp proc-entry ct-env)
   (let ((formals (lambda-parameters exp)))
     (append-instruction-sequences
      (make-instruction-sequence
       '(env proc argl)
       '(env)
       `(,proc-entry
-	(assign env
-		(op compiled-procedure-env)
-		(reg proc))
-	(assign env
-		(op extend-environment)
-		(const ,formals)
-		(reg argl)
-		(reg env))))
+        (assign env
+                (op compiled-procedure-env)
+                (reg proc))
+        (assign env
+                (op extend-environment)
+                (const ,formals)
+                (reg argl)
+                (reg env))))
      (compile-sequence (lambda-body exp)
-		       'val
-		       'return
-		       (extend-environment formals (map (lambda (x) '*lex-addr-val*) formals) ct-env)))))
-
+                       'val
+                       'return
+                       (extend-ct-environment ct-env formals)))))
 #+END_SRC
 
 
@@ -16988,25 +17041,63 @@ The only downside is carrying around 'empty' values.
 Given the testing with ~lookup-variable-value~, ~get-lexical-address~ (rather than the less descriptive ~find-variable~) parallels the method used to trace a variable, and returns the result of the trace.
 
 #+BEGIN_SRC racket
-  (define (get-lexical-address var initial-env)
-  (let ((env-n 0)
-	(pos-n 0))
+  (define (get-lexical-address var env)
+  (let ((frm-n 0)
+	(val-n 0))
     (define (env-loop env)
-      (set! pos-n 0)
-      (define (scan vars vals)
+      (set! val-n 0)
+      (define (scan vars)
 	(cond ((null? vars)
-	       (set! env-n (+ env-n 1))
+	       (set! frm-n (+ frm-n 1))
 	       (env-loop (enclosing-environment env)))
 	      ((eq? var (car vars))
-	       (cons env-n pos-n))
+	       (make-lex-addr frm-n val-n))
 	      (else
 	       (begin
-		 (set! pos-n (+ 1 pos-n))
-		 (scan (cdr vars) (cdr vals))))))
+		 (set! val-n (+ 1 val-n))
+		 (scan (cdr vars))))))
       (if (eq? env the-empty-environment)
-	  env
+	  '*no-lex-addr-found*
 	  (let ((frame (first-frame env)))
-	    (scan (frame-variables frame) (frame-values frame)))))
-    (env-loop initial-env)))
+	    (scan frame))))
+    (env-loop env)))
 #+END_SRC
 
+** 5.42
+
+~compile-variable~ and ~compile-assignment~ are fairly simple.
+Note, it's not easy to inline the test as we're writing assembly.
+
+#+BEGIN_SRC racket
+  (define (compile-assignment exp target linkage ct-env)
+  (let ((var (assignment-variable exp))
+        (get-value-code (compile (assignment-value exp) 'val 'next ct-env)))
+    (let ((lex-addr (get-lexical-address var ct-env)))
+      (cond ((eq? lex-addr '*no-lex-addr-found*)
+             (end-with-linkage
+              linkage
+              (preserving '(env)
+                          get-value-code
+                          (make-instruction-sequence
+                           '(env val)
+                           (list target)
+                           `((perform (op set-variable-value!)
+                                      (const ,var)
+                                      (reg val)
+                                      (reg env))
+                             (assign ,target (const ok)))))))
+            (else
+             (end-with-linkage
+              linkage
+              (preserving '(env)
+                          get-value-code
+                          (make-instruction-sequence
+                           '(env val)
+                           (list target)
+                           `((perform (op lexical-address-set!)
+                                      (const ,lex-addr)
+                                      (reg val)
+                                      (reg env))
+                             (assign ,target (const ok)))))))))))
+
+#+END_SRC

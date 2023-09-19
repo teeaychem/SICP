@@ -1567,8 +1567,7 @@
                   (const ,var)
                   (reg val)
                   (reg env))
-         ;(assign ,target (const nok))
-         ))))))
+         (assign ,target (const ok))))))))
 
 ;; Compiling conditional expressions
 
@@ -1927,3 +1926,11 @@
 ;;                          guess
 ;;                          (cube-iter (improve guess))))
 ;;                    (cube-iter 1.0)))
+
+
+;; (compile-and-go '(((lambda (x y)
+;;                      (lambda (a b c d e)
+;;                        ((lambda (y z) (* x y z))
+;;                         (* a b x) (+ c d x))))
+;;                    3 4)
+;;                   1 2 3 4 5))
