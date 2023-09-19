@@ -935,6 +935,8 @@
             (scan (frame-variables frame) (frame-values frame)))))
     (env-loop main-env)))
 
+;; lexical addressing
+
 (define (lexical-address-get address env)
   (define (do-n n proc l)
     (if (= n 0)
@@ -957,6 +959,31 @@
 (define (lexical-address-set! address env val)
   (set-car! (lexical-address-get address env) val))
 
+
+(define (get-lexical-address var initial-env)
+  (let ((env-n 0)
+        (pos-n 0))
+    (define (env-loop env)
+      (set! pos-n 0)
+      (define (scan vars vals)
+        (cond ((null? vars)
+               (set! env-n (+ env-n 1))
+               (env-loop (enclosing-environment env)))
+              ((eq? var (car vars))
+               (cons env-n pos-n))
+              (else
+               (begin
+                 (set! pos-n (+ 1 pos-n))
+                 (scan (cdr vars) (cdr vals))))))
+      (if (eq? env the-empty-environment)
+          env
+          (let ((frame (first-frame env)))
+            (scan (frame-variables frame) (frame-values frame)))))
+    (env-loop initial-env)))
+
+
+
+;; back to before
 
 (define (unassigned-variable? exp)
   (eq? exp the-empty-environment))
@@ -1571,10 +1598,10 @@
   (and (pair? exp) (eq? (car exp) operation)))
 
 
-(define (open-coded-op exp target linkage operation)
+(define (open-coded-op exp target linkage ct-env operation)
   (let ((operand-codes
          (map (lambda (operand)
-                (compile operand 'val 'next))
+                (compile operand 'val 'next ct-env))
               (operands exp))))
     (preserving
      '(continue)
@@ -1605,35 +1632,35 @@
 
 ;;
 
-(define (compile exp target linkage)
+(define (compile exp target linkage ct-env)
   (cond ((self-evaluating? exp)
-         (compile-self-evaluating exp target linkage))
+         (compile-self-evaluating exp target linkage ct-env))
         ((quoted? exp)
-         (compile-quoted exp target linkage))
+         (compile-quoted exp target linkage ct-env))
         ((variable? exp)
-         (compile-variable exp target linkage))
+         (compile-variable exp target linkage ct-env))
         ((assignment? exp)
-         (compile-assignment exp target linkage))
+         (compile-assignment exp target linkage ct-env))
         ((definition? exp)
-         (compile-definition exp target linkage))
+         (compile-definition exp target linkage ct-env))
         ((if? exp)
-         (compile-if exp target linkage))
+         (compile-if exp target linkage ct-env))
         ((lambda? exp)
-         (compile-lambda exp target linkage))
+         (compile-lambda exp target linkage ct-env))
         ((begin? exp)
-         (compile-sequence (begin-actions exp) target linkage))
+         (compile-sequence (begin-actions exp) target linkage ct-env))
         ((cond? exp)
-         (compile (cond->if exp) target linkage))
-        ;; ((open-coded-test-op? exp '=)
-        ;;  (open-coded-op exp target linkage '=))
-        ;; ((open-coded-test-op? exp '*)
-        ;;  (open-coded-op (binarise exp) target linkage '*))
-        ;; ((open-coded-test-op? exp '-)
-        ;;  (open-coded-op exp target linkage '-))
-        ;; ((open-coded-test-op? exp '+)
-        ;;  (open-coded-op (binarise exp) target linkage '+))
+         (compile (cond->if exp) target linkage ct-env))
+         ((open-coded-test-op? exp '=)
+          (open-coded-op exp target linkage ct-env '=))
+         ((open-coded-test-op? exp '*)
+          (open-coded-op (binarise exp) target linkage ct-env '*))
+         ((open-coded-test-op? exp '-)
+          (open-coded-op exp target linkage ct-env '-))
+         ((open-coded-test-op? exp '+)
+          (open-coded-op (binarise exp) target linkage ct-env '+))
         ((application? exp)
-         (compile-application exp target linkage))
+         (compile-application exp target linkage ct-env))
         (else
          (error "Unknown expression type: COMPILE" exp))))
 
@@ -1666,13 +1693,13 @@
 
 ;; Compiling simple expressions
 
-(define (compile-self-evaluating exp target linkage)
+(define (compile-self-evaluating exp target linkage ct-env)
   (end-with-linkage
    linkage (make-instruction-sequence  '()
                                        (list target)
                                        `((assign ,target (const ,exp))))))
 
-(define (compile-quoted exp target linkage)
+(define (compile-quoted exp target linkage ct-env)
   (end-with-linkage
    linkage
    (make-instruction-sequence
@@ -1681,7 +1708,7 @@
     `((assign ,target
        (const ,(text-of-quotation exp)))))))
 
-(define (compile-variable exp target linkage)
+(define (compile-variable exp target linkage ct-env)
   (end-with-linkage
    linkage
    (make-instruction-sequence '(env)
@@ -1691,10 +1718,10 @@
                                         (const ,exp)
                                         (reg env))))))
 
-(define (compile-assignment exp target linkage)
+(define (compile-assignment exp target linkage ct-env)
   (let ((var (assignment-variable exp))
         (get-value-code
-         (compile (assignment-value exp) 'val 'next)))
+         (compile (assignment-value exp) 'val 'next ct-env)))
     (end-with-linkage
      linkage
      (preserving '(env)
@@ -1708,10 +1735,10 @@
                              (reg env))
                     (assign ,target (const ok))))))))
 
-(define (compile-definition exp target linkage)
+(define (compile-definition exp target linkage ct-env)
   (let ((var (definition-variable exp))
         (get-value-code
-         (compile (definition-value exp) 'val 'next)))
+         (compile (definition-value exp) 'val 'next ct-env)))
     (end-with-linkage
      linkage
      (preserving
@@ -1728,7 +1755,7 @@
 
 ;; Compiling conditional expressions
 
-(define (compile-if exp target linkage)
+(define (compile-if exp target linkage ct-env)
   (let ((t-branch (make-label 'true-branch))
         (f-branch (make-label 'false-branch))
         (after-if (make-label 'after-if)))
@@ -1737,15 +1764,17 @@
                after-if
                linkage)))
       (let ((p-code
-             (compile (if-predicate exp) 'val 'next))
+             (compile (if-predicate exp) 'val 'next ct-env))
             (c-code
              (compile (if-consequent exp)
                       target
-                      consequent-linkage))
+                      consequent-linkage
+                      ct-env))
             (a-code
              (compile (if-alternative exp)
                       target
-                      linkage)))
+                      linkage
+                      ct-env)))
         (preserving
          '(env continue)
          p-code
@@ -1764,18 +1793,19 @@
 
 ;; Compiling sequences
 
-(define (compile-sequence seq target linkage)
+(define (compile-sequence seq target linkage ct-env)
   (if (last-exp? seq)
-      (compile (first-exp seq) target linkage)
+      (compile (first-exp seq) target linkage ct-env)
       (preserving '(env continue)
-       (compile (first-exp seq) target 'next)
+       (compile (first-exp seq) target 'next ct-env)
        (compile-sequence (rest-exps seq)
                          target
-                         linkage))))
+                         linkage
+                         ct-env))))
 
 ;; Compiling lambda expressions
 
-(define (compile-lambda exp target linkage)
+(define (compile-lambda exp target linkage ct-env)
   (let ((proc-entry (make-label 'entry))
         (after-lambda (make-label 'after-lambda)))
     (let ((lambda-linkage
@@ -1794,10 +1824,10 @@
              (op make-compiled-procedure)
              (label ,proc-entry)
              (reg env)))))
-        (compile-lambda-body exp proc-entry))
+        (compile-lambda-body exp proc-entry ct-env))
        after-lambda))))
 
-(define (compile-lambda-body exp proc-entry)
+(define (compile-lambda-body exp proc-entry ct-env)
   (let ((formals (lambda-parameters exp)))
     (append-instruction-sequences
      (make-instruction-sequence
@@ -1814,15 +1844,16 @@
                 (reg env))))
      (compile-sequence (lambda-body exp)
                        'val
-                       'return))))
+                       'return
+                       (extend-environment formals (map (lambda (x) '*lex-addr-val*) formals) ct-env)))))
 
 ;; Compiling Combinations
 
-(define (compile-application exp target linkage)
-  (let ((proc-code (compile (operator exp) 'proc 'next))
+(define (compile-application exp target linkage ct-env)
+  (let ((proc-code (compile (operator exp) 'proc 'next ct-env))
         (operand-codes
          (map (lambda (operand)
-                (compile operand 'val 'next))
+                (compile operand 'val 'next ct-env))
               (operands exp))))
     (preserving
      '(env continue)
@@ -2063,18 +2094,20 @@
 ;;
 
 (define (compile-and-go expression)
-  (let ((instructions
+  (let* ((ct-env the-empty-environment)
+         (instructions
          (assemble
-          (statements (compile expression 'val 'return)) eceval)))
+          (statements (compile expression 'val 'return ct-env)) eceval)))
     (set! the-global-environment (setup-environment))
     (set-register-contents! eceval 'val instructions)
     (set-register-contents! eceval 'flag true)
     (start eceval)))
 
 (define (compile-display-and-go expression)
-  (let ((instructions
+  (let* ((ct-env the-empty-environment)
+         (instructions
          (assemble
-          (statements (compile expression 'val 'return)) eceval)))
+          (statements (compile expression 'val 'return ct-env)) eceval)))
     (set! the-global-environment (setup-environment))
     (set-register-contents! eceval 'val instructions)
     (set-register-contents! eceval 'flag true)
@@ -2132,7 +2165,7 @@
 ;;                          (count-up (- n 1) m)
 ;;                          (display n)))))
 
-(compile-and-go '(define (cube-root x)
+(compile-display-and-go '(define (cube-root x)
                    (define (cube-iter guess)
                      (define (cube x) (* x x x))
                      (define (good-guess? guess) (< (abs (- (cube guess) x)) 0.001))
