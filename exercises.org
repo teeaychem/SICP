@@ -16948,3 +16948,65 @@ Internally, ~do-n~ is a general procedure to do something to something n times.
   (define (lexical-address-set! address env val)
     (set-car! (lexical-address-get address env) val))
 #+END_SRC
+
+** 5.40
+
+This is all straightforward.
+The compile time environment is added as 'ct-env' to the end of the relevant procedures.
+And, ~compile-lambda-body~ already extracts the relevant variables, so the only task is to construct a list of /something/ to function as values.
+Here, we use '*lex-addr-val*'.
+
+At the moment I see no interest in distinguishing the compile time environment from the environments already in use.
+The only downside is carrying around 'empty' values.
+
+#+BEGIN_SRC racket
+  (define (compile-lambda-body exp proc-entry ct-env)
+  (let ((formals (lambda-parameters exp)))
+    (append-instruction-sequences
+     (make-instruction-sequence
+      '(env proc argl)
+      '(env)
+      `(,proc-entry
+	(assign env
+		(op compiled-procedure-env)
+		(reg proc))
+	(assign env
+		(op extend-environment)
+		(const ,formals)
+		(reg argl)
+		(reg env))))
+     (compile-sequence (lambda-body exp)
+		       'val
+		       'return
+		       (extend-environment formals (map (lambda (x) '*lex-addr-val*) formals) ct-env)))))
+
+#+END_SRC
+
+
+** 5.41
+
+Given the testing with ~lookup-variable-value~, ~get-lexical-address~ (rather than the less descriptive ~find-variable~) parallels the method used to trace a variable, and returns the result of the trace.
+
+#+BEGIN_SRC racket
+  (define (get-lexical-address var initial-env)
+  (let ((env-n 0)
+	(pos-n 0))
+    (define (env-loop env)
+      (set! pos-n 0)
+      (define (scan vars vals)
+	(cond ((null? vars)
+	       (set! env-n (+ env-n 1))
+	       (env-loop (enclosing-environment env)))
+	      ((eq? var (car vars))
+	       (cons env-n pos-n))
+	      (else
+	       (begin
+		 (set! pos-n (+ 1 pos-n))
+		 (scan (cdr vars) (cdr vals))))))
+      (if (eq? env the-empty-environment)
+	  env
+	  (let ((frame (first-frame env)))
+	    (scan (frame-variables frame) (frame-values frame)))))
+    (env-loop initial-env)))
+#+END_SRC
+
