@@ -17199,34 +17199,66 @@ Note, it's not easy to inline the test as we're writing assembly.
                              (assign ,target (const ok)))))))))))
 #+END_SRC
 
-* Testing
+** 5.43
+
+*** Huh, scan-out-defines (as defined above) and mutation
+
+~scan-out-defines~ is defined as in Ex. 4.16.
+The following is evaluated:
 
 #+BEGIN_SRC racket
-  (define cube-root
-    (lambda (x)
-      ((lambda (cube-iter)
-	 ((set! cube-iter
-	    (lambda (guess)
-	      ((lambda (improve good-guess? cube)
-		 ((set! cube (lambda (x) (* x x x)))
-		  (set! good-guess? (lambda (guess) (< (abs (- (cube guess) x)) 0.001)))
-		  (set! improve (lambda (guess) (/ (+ (/ x (* guess guess)) (* 2 guess)) 3)))
-		  (if (good-guess? guess) guess (cube-iter (improve guess)))))
-	       '*
-	       '*
-	       '*)))
-	  (cube-iter 1.0)))
-       '*)))
+  (define (interrupt proc arg)
+    (proc arg))
 
-(cube-root 5)
+  (define exp0 '(define (f x)
+		  (define a 4)
+		  (define b 5)
+		  (+ a b x)))
+
+  (define exp1 (scan-out-defines '(define (f x)
+				    (define a 4)
+				    (define b 5)
+				    (+ a b x))))
+
+
+  (scan-out-defines exp0)
+  (interrupt scan-out-defines exp0)
+  exp1
 #+END_SRC
 
-#+RESULTS:
-: application: not a procedure;
-:  expected a procedure that can be applied to arguments
-:   given: #<void>
-:   context...:
-:    /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-fDLlxQ/org-babel-MUrPiK.rkt:7:12: cube-iter
-:    [repeats 3 more times]
-:    /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-fDLlxQ/org-babel-MUrPiK.rkt:4:4: cube-root
-:    body of "/var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-fDLlxQ/org-babel-MUrPiK.rkt"
+The result is:
+
+#+BEGIN_SRC racket
+  (define f (lambda (x) ((lambda (b a) (begin (set! a 4) (set! b 5) (+ a b x))) '? '?)))
+  (define f (lambda (x) (set! a 4) (set! b 5) (+ a b x)))
+  (define f (lambda (x) ((lambda (b a) (begin (set! a 4) (set! b 5) (+ a b x))) '? '?)))
+#+END_SRC
+
+
+And, now a slight change:
+
+#+BEGIN_SRC racket
+  (define (interrupt proc arg)
+    (proc arg))
+  (define exp0 '(define (f x)
+		  (define a 4)
+		  (define b 5)
+		  (+ a b x)))
+  (define exp1 (scan-out-defines exp0))
+
+  (scan-out-defines exp0)
+  (interrupt scan-out-defines exp0)
+  exp1
+#+END_SRC
+
+Results in:
+
+#+BEGIN_SRC racket
+  (define f (lambda (x) (set! a 4) (set! b 5) (+ a b x)))
+  (define f (lambda (x) (set! a 4) (set! b 5) (+ a b x)))
+  (define f (lambda (x) ((lambda (b a) (begin (set! a 4) (set! b 5) (+ a b x))) '? '?)))
+#+END_SRC
+
+The problem is the ~scan-out-defines~ given is destructive.
+Rather than recreating an expression from scratch, the original expression is modified, and then a variation using the modification is returned.
+Maybe not the best practice…
