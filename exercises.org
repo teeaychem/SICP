@@ -16996,6 +16996,20 @@ Now, all of this is clear if you pay enough attention to the way the compiler is
 But, I didn't pay super close attention, and I only had a handful of hours sleep.
 And, when you're testing to ensure you haven't broken anything unexpected, this issue does come up, and it's not obvious from the ex that things are kind of broken for a moment, well…
 
+Though, looking at this /again/ I'm still very puzzled.
+The issue is definitions adjust the enviroment.
+And, we haven't implementated a way to either separate or secure the compile time address.
+Working with internal definition (Ex. 5.43) won't address this issue.
+Unless all given definitions are treated this way.
+The easiest way to do this is to implement elimination of internal definitions and then wrap any compiled procedure via:
+
+#+BEGIN_SRC racket
+  (define (let-wrap exp)
+    `(let () ,exp))
+#+END_SRC
+
+
+
 In any case…
 
 The compile time environment is added as 'ct-env' to the end of the relevant procedures.
@@ -17101,3 +17115,4 @@ Note, it's not easy to inline the test as we're writing assembly.
                              (assign ,target (const ok)))))))))))
 
 #+END_SRC
+
