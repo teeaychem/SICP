@@ -17197,6 +17197,8 @@ Note, it's not easy to inline the test as we're writing assembly.
 
 ** 5.43
 
+
+
 *** Huh, scan-out-defines (as defined above) and mutation
 
 ~scan-out-defines~ is defined as in Ex. 4.16.
@@ -17259,6 +17261,135 @@ The problem is the ~scan-out-defines~ given is destructive.
 Rather than recreating an expression from scratch, the original expression is modified, and then a variation using the modification is returned.
 Maybe not the best practice…
 
-*** idea
 
+~compile-and-go~ now reads as follows:
 
+#+BEGIN_SRC racket
+  (define (compile-and-go show-option expression)
+    (let* ((data (skim-defines (scan-out-defines expression)))
+	   (scanned-exp (cdr data))
+	   (ct-env (extend-ct-environment the-empty-environment (car data)))
+	   (instructions
+	    (assemble
+	     (statements (compile scanned-exp 'val 'return ct-env)) eceval)))
+      (set! the-global-environment (setup-environment))
+      (set-register-contents! eceval 'val instructions)
+      (set-register-contents! eceval 'flag true)
+      (set! the-global-environment (extend-environment (car data) (map (lambda (x) '*) (car data)) the-global-environment))
+      (cond ((= show-option 1)
+	      (for-each (lambda (i) (display (cadr i)) (newline)) instructions))
+	    ((= show-option 2)
+	     (display scanned-exp)
+	     (newline)
+	     (display ct-env)
+	     (newline)
+	     (display the-global-environment))))
+      (start eceval))
+#+END_SRC
+
+The option for showing information can be ignored here.
+The important stuff happens at the start.
+
+~data~ is the result of two procs. applied to the epxression.
+First, ~scan-out-defines~, which works as before.
+And internal definitions are scanned out.
+
+~skim-defines~ is where the interesting work happens.
+This takes any 'top level' defines and changes these to ~set!~ expressions.
+Returned is a pair consisting of the variables for the definitions on the ~car~ and the new expressions on the ~cdr~.
+
+With this we can set up an initial environment where compiled defitions are treated to lexical addressing.
+
+As immediately follows, we have the scanned expressions, and then the initial compiled time enviroment is built any found variables.
+
+Indeed, this is all that needs to happen.
+
+With one exception.
+A sequence needs to be marked with ~begin~.
+(This was so difficult to track down!)
+
+~skim-defines~ is not too interesting:
+
+#+BEGIN_SRC racket
+  (define (skim-defines exp)
+  (cond ((definition? exp)
+	 (cons (list (definition-variable exp)) (list 'set! (definition-variable exp) (definition-value exp))))
+	((application? exp)
+	 (let ((vars (list ))
+	       (exps (list )))
+	   (define (loop pxe)
+	     (cond ((and (not (null? pxe)) (definition? (car pxe)))
+		    (let ((sub-exp (car pxe)))
+		      (set! vars (append-elem (definition-variable sub-exp) vars))
+		      (set! exps (append-elem (list 'set! (definition-variable sub-exp) (definition-value sub-exp)) exps))
+		      (loop (cdr pxe))))
+		   ((not (null? pxe))
+		    (set! exps (append-elem (car pxe) exps))
+		    (loop (cdr pxe))
+		    )))
+	   (loop exp)
+	   (cons vars exps)))
+	(else (cons nil exp))))
+#+END_SRC
+
+*** an open-coded issue
+
+At this point the following compiles are works fine:
+
+#+BEGIN_SRC racket
+  (compile-and-go 2 '(define (factorial n) (if (= n 1) 1 (* (factorial (- n 1)) n))))
+#+END_SRC
+
+The scanned expression is:
+
+#+BEGIN_SRC racket
+  (set! factorial (lambda (n) (if (= n 1) 1 (* (factorial (- n 1)) n))))
+#+END_SRC
+
+The following complies and does /not/ work fine:
+
+#+BEGIN_SRC racket
+  (compile-and-go 2 '(define (factorial n) (if (= n 1) 1 (* n (factorial (- n 1))))))
+#+END_SRC
+
+The scanned expression is:
+
+#+BEGIN_SRC racket
+  (set! factorial (lambda (n) (if (= n 1) 1 (* n (factorial (- n 1))))))
+#+END_SRC
+
+The only difference is switching the order of multiplication.
+
+The problem is somewhere in open coding.
+Surprisingly, this isn't related to tail recursion.
+
+The fix was to preserve the enviroment.
+
+~spread-arguments~now reads:
+
+#+BEGIN_SRC racket
+  (define (spread-arguments operand-codes)
+  (cond ((or (null? operand-codes)
+	     (null? (car operand-codes))
+	     (null? (cdr operand-codes)))
+	 (error "Open coded primitive without two arguments"))
+	((and
+	  (not (null? (cdr operand-codes)))
+	  (not (null? (cddr operand-codes))))
+	 (error "Open coded primitive with more than two arguments"))
+	(else
+	 (preserving '(env)
+		     (cadr operand-codes) ;; figure out the first
+		     (preserving
+		      '(val)
+		      (append-instruction-sequences
+		       (car operand-codes)
+		       (make-instruction-sequence
+			'(val)
+			'(arg1)
+			'((assign arg1 (reg val)))))
+		      (make-instruction-sequence
+		       '(val)
+		       '(arg2)
+		       '((assign arg2 (reg val)))))))))
+#+END_SRC
