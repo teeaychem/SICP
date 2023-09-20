@@ -7,6 +7,7 @@
 ;; * Added support for while constructs
 ;; * Added support for scan-out-defines (I think).
 ;; * Added support for letrec.
+;; * Updated support for scan-out-defines.
 
 (define (append list1 list2)
   (if (null? list1)
@@ -533,23 +534,41 @@
 
 
 ;; scan-out-defines
-(define (scan-out-defines body)
-  (let* ((term-list (cons 'terms nil))
-         (last-term term-list))
+(define (proc-def? exp)
+  (and (tagged-list? exp 'define)
+       (not (symbol? (cadr exp)))))
+
+
+
+(define (substitute exp)
+  (let* ((term-list (list ))
+         (go? #f)
+         (params (lambda-parameters exp))
+         (content (lambda-body exp)))
     (define (collect-replace exp)
-      (cond ((and (definition? exp) (symbol? (cadr exp)))
-             (let ((cell (cons (definition-variable exp) nil)))
-               (set-cdr! last-term cell)
-               (set! last-term cell))
+      (cond ((definition? exp)
+             (set! term-list (cons (definition-variable exp) term-list))
+             (set! go? #t)
+             (set-cdr! exp (list (definition-variable exp) (scan-out-defines (definition-value exp))))
              (set-car! exp 'set!)
              exp)
             (else exp)))
-    (if (> 1 (length term-list))
-        (let ((new-bod (map collect-replace body)))
-          (make-let
-           (map (lambda (t) (cons t '*unassigned*)) (cdr term-list))
-           (list new-bod)))
-        body)))
+    (let* ((scanned-bod (cons 'begin (map collect-replace content)))
+           (new-bod (cons (list
+                           'lambda
+                           term-list
+                           scanned-bod)
+                          (map (lambda (x) ''?) term-list))))
+      (if go?
+          (make-lambda params (list new-bod))
+          exp))))
+
+(define (scan-out-defines body)
+  (cond ((proc-def? body)
+         (list 'define (definition-variable body) (scan-out-defines (definition-value body))))
+        ((lambda? body) (substitute body))
+        ((application? body) (map scan-out-defines body))
+        (else body)))
 
 ;; letrec
 

@@ -11267,70 +11267,154 @@ Hm.
 
 *** b.
 
-It's a little messy, though today it's too late for improvements.
+This is revised from a first attempt, which was very messy and not particularly good.
 
-In short, we set up a list for the terms, and a pointer to the last element of the list in order to easily add new elements.
-Then, the core of the procedure is the 'destructive' ~collect-replace~.
-This adds elements to the list, and rewrites the body.
-We apply this to each expression in the body by ~map~.
-As ~collect-replace~ builds the term list, we store the output and then make a call to ~make-let~.
+The key idea of the revised version is we have a recursive procedure which focuses on lambda expressions and appeals to the way definitions and applications are handled for the general case.
 
-Could parse and replace separately, but that's two scans of the body.
-So, while conceptually nice, is fairly inefficient.
+Specifically, in the case of definitions the proc returns the definition with the lambda expansion (if any) scanned-out and applications are scanned out instruction by instruction.
 
-Could also do something more involved for procedure definitions, as these are rewritten.
-Though, I don't see this as expected, and it's not super interesting.
+The scanning out starts by creating a term list and separating the body of the lmabda expression from the parameters.
+The body is scanned, and when a definition is found this is scanned out, with ~scan-out-defines~ being recusively applied to the (lambda-expanded) body.
 
-Update: I'm not clear on whether this /actually/ works.
-The output is as expected in tests, but it causes some issues if applied to any body.
-For the moment, this is modified to only make the transformation if an internal definiton is found.
-Update 2: The modification ensured the proc always retruned the body.
-This is fixed by explicitly setting a flag for whether a definition has been found.
-Also, commented option to allow application to a single definition.
-()
+This only happens when a definition is scanned out, and if this is the case then the body of the lambda is a sequence, so we append the scanning out with ~begin~.
+
+Then, a lambda is made with the scanned out body and empty arguments.
+
+All of this is returned only if scannning out happens, else everything would be wrapped in lambdas.
+
 
 #+BEGIN_SRC racket
-  (define (scan-out-defines body)
-    (let* ((term-list (cons 'terms nil))
-	   (last-term term-list)
-	  (go? #f))
-      (define (collect-replace exp)
-	(cond ((and (definition? exp))
-	       (let ((cell (cons (definition-variable exp) nil)))
-		 (set-cdr! last-term cell)
-		(set! last-term cell)
-		(set! go? #t))
-	       (set-car! exp 'set!)
-	       exp)
-	      (else exp)))
-      (let ((new-bod
-	     ;; (if (not (pair? (car body)))
-	     ;; (collect-replace body)
-	     (map collect-replace body)
-	     ;; )
-	     ))
-	(if go?
-	    (let->combination (make-let
-			       (map (lambda (t) (list t ''*undefined*)) (cdr term-list))
-			       (list new-bod)))
-	    body))))
+  (define (proc-def? exp)
+  (and (tagged-list? exp 'define)
+       (not (symbol? (cadr exp)))))
+
+(define (substitute exp)
+  (let* ((term-list (list ))
+         (go? #f)
+         (params (lambda-parameters exp))
+         (content (lambda-body exp)))
+    (define (collect-replace exp)
+      (cond ((definition? exp)
+             (set! term-list (cons (definition-variable exp) term-list))
+             (set! go? #t)
+             (set-cdr! exp (list (definition-variable exp) (scan-out-defines (definition-value exp))))
+             (set-car! exp 'set!)
+             exp)
+            (else exp)))
+    (let* ((scanned-bod (cons 'begin (map collect-replace content)))
+           (new-bod (cons (list
+                           'lambda
+                           term-list
+                           scanned-bod)
+                          (map (lambda (x) ''?) term-list))))
+      (if go?
+          (make-lambda params (list new-bod))
+          exp))))
+
+(define (scan-out-defines body)
+  (cond ((proc-def? body)
+         (list 'define (definition-variable body) (scan-out-defines (definition-value body))))
+        ((lambda? body) (substitute body))
+        ((application? body) (map scan-out-defines body))
+        (else body)))
 #+END_SRC
 
-The following evaluates fine:
+**** examples
+
+***** even/odd
 
 #+BEGIN_SRC racket
-  (define (f x)
-    (define (even? n)
-      (if (= n 0)
-	  true
-	  (odd? (- n 1))))
-    (define (odd? n)
-      (if (= n 0)
-	  false
-	  (even? (- n 1))))
-    (even? x))
+(scan-out-defines '(define (e x)
+                     (define (even? n)
+                       (if (= n 0)
+                           true
+                           (odd? (- n 1))))
+                     (define (odd? n)
+                       (if (= n 0)
+                           false
+                           (even? (- n 1))))
+                     (even? x)))
 #+END_SRC
 
+#+BEGIN_SRC racket
+  (define e
+    (lambda (x)
+      ((lambda (odd? even?)
+	 (begin
+	   (set! even? (lambda (n) (if (= n 0) true (odd? (- n 1)))))
+	   (set! odd? (lambda (n) (if (= n 0) false (even? (- n 1)))))
+	   (even? x)))
+       '?
+       '?)))
+#+END_SRC
+
+***** basic lambda
+
+#+BEGIN_SRC racket
+(scan-out-defines '(define (f x)
+                     (define a 4)
+                     (define b 5)
+                     (+ a b x)))
+#+END_SRC
+
+#+BEGIN_SRC racket
+  (define f (lambda (x) ((lambda (b a) (begin (set! a 4) (set! b 5) (+ a b x))) '? '?)))
+#+END_SRC
+
+***** more lambda, no defs
+
+#+BEGIN_SRC racket
+(scan-out-defines '(((lambda (x y)
+                     (lambda (a b c d e)
+                       ((lambda (y z) (* x y z))
+                        (* a b x) (+ c d x))))
+                   3 4)
+                    1 2 3 4 5))
+#+END_SRC
+
+#+BEGIN_SRC racket
+  (((lambda (x y) (lambda (a b c d e) ((lambda (y z) (* x y z)) (* a b x) (+ c d x)))) 3 4)
+   1
+   2
+   3
+   4
+   5)
+#+END_SRC
+
+***** cube-root
+
+#+BEGIN_SRC racket
+  (scan-out-defines '(define (cube-root x)
+		       (define (cube-iter guess)
+			 (define (cube x) (* x x x))
+			 (define (good-guess? guess) (< (abs (- (cube guess) x)) 0.001))
+			 (define (improve guess) (/ (+ (/ x (* guess guess)) (* 2 guess)) 3))
+			 (if (good-guess? guess)
+			     guess
+			     (cube-iter (improve guess))))
+		       (cube-iter 1.0)))
+
+#+END_SRC
+
+#+BEGIN_SRC racket
+  (define cube-root
+    (lambda (x)
+      ((lambda (cube-iter)
+	 (begin
+	   (set! cube-iter
+		 (lambda (guess)
+		   ((lambda (improve good-guess? cube)
+		      (begin
+			(set! cube (lambda (x) (* x x x)))
+			(set! good-guess? (lambda (guess) (< (abs (- (cube guess) x)) 0.001)))
+			(set! improve (lambda (guess) (/ (+ (/ x (* guess guess)) (* 2 guess)) 3)))
+			(if (good-guess? guess) guess (cube-iter (improve guess)))))
+		    '?
+		    '?
+		    '?)))
+	   (cube-iter 1.0)))
+       '?)))
+#+END_SRC
 
 *** c.
 
@@ -15235,9 +15319,9 @@ So, we multiply the fibonacci sequence by 16, and the ratio also increases by 40
 
 #+BEGIN_SRC racket
   (define (fib n)
-  (if (< n 2)
-      n
-      (+ (fib (- n 1)) (fib (- n 2)))))
+    (if (< n 2)
+	n
+	(+ (fib (- n 1)) (fib (- n 2)))))
 
   (define (total-pushes n)
     (* (+ 40 16) (fib (+ n 1))))
@@ -15262,9 +15346,9 @@ But, this is 40 too much…
 
 #+BEGIN_SRC racket
   (define (fib n)
-  (if (< n 2)
-      n
-      (+ (fib (- n 1)) (fib (- n 2)))))
+    (if (< n 2)
+	n
+	(+ (fib (- n 1)) (fib (- n 2)))))
 
   (define (total-pushes n)
     (- (* (+ 40 16) (fib (+ n 1))) 40))
@@ -15296,7 +15380,7 @@ We've already covered the base case.
 Our goal is to show:
 
 #+BEGIN_SRC racket
-  (- (* 56 (fib (+ n 1))) 40) = (+ 40 (total-pushes (- n 1)) (total-pushes (- n 2))
+  (- (* 56 (fib (+ n 1))) 40) = (+ 40 (total-pushes (- n 1)) (total-pushes (- n 2)))
 #+END_SRC
 
 This works out by a bit of substituation, granting the induction hypothesis.
@@ -16468,7 +16552,7 @@ Instead of reversing the operand codes, we work through these as given.
 		 '(env)
 		 code-to-get-last-arg
 		 (code-to-get-rest-args
-		  (cdr operand-codes))))))))
+		  (cdr operand-codes)))))))))
 #+END_SRC
 
 ~code-to-get-last-arg~ is misnamed in this case.
@@ -17113,6 +17197,36 @@ Note, it's not easy to inline the test as we're writing assembly.
                                       (reg val)
                                       (reg env))
                              (assign ,target (const ok)))))))))))
-
 #+END_SRC
 
+* Testing
+
+#+BEGIN_SRC racket
+  (define cube-root
+    (lambda (x)
+      ((lambda (cube-iter)
+	 ((set! cube-iter
+	    (lambda (guess)
+	      ((lambda (improve good-guess? cube)
+		 ((set! cube (lambda (x) (* x x x)))
+		  (set! good-guess? (lambda (guess) (< (abs (- (cube guess) x)) 0.001)))
+		  (set! improve (lambda (guess) (/ (+ (/ x (* guess guess)) (* 2 guess)) 3)))
+		  (if (good-guess? guess) guess (cube-iter (improve guess)))))
+	       '*
+	       '*
+	       '*)))
+	  (cube-iter 1.0)))
+       '*)))
+
+(cube-root 5)
+#+END_SRC
+
+#+RESULTS:
+: application: not a procedure;
+:  expected a procedure that can be applied to arguments
+:   given: #<void>
+:   context...:
+:    /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-fDLlxQ/org-babel-MUrPiK.rkt:7:12: cube-iter
+:    [repeats 3 more times]
+:    /var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-fDLlxQ/org-babel-MUrPiK.rkt:4:4: cube-root
+:    body of "/var/folders/jg/7666sp2944d0tzp1vhtlf5pm0000gn/T/babel-fDLlxQ/org-babel-MUrPiK.rkt"

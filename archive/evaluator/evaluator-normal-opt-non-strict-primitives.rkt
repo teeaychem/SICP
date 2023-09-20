@@ -10,6 +10,7 @@
 ;; * Changed to normal order evaluation, with memoisation
 ;; * Added non-strict/semi- primitive procedures (cons, car, cdr).
 ;; * Added lazy lists.
+;; * Updated support for scan-out defines
 
 (define (append list1 list2)
   (if (null? list1)
@@ -531,6 +532,8 @@
         (list '< <)
         (list 'display display)
         (list 'newline newline)
+        (list 'abs abs)
+        (list '/ /)
         ; ⟨more primitives⟩
         ))
 
@@ -609,32 +612,41 @@
 
 
 ;; scan-out-defines
+(define (proc-def? exp)
+  (and (tagged-list? exp 'define)
+       (not (symbol? (cadr exp)))))
 
-  (define (scan-out-defines body)
-    (let* ((term-list (cons 'terms nil))
-	   (last-term term-list)
-	  (go? #f))
-      (define (collect-replace exp)
-	(cond ((and (definition? exp))
-	       (let ((cell (cons (definition-variable exp) nil)))
-		 (set-cdr! last-term cell)
-		(set! last-term cell)
-		(set! go? #t))
-	       (set-car! exp 'set!)
-	       exp)
-	      (else exp)))
-      (let ((new-bod
-	     ;; (if (not (pair? (car body)))
-	     ;; (collect-replace body)
-	     (map collect-replace body)
-	     ;; )
-	     ))
-	(if go?
-	    (let->combination (make-let
-			       (map (lambda (t) (list t ''*undefined*)) (cdr term-list))
-			       (list new-bod)))
-	    body))))
 
+
+(define (substitute exp)
+  (let* ((term-list (list ))
+         (go? #f)
+         (params (lambda-parameters exp))
+         (content (lambda-body exp)))
+    (define (collect-replace exp)
+      (cond ((definition? exp)
+             (set! term-list (cons (definition-variable exp) term-list))
+             (set! go? #t)
+             (set-cdr! exp (list (definition-variable exp) (scan-out-defines (definition-value exp))))
+             (set-car! exp 'set!)
+             exp)
+            (else exp)))
+    (let* ((scanned-bod (cons 'begin (map collect-replace content)))
+           (new-bod (cons (list
+                           'lambda
+                           term-list
+                           scanned-bod)
+                          (map (lambda (x) ''?) term-list))))
+      (if go?
+          (make-lambda params (list new-bod))
+          exp))))
+
+(define (scan-out-defines body)
+  (cond ((proc-def? body)
+         (list 'define (definition-variable body) (scan-out-defines (definition-value body))))
+        ((lambda? body) (substitute body))
+        ((application? body) (map scan-out-defines body))
+        (else body)))
 ;; letrec
 
 (define (letrec? exp)
