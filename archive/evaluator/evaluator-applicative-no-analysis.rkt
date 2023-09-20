@@ -538,8 +538,6 @@
   (and (tagged-list? exp 'define)
        (not (symbol? (cadr exp)))))
 
-
-
 (define (substitute exp)
   (let* ((term-list (list ))
          (go? #f)
@@ -572,18 +570,18 @@
 
 ;; letrec
 
-    (define (letrec? exp)
-    (tagged-list? exp 'letrec))
+(define (letrec? exp)
+  (tagged-list? exp 'letrec))
 
 
-  (define (letrec-var-terms exp)
-		 (map car (cadr exp)))
+(define (letrec-var-terms exp)
+  (map car (cadr exp)))
 
-  (define (letrec-vars exp)
-    (cadr exp))
+(define (letrec-vars exp)
+  (cadr exp))
 
-  (define (letrec-assignments exp)
-    (cadr exp))
+(define (letrec-assignments exp)
+  (cadr exp))
 
   (define (change-to-set! assignments)
     (if (not (null? assignments))
@@ -620,7 +618,11 @@
 (define the-global-environment
   (setup-environment))
 
-(driver-loop)
+;; (driver-loop)
 
 
 
+(scan-out-defines '(lambda (x)
+                     (define a 4)
+                     (define b 5)
+                     (+ a b x)))
