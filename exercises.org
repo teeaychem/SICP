@@ -17029,16 +17029,13 @@ Both use ~do-n~, which does some proc n times to something.
 #+END_SRC
 
 #+BEGIN_SRC racket
-(define (lexical-address-set! addr env val)
-  (let ((frm-n (frame-p addr))
-        (val-n (val-p addr)))
-    (let ((frame (do-n frm-n enclosing-environment env)))
-      (if (eq? frame the-empty-environment)
-          (error "No environment found LEXICAL-ADDRESS-SET!" addr)
-          (cond ((= val-n 0)
-                 (set-car! (frame-values (first-frame frame)) val))
-                (else
-                 (set-cdr! (do-n (- val-n 1) cdr (frame-values (first-frame frame))) val)))))))
+  (define (lexical-address-set! addr env val)
+    (let ((frm-n (frame-p addr))
+	  (val-n (val-p addr)))
+      (let ((frame (do-n frm-n enclosing-environment env)))
+	(if (eq? frame the-empty-environment)
+	    (error "No environment found LEXICAL-ADDRESS-SET!" addr)
+	    (set-car! (do-n val-n cdr (frame-values (first-frame frame))) val)))))
 #+END_SRC
 
 Lexical addresses are given by:
@@ -17132,7 +17129,6 @@ Extensions look like this:
                        'return
                        (extend-ct-environment ct-env formals)))))
 #+END_SRC
-
 
 ** 5.41
 
@@ -17262,3 +17258,7 @@ Results in:
 The problem is the ~scan-out-defines~ given is destructive.
 Rather than recreating an expression from scratch, the original expression is modified, and then a variation using the modification is returned.
 Maybe not the best practice…
+
+*** idea
+
+
