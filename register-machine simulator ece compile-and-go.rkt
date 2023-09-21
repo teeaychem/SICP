@@ -23,6 +23,7 @@
 ;; * initial lexical-address-lookup
 ;; * extended lexical-address-lookup added
 ;; * small bug with open-coding fixed
+;; * open-coded operations revised and do not appear at run-time (so long as things are set up ok)
 
 ;; misc
 
@@ -679,7 +680,6 @@
                 (get-contents reg)))))
           (else (error "Bad GOTO instruction: ASSEMBLE" inst)))))
 
-
 (define (goto-dest goto-instruction)
   (cadr goto-instruction))
 
@@ -782,8 +782,7 @@
 (define (label-exp-label exp)
   (cadr exp))
 
-(define (make-operation-exp
-         exp machine labels operations)
+(define (make-operation-exp exp machine labels operations)
   (let ((op (lookup-prim
              (operation-exp-op exp)
              operations))
@@ -909,7 +908,9 @@
                      (expand-clauses rest))))))
 
 (define primitive-procedures
-  (list (list 'car car)
+  (list (list 'true true)
+        (list 'false false)
+        (list 'car car)
         (list 'cdr cdr)
         (list 'cons cons)
         (list 'null? null?)
@@ -957,11 +958,6 @@
 (define (lookup-variable-value var env)
   (lookup-variable-value-trace var env #f))
 
-(define (count l n)
-  (if (null? (cdr l))
-      n
-      (count (cdr l) (+ n 1))))
-
 (define (lookup-variable-value-trace var main-env trace)
   (cond ((eq? #t trace)
          (for-each display (list "looking for: " var))
@@ -977,13 +973,11 @@
               ((eq? var (car vars))
                (begin
                  (cond ((eq? #t trace)
-                        (for-each display (list "found at: " frm-n ", " val-n))
-                        (newline)
+                        (for-each display (list "found at: " frm-n ", " val-n "\n"))
                         (let ((lookup (lexical-address-lookup (make-lex-addr frm-n val-n) main-env)))
                           (if (tagged-list? lookup 'compiled-procedure)
                               (set! lookup 'compiled-procedure))
-                          (for-each display (list "lookup: " lookup))
-                        (newline))))
+                          (for-each display (list "lookup: " lookup "\n")))))
                  (car vals)))
               (else
                (begin
@@ -1012,15 +1006,18 @@
       (do-n (- n 1) proc (proc l))))
 
 (define (lexical-address-lookup addr env)
+  ;; (for-each display (list "\nlal: " addr "\n"))
   (let ((frm-n (frame-p addr))
         (val-n (val-p addr)))
     (let ((frame (do-n frm-n enclosing-environment env)))
       (if (eq? frame the-empty-environment)
           (error "No environment found LEXICAL-ADDRESS-GET" addr)
           (let ((val (car (do-n val-n cdr (frame-values (first-frame frame))))))
-            (if (eq? val '*oops*)
-                (error "Unassigned val LEXICAL-ADDRESS-GET" addr)
-                val))))))
+            (cond ((eq? val '*oops*)
+                   (error "Unassigned val LEXICAL-ADDRESS-GET" addr))
+                  (else
+                   ;; (if (not (pair? val)) (for-each display (list "lal found: " val "\n")))
+                   val)))))))
 
 
 (define (lexical-address-set! addr env val)
@@ -1033,6 +1030,7 @@
 
 
 (define (get-lexical-address var env)
+  ;; (for-each display (list "\n getting lex-addr: " var "\n"))
   (let ((frm-n 0)
 	(val-n 0))
     (define (env-loop env)
@@ -1042,7 +1040,9 @@
 	       (set! frm-n (+ frm-n 1))
 	       (env-loop (enclosing-environment env)))
 	      ((eq? var (car vars))
+               ;; (for-each display (list "\n lex-addr:" (make-lex-addr frm-n val-n) "\n"))
                (make-lex-addr frm-n val-n))
+              ;;              ((eq? the-empty-environment (car vars)) '*no-lex-addr-found*)
 	      (else
 	       (begin
 		 (set! val-n (+ 1 val-n))
@@ -1099,14 +1099,13 @@
 
 (define (prompt-for-input string)
   (newline) (newline) (display string) (newline))
+
 (define (setup-environment)
   (let ((initial-env
          (extend-environment
           (primitive-procedure-names)
           (primitive-procedure-objects)
           the-empty-environment)))
-    (define-variable! 'true true initial-env)
-    (define-variable! 'false false initial-env)
     initial-env))
 (define (announce-output string)
   (newline) (display string) (newline))
@@ -1134,8 +1133,18 @@
 (define (compiled-procedure-env c-proc)
   (caddr c-proc))
 
+(define open-eceval-operations
+  (list
+   (list '+ +)
+   (list '* *)
+   (list '- -)
+   (list '= =)
+   (list 'abs abs)
+   ; ⟨more ops⟩
+   ))
 
-(define eceval-operations
+
+(define closed-eceval-operations
   (list (list 'self-evaluating? self-evaluating?)
         (list 'variable? variable?)
         (list 'primitive-procedure? primitive-procedure?)
@@ -1210,12 +1219,10 @@
         (list 'list list)
         (list 'cons cons)
         (list 'append-elem append-elem)
-
-        (list '= =)
-        (list '* *)
-        (list '- -)
-        (list '+ +)
         ))
+
+(define eceval-operations
+  (append open-eceval-operations closed-eceval-operations))
 
 (define eceval
   (make-machine
@@ -1673,7 +1680,6 @@
 (define (open-coded-test-op? exp operation)
   (and (pair? exp) (eq? (car exp) operation)))
 
-
 (define (open-coded-op exp target linkage ct-env operation)
   (let ((operand-codes
          (map (lambda (operand)
@@ -1705,8 +1711,7 @@
 	      (error "Not enoguh operands")
 	      (make-binary-exp op operands)))))
 
-
-;;
+;; compile
 
 (define (compile exp target linkage ct-env)
   (cond ((self-evaluating? exp)
@@ -1734,7 +1739,7 @@
         ((open-coded-test-op? exp '-)
          (open-coded-op exp target linkage ct-env '-))
         ((open-coded-test-op? exp '+)
-         (open-coded-op (binarise exp) target linkage ct-env '+))
+        (open-coded-op (binarise exp) target linkage ct-env '+))
         ((application? exp)
          (compile-application exp target linkage ct-env))
         (else
@@ -2188,28 +2193,53 @@
    (append (statements seq1)
            (statements seq2))))
 
+;; combined env.
+
+(define (extend-env-pair env-pair skip-ct vars vals)
+  (let ((ct-env (car env-pair))
+        (gb-env (cdr env-pair)))
+    ;; extend global always
+    (set! gb-env (extend-environment vars vals gb-env))
+    (if skip-ct
+        ;; if skip, extend with empty to keep depth of env const wrt. global
+        (set! ct-env (extend-ct-environment ct-env (list the-empty-environment)))
+        (set! ct-env (extend-ct-environment ct-env vars)))
+    (cons ct-env gb-env)))
+
+(define (setup-env-pair)
+  ;; start empty
+  (let ((env-pair (cons the-empty-environment the-empty-environment)))
+    ;; add open-coded primitives
+    (set! env-pair (extend-env-pair env-pair #f (map car open-eceval-operations) (map (lambda (proc) (list 'primitive (cadr proc))) open-eceval-operations)))
+    ;; add the global env, but hide from compile time.
+    (set! env-pair (extend-env-pair env-pair #t (primitive-procedure-names) (primitive-procedure-objects)))
+    ;; return pair
+    env-pair))
+
 ;; compile collection over
 
 (define (compile-and-go show-option expression)
   (let* ((data (skim-defines (scan-out-defines expression)))
          (scanned-exp (cdr data))
-         (ct-env (extend-ct-environment the-empty-environment (car data)))
-         (instructions
-          (assemble
-           (statements (compile scanned-exp 'val 'return ct-env)) eceval)))
-    (set! the-global-environment (setup-environment))
-    (set-register-contents! eceval 'val instructions)
-    (set-register-contents! eceval 'flag true)
-    (set! the-global-environment (extend-environment (car data) (map (lambda (x) '*) (car data)) the-global-environment))
-    (cond ((= show-option 1)
-            (for-each (lambda (i) (display (cadr i)) (newline)) instructions))
-          ((= show-option 2)
-           (display scanned-exp)
-           (newline)
-           (display ct-env)
-           (newline)
-           (display the-global-environment))))
-    (start eceval))
+         (env-pair (extend-env-pair (setup-env-pair) #f (car data) (map (lambda (x) '*) (car data))))
+         (ct-env (car env-pair)))
+    (set! the-global-environment (cdr env-pair))
+    ;; need to set the gb-env each time.
+    ;; ??? design choice, but w/e
+    (let* ((instructions
+            (assemble
+             (statements (compile scanned-exp 'val 'return ct-env)) eceval)))
+      (set-register-contents! eceval 'val instructions)
+      (set-register-contents! eceval 'flag true)
+      (cond ((= show-option 1)
+             (for-each (lambda (i) (display (cadr i)) (newline)) instructions))
+            ((= show-option 2)
+             (display scanned-exp)
+             (newline)
+             (display ct-env)
+             (newline)
+             (display the-global-environment))))
+    (start eceval)))
 
 (define (go-compiled compiled)
   (define (print-statements s)
@@ -2222,22 +2252,24 @@
     (set-register-contents! eceval 'flag true)
     (start eceval)))
 
-;; (compile-and-go 2 '(define (factorial n) (if (= n 1) 1 (* (factorial (- n 1)) n))))
+;;(compile-and-go 2 '(define (factorial n) (if (= n 1) 1 (* (factorial (- n 1)) n))))
 
 ;; (compile-and-go 2 '(define (factorial n) (if (= n 1) 1 (* n (factorial (- n 1))))))
 
 ;; (compile-and-go 2 '(define (count-up n m)
 ;;                      (if (= n (- m 1)) 'done (begin (count-up (- n 1) m) (display n)))))
 
-;; (compile-and-go 2 '(define (cube-root x)
-;;                            (define (cube-iter guess)
-;;                              (define (cube x) (* x x x))
-;;                              (define (good-guess? guess) (< (abs (- (cube guess) x)) 0.001))
-;;                              (define (improve guess) (/ (+ (/ x (* guess guess)) (* 2 guess)) 3))
-;;                              (if (good-guess? guess)
-;;                                  guess
-;;                                  (cube-iter (improve guess))))
-;;                            (cube-iter 1.0)))
+(define cube-exp '(begin
+                    (define (cube-root x)
+                      (define (cube-iter guess)
+                        (define (cube x) (* x x x))
+                        (define (good-guess? guess) (< (abs (- (cube guess) x)) 0.001))
+                        (define (improve guess) (/ (+ (/ x (* guess guess)) (* 2 guess)) 3))
+                        (if (good-guess? guess)
+                            guess
+                            (cube-iter (improve guess))))
+                      (cube-iter 1.0))))
+(compile-and-go 2 cube-exp)
 
 ;; (compile-and-go 0 '(((lambda (x y) (lambda (a b c d e)
 ;;                                    ((lambda (y z) (* x y z)) (* a b x) (+ c d x))))
@@ -2245,26 +2277,31 @@
 
 ;; (compile-and-go 2 '((lambda (x) (define a 4) (define b 5) (+ a b x)) 3))
 
-;; (define exp0 '(begin
-;;                 (define (f x) (define a 4) (define b 5) (+ a b x))
-;;                 (define (g x) (define c 2) (* c (f x)))))
-;; (compile-and-go 0 exp0)
+(define exp0 '(begin
+                (define (f x) (define a 3) (define b 3) (+ a b x))
+                (define (g x) (define c 2) (* c (f x)))))
+(compile-and-go 2 exp0)
 
 
-;; (define exp1 '((lambda (x) (define a 6) (define b 5) (+ a b x)) 3))
-;(skim-defines (scan-out-defines exp1))
+(define exp1 '((lambda (x) (define a 6) (define b 5) (+ a b x)) 3))
 ;;(compile-and-go 2 exp1)
 
 
-;; (define exp2 '((lambda (a b c) (+ a b c)) 3 2 1))
+(define exp2 '((lambda (a b c) (+ a b c)) 3 2 1))
 ;;(compile-and-go 2 exp2)
 
 
 (define exp3 '((lambda (x) ((lambda (b a) (begin (set! a 6) (set! b 5) (+ a b x))) (quote ?) (quote ?))) 3))
-;; (compile-and-go 0 exp3)
+;;(compile-and-go 0 exp3)
 
 (define exp5 '((lambda (a b)
                 (define + -)
                 (+ a b))
                4 4))
-(compile-and-go 2 exp5)
+;;(compile-and-go 2 exp5)
+
+(define exp6 '((lambda (+ * a b x y)
+                 (+ (* a x) (* b y)))
+               - + 2 4 2 4))
+;;(compile-and-go 2 exp6)
+
