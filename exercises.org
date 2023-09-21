@@ -17393,3 +17393,149 @@ The fix was to preserve the enviroment.
 		       '(arg2)
 		       '((assign arg2 (reg val)))))))))
 #+END_SRC
+
+** 5.44
+
+At issue is the following:
+
+#+BEGIN_SRC racket
+  (define exp6 '((lambda (+ * a b x y)
+		   (+ (* a x) (* b y)))
+		 - + 2 4 2 4))
+  (compile-and-go 2 exp6)
+#+END_SRC
+
+Currently evaluates to ~20~, while it 'should' evaluate to ~-4~.
+
+Likewise:
+
+#+BEGIN_SRC racket
+  (define exp5 '((lambda (a b)
+		   (define + -)
+		   (+ a b))
+		 4 4))
+
+  (compile-and-go 0 exp5)
+#+END_SRC
+
+Returns ~8~.
+
+The compiled code is:
+
+#+BEGIN_SRC racket
+  ((lambda (a b) ((lambda (+) (begin (set! + -) (+ a b))) (quote ?))) 4 4)
+#+END_SRC
+
+And evaluating this returns ~0~.
+
+*** idea
+
+The task is to get the open-coding compiler to consult the compile-term enviroment.
+
+At the moment, the ct-env doesn't contain any primitives.
+So, the idea is to:
+
+1. Implement a list of operations for open-coded primitives similar to ~eceval-operations~.
+2. Rewrite the way the environments are handed.
+   - Instead of setting up ~ct-env~ and ~the-global-environment~ separately, a variant of ~setup-environment~ can do both.
+     - Specifically, after the existing setup, both envs are extended with the open-coded primitives and returned as a pair.
+       - A general method which takes this pair and extends could be used here and also for the initial definitions.
+3. Update ~compile-and-go~ to work with the above.
+
+So, the result of this is open-coded primitives are handed exactly the same way as any variable known at compile time.
+This is exactly the way top level definitions are handled in the previous exercise.
+
+The siginifcant difference is that rather than being initially unassigned, these procedures have something set.
+
+There is a problem with this apprach.
+At run-time the ct-env remains.
+Hence, when looking up a variable, the open-coded instance may be found first.
+So, we'd like to 'hide' the primitives behind the global environment.
+This can be done by setting a corresponding empty env in the ct-env.
+
+The downside of this is that primitives will turn up in a search for a variable at run-time.
+I kind of like this, though.
+You can specify the primitive operations that the machine does, simulated by the compiler.
+Then, a variety of shortcut procedures are added to the global enviroment.
+And, finally, a collection of inital definitions are set up.
+So, you can use this to start eliminating the shortcut procedures.
+
+Though, this is very limited.
+There's no similation of memory.
+
+*** write-up
+
+The first thing we do is split ~eceval-operations~ into open- and closed- variants.
+~open-eceval-operations~ will be used for open-coding while ~closed-eceval-operations~ are not.
+All of these ops are available to the machine, but open-coded-ops are also part of the compile time environmnet.
+And, in principle, could be part of any environment.
+
+To help keep the global and compile time environents in sync, we work with a pair.
+To extend the pair, we have a procedure which optionally skips the compile time environment.
+Specifically, this is used to skip lexical addressing of the global environment.
+
+#+BEGIN_SRC racket
+  (define (extend-env-pair env-pair skip-ct vars vals)
+  (let ((ct-env (car env-pair))
+        (gb-env (cdr env-pair)))
+    ;; extend global always
+    (set! gb-env (extend-environment vars vals gb-env))
+    (if skip-ct
+        ;; if skip, extend with empty to keep depth of env const wrt. global
+        (set! ct-env (extend-ct-environment ct-env (list the-empty-environment)))
+        (set! ct-env (extend-ct-environment ct-env vars)))
+    (cons ct-env gb-env)))
+#+END_SRC
+
+The setup for the pair the begins with the open-coded operations (available to both envs) and then adds the primitive procedures (only avaiable at run-time).
+
+
+#+BEGIN_SRC racket
+  (define (setup-env-pair)
+    ;; start empty
+    (let ((env-pair (cons the-empty-environment the-empty-environment)))
+      ;; add open-coded primitives
+      (set! env-pair (extend-env-pair env-pair #f (map car open-eceval-operations) (map (lambda (proc) (list 'primitive (cadr proc))) open-eceval-operations)))
+      ;; add the global env, but hide from compile time.
+      (set! env-pair (extend-env-pair env-pair #t (primitive-procedure-names) (primitive-procedure-objects)))
+      ;; return pair
+      env-pair))
+#+END_SRC
+
+~compile-and-go~ now uses env pairs:
+
+#+BEGIN_SRC racket
+  (define (compile-and-go show-option expression)
+  (let* ((data (skim-defines (scan-out-defines expression)))
+         (scanned-exp (cdr data))
+         (env-pair (extend-env-pair (setup-env-pair) #f (car data) (map (lambda (x) '*) (car data))))
+         (ct-env (car env-pair)))
+    (set! the-global-environment (cdr env-pair))
+    ;; need to set the gb-env each time.
+    ;; ??? design choice, but w/e
+    (let* ((instructions
+            (assemble
+             (statements (compile scanned-exp 'val 'return ct-env)) eceval)))
+      (set-register-contents! eceval 'val instructions)
+      (set-register-contents! eceval 'flag true)
+      (cond ((= show-option 1)
+             (for-each (lambda (i) (display (cadr i)) (newline)) instructions))
+            ((= show-option 2)
+             (display scanned-exp)
+             (newline)
+             (display ct-env)
+             (newline)
+             (display the-global-environment))))
+    (start eceval)))
+#+END_SRC
+
+At this point, open-coded ops are overwritten when an operation with the same symbol is specified as a primitive-procedure.
+
+So, given the adjustments made in the previous exercise, primitive-procedures should maybe be considered definitions in waiting.
+If 'brought forward' then they need to be written using other primitive-procedures or open-coded primitives.
+
+This ends up being somewhat intermediate, then.
+The only significant reason to use primitive-procedure +, e.g. is due to this taking an arbitrary arity.
+This potentially saves a lot of work, and so perhaps two versions should be defined.
+This would be easy to work with in the compiler, as we'd just need to test the arity.
+Anyway, for the moment this works as required.
