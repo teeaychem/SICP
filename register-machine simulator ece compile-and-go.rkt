@@ -1329,8 +1329,8 @@
      (goto (label ev-appl-did-operator))
 
      ev-go-and-eval-op
-     (save unev)
      (save env)
+     (save unev)
      (assign continue (label ev-appl-did-operator-dispatch))
      (goto (label eval-dispatch))
 
@@ -2260,5 +2260,11 @@
 ;;(compile-and-go 2 exp2)
 
 
-;; (define exp3 '((lambda (x) ((lambda (b a) (begin (set! a 6) (set! b 5) (+ a b x))) (quote ?) (quote ?))) 3))
-;;(compile-and-go 0 exp3)
+(define exp3 '((lambda (x) ((lambda (b a) (begin (set! a 6) (set! b 5) (+ a b x))) (quote ?) (quote ?))) 3))
+;; (compile-and-go 0 exp3)
+
+(define exp5 '((lambda (a b)
+                (define + -)
+                (+ a b))
+               4 4))
+(compile-and-go 2 exp5)
