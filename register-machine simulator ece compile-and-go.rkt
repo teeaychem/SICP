@@ -1675,8 +1675,6 @@
                        '(arg2)
                        '((assign arg2 (reg val)))))))))
 
-;; plus
-
 (define (open-coded-test-op? exp operation)
   (and (pair? exp) (eq? (car exp) operation)))
 

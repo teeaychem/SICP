@@ -1063,7 +1063,7 @@
      (goto (reg val))
 
      print-result
-     ;; (perform (op print-stack-statistics))
+     (perform (op print-stack-statistics))
      (perform (op announce-output) (const ";;; EC-Eval value:"))
      (perform (op user-print) (reg val))
      (goto (label read-eval-print-loop))
@@ -1911,11 +1911,11 @@
     (set-register-contents! eceval 'flag true)
     (start eceval)))
 
-;; (compile-and-go
-;;  '(define (factorial n)
-;;     (if (= n 1)
-;;         1
-;;         (* (factorial (- n 1)) n))))
+(compile-and-go
+ '(define (factorial n)
+    (if (= n 1)
+        1
+        (* (factorial (- n 1)) n))))
 
 ;; (compile-and-go '(define (cube-root x)
 ;;                    (define (cube-iter guess)
