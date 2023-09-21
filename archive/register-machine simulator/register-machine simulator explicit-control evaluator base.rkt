@@ -1049,6 +1049,7 @@
      (assign
       continue (label ev-appl-did-operator))
      (goto (label eval-dispatch))
+
      ev-appl-did-operator
      (restore unev)             ; the operands
      (restore env)
@@ -1057,6 +1058,7 @@
      (test (op no-operands?) (reg unev))
      (branch (label apply-dispatch))
      (save proc)
+
      ev-appl-operand-loop
      (save argl)
      (assign exp
@@ -1069,6 +1071,7 @@
      (assign continue
              (label ev-appl-accumulate-arg))
      (goto (label eval-dispatch))
+
      ev-appl-accumulate-arg
      (restore unev)
      (restore env)
