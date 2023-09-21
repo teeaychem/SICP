@@ -17539,3 +17539,6 @@ The only significant reason to use primitive-procedure +, e.g. is due to this ta
 This potentially saves a lot of work, and so perhaps two versions should be defined.
 This would be easy to work with in the compiler, as we'd just need to test the arity.
 Anyway, for the moment this works as required.
+
+(Note, as we do not block access to primitive procedures at run time, these are availalbe for lookup.
+However, as they are part of the environemnt, they are evaluated as reguar procedures.)
