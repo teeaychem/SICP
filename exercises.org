@@ -17542,3 +17542,115 @@ Anyway, for the moment this works as required.
 
 (Note, as we do not block access to primitive procedures at run time, these are availalbe for lookup.
 However, as they are part of the environemnt, they are evaluated as reguar procedures.)
+
+** 5.45
+
+*** 1.
+
+Note, these comparisons are with the 'base' ece compiler.
+
+Previously, we had:
+
+|---+--------------+---------------|
+| n | total-pushes | maximum-depth |
+| 1 |           16 |             8 |
+| 2 |           48 |            13 |
+| 3 |           80 |            18 |
+| 4 |          112 |            23 |
+| 5 |          144 |            28 |
+| 6 |          176 |            33 |
+|---+--------------+---------------|
+
+#+BEGIN_SRC racket
+  (define (maximum-depth n) (+ 8 (* 5 (- n 1))))
+
+  (define (total-pushes n) (* 16 (- (* n 2) 1)))
+#+END_SRC
+
+The compiled version performs as follows:
+
+|---+--------------+---------------|
+| n | total-pushes | maximum-depth |
+| 1 |            7 |             3 |
+| 2 |           13 |             5 |
+| 3 |           19 |             8 |
+| 4 |           25 |            11 |
+| 5 |           31 |            14 |
+| 6 |           37 |            17 |
+|---+--------------+---------------|
+
+#+BEGIN_SRC racket
+  (define (maximum-depth n) (+ 2 (* 3 (- n 1))))
+
+  (define (total-pushes n) (+ 1 (* n 6)))
+
+  (maximum-depth 16)
+  (total-pushes 16)
+#+END_SRC
+
+Prediction for ~16~:
+- depth 47
+- pudhrd 97
+
+Confirmed.
+
+To get the ratio of max depth, we can use the following.
+Though, it's clear it's going to be roughly ~(/ 5 3)~ as the addition will eventually matter little.
+
+#+BEGIN_SRC racket
+  (define (max-depth-ratio n)
+    (/
+     (+ 8 (* 5 (- n 1))) ; no optimisation
+     (+ 2 (* 3 (- n 1))) ; optimisation
+     ))
+
+  (* (max-depth-ratio 9999) 1.0)
+  (* (/ 5 3) 1.0)
+#+END_SRC
+
+#+RESULTS:
+: 1.6668222429657287
+: 1.6666666666666667
+
+For total pushes, we have the following.
+
+#+BEGIN_SRC racket
+  (define (total-pushes-ratio n)
+    (/
+     (* 16 (- (* n 2) 1)) ; no optimisation
+     (+ 1 (* n 6)) ; optimisation
+     ))
+#+END_SRC
+
+With a rewrite, it's easier to see the ratio is rougly ~(/ 32 6)~:
+
+#+BEGIN_SRC racket
+  (define (total-pushes-ratio n)
+    (/
+     (- (* 32 n) 16) ; no optimisation
+     (+ 1 (* n 6)) ; optimisation
+     ))
+
+  (* (total-pushes-ratio 9999) 1.0)
+  (* (/ 32 6) 1.0)
+#+END_SRC
+
+
+#+RESULTS:
+: 5.332977748145678
+: 5.333333333333333
+
+This is kind of amazing!
+
+*** 2.
+
+I might retrun to this.
+
+I have a felling optimising the order of intructions might help.
+My tendancy is to write explicit ~goto~ insturctions by hand to emulate function calls.
+And, there may be a way to structure everything to avoid reduandant saves and restores to continue.
+
+My guess would also be to look at where protection happens.
+This is a significant source of save/restore.
+
+Though, going back an exploring this in detail is something for a (different) rainy day.
