@@ -17654,3 +17654,80 @@ My guess would also be to look at where protection happens.
 This is a significant source of save/restore.
 
 Though, going back an exploring this in detail is something for a (different) rainy day.
+
+** 5.46
+
+This time we have:
+
+#+NAME: def:fib
+#+BEGIN_SRC racket
+  (define (fib n)
+    (if (< n 2)
+	n
+	(+ (fib (- n 1)) (fib (- n 2)))))
+#+END_SRC
+
+Without compilation:
+
+|---+--------------+---------------|
+| n | total-pushes | maximum-depth |
+| 1 |           16 |             8 |
+| 2 |           72 |            13 |
+| 3 |          128 |            18 |
+| 4 |          240 |            23 |
+| 5 |          408 |            28 |
+| 6 |          688 |            33 |
+|---+--------------+---------------|
+
+With compilation:
+
+|---+--------------+---------------|
+| n | total-pushes | maximum-depth |
+| 1 |            7 |             3 |
+| 2 |           17 |             5 |
+| 3 |           27 |             8 |
+| 4 |           47 |            11 |
+| 5 |           77 |            14 |
+| 6 |          127 |            17 |
+|---+--------------+---------------|
+
+Maximum depth is the same as factorial (no surprise, given both recurse on n - 1).
+
+To figure out the total number of pushes, we can use ~mod-fib~ as proposed in Ex. 5.29.
+
+#+NAME: def:mod-fib
+#+BEGIN_SRC racket
+  <<def:fib>>
+  (define (mod-fib a b n)
+    (- (* (+ a b) (fib (+ n 1))) b))
+#+END_SRC
+
+The result is an initial offset of ~7~ (versus ~16~) and a constant addition of ~3~ (rather than ~40~).
+
+#+NAME: def:mod-fib
+#+BEGIN_SRC racket
+  (mod-fib 16 40 4) ;; without optimisation
+  (mod-fib 7 3 4)   ;; with optimisation
+#+END_SRC
+
+This should give a ration of roughly ~(/ 56 10)~ i.e. ~5.6~.
+
+For the ratio of total pushes:
+
+#+BEGIN_SRC racket
+    <<def:mod-fib>>
+    (for-each (lambda (n) (display (* (/ (mod-fib 16 40 n) (mod-fib 7 3 n)) 1.0)) (newline))
+	      (list 1 2 4 8 16 32))
+#+END_SRC
+
+#+RESULTS:
+: 2.2857142857142856
+: 4.235294117647059
+: 5.1063829787234045
+: 5.531157270029674
+: 5.598547003194088
+: 5.599999341765114
+
+Of course, this isn't a ratio in terms of ~n~ alone, but rather ~fib~.
+
+Still, this is coincidently quite close to the result obtained for factorial.
