@@ -1911,11 +1911,18 @@
     (set-register-contents! eceval 'flag true)
     (start eceval)))
 
+;; (compile-and-go
+;;  '(define (factorial n)
+;;     (if (= n 1)
+;;         1
+;;         (* (factorial (- n 1)) n))))
+
 (compile-and-go
- '(define (factorial n)
-    (if (= n 1)
-        1
-        (* (factorial (- n 1)) n))))
+ '(define (fib n)
+    (if (< n 2)
+        n
+        (+ (fib (- n 1)) (fib (- n 2))))))
+
 
 ;; (compile-and-go '(define (cube-root x)
 ;;                    (define (cube-iter guess)
