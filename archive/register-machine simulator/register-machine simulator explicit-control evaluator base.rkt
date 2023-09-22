@@ -966,7 +966,9 @@
      (assign env (op get-global-environment))
      (assign continue (label print-result))
      (goto (label eval-dispatch))
+
      print-result
+     (perform (op print-stack-statistics))
      (perform (op announce-output)
               (const ";;; EC-Eval value:"))
      (perform (op user-print) (reg val))
