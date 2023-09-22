@@ -16,9 +16,31 @@
 ;; + main expand-clauses logic written in the explicit-control evaluator
 ;; * evaluator updated to require same save/restore regs to help debug.
 ;; * commented print statistics
+;; * optimisation to eval by testing for symbol
 ;; * compile-and-go added
+;; * go-compiled added for testing hand-tuned code
+;; * support for open-coded primitives
+;; * initial lexical-address-lookup
+;; * extended lexical-address-lookup added
+;; * small bug with open-coding fixed
+;; * open-coded operations revised and do not appear at run-time (so long as things are set up ok)
 
 ;; misc
+
+(define (append-elem e list)
+    (if (null? list)
+	(cons e nil)
+	(cons (car list) (append-elem e (cdr list)))))
+
+(define (last l)
+  (cond ((null? l) (error "empty list"))
+        ((null? (cdr l)) l)
+        (else (last (cdr l)))))
+
+(define (without-last l)
+  (cond ((null? l) l)
+        ((null? (cdr l)) nil)
+        (else (cons (car l) (without-last (cdr l))))))
 
 (define (run-wiith-args-and-display-reg-vals machine reg-arg-pairs regs)
   (for-each (lambda (pair)
@@ -32,9 +54,8 @@
   (start machine)
   (for-each (lambda (reg)
               (begin
-                (for-each
-                 display
-                 (list "Register: " reg " end with value: " (get-register-contents machine reg)))
+                (for-each display
+                          (list "Register: " reg " end with value: " (get-register-contents machine reg)))
                 (newline)))
             regs)
   (newline))
@@ -66,7 +87,7 @@
   (let ((seen '()))
     (define (seen? elem sequence)
       (cond ((null? sequence) #f)
-            ((equal? (car sequence) elem) #t) ;; need equal? over eq? testing strings not pointers
+            ((equal? (car sequence) elem) #t) ;; need equal? rather than eq? as testing strings not pointers
             (else (seen? elem (cdr sequence)))))
     (define (do-it sequence)
       (cond ((null? sequence) nil)
@@ -79,6 +100,62 @@
                      (do-it (cdr sequence)))))
             (else (do-it (cdr sequence)))))
     (do-it sequence)))
+
+;; scan-out defines
+
+(define (proc-def? exp)
+  (and (tagged-list? exp 'define)
+       (not (symbol? (cadr exp)))))
+
+(define (substitute exp)
+  (let* ((term-list (list ))
+         (go? #f)
+         (params (lambda-parameters exp))
+         (content (lambda-body exp)))
+    (define (collect-replace exp)
+      (cond ((definition? exp)
+             (set! term-list (cons (definition-variable exp) term-list))
+             (set! go? #t)
+             (set-cdr! exp (list (definition-variable exp) (scan-out-defines (definition-value exp))))
+             (set-car! exp 'set!)
+             exp)
+            (else exp)))
+    (let* ((scanned-bod (cons 'begin (map collect-replace content)))
+           (new-bod (cons (list
+                           'lambda
+                           term-list
+                           scanned-bod)
+                          (map (lambda (x) ''?) term-list))))
+      (if go?
+          (make-lambda params (list new-bod))
+          exp))))
+
+(define (scan-out-defines body)
+  (cond ((proc-def? body)
+         (list 'define (definition-variable body) (scan-out-defines (definition-value body))))
+        ((lambda? body) (substitute body))
+        ((application? body) (map scan-out-defines body))
+        (else body)))
+
+(define (skim-defines exp)
+  (cond ((definition? exp)
+         (cons (list (definition-variable exp)) (list 'set! (definition-variable exp) (definition-value exp))))
+        ((application? exp)
+         (let ((vars (list ))
+               (exps (list )))
+           (define (loop pxe)
+             (cond ((and (not (null? pxe)) (definition? (car pxe)))
+                    (let ((sub-exp (car pxe)))
+                      (set! vars (append-elem (definition-variable sub-exp) vars))
+                      (set! exps (append-elem (list 'set! (definition-variable sub-exp) (definition-value sub-exp)) exps))
+                      (loop (cdr pxe))))
+                   ((not (null? pxe))
+                    (set! exps (append-elem (car pxe) exps))
+                    (loop (cdr pxe))
+                    )))
+           (loop exp)
+           (cons vars exps)))
+        (else (cons nil exp))))
 
 ;; make machine
 
@@ -98,7 +175,7 @@
 ;; registers
 
 (define (make-register name)
-  (let ((contents '*unassigned*))
+  (let ((contents '*no-reg-val*))
     (define (dispatch message)
       (cond ((eq? message 'get) contents)
             ((eq? message 'set)
@@ -227,8 +304,7 @@
                                          (display " - + ")
                                          (display x)
                                          (display " has value: ")
-                                         (display ((lookup-register x) 'get-simple))) f-registers)
-                             ))
+                                         (display ((lookup-register x) 'get-simple))) f-registers)))
                       (newline)))
                 (execute-n-trace (- n 1) trace)))))
       (define (manual-execute-trace trace)
@@ -429,8 +505,7 @@
                                               labels)))))
                    (else
                     (set! prev-label #f)
-                    (append-elem! instructions
-                                  (make-instruction (cons label-buffer count-buffer) next-inst))
+                    (append-elem! instructions (make-instruction (cons label-buffer count-buffer) next-inst))
                     (set! instructions-pointer (cdr instructions))
                     (set! count-buffer (+ count-buffer 1))))
              (set! text-pointer (cdr text-pointer))
@@ -605,7 +680,6 @@
                 (get-contents reg)))))
           (else (error "Bad GOTO instruction: ASSEMBLE" inst)))))
 
-
 (define (goto-dest goto-instruction)
   (cadr goto-instruction))
 
@@ -708,8 +782,7 @@
 (define (label-exp-label exp)
   (cadr exp))
 
-(define (make-operation-exp
-         exp machine labels operations)
+(define (make-operation-exp exp machine labels operations)
   (let ((op (lookup-prim
              (operation-exp-op exp)
              operations))
@@ -835,7 +908,9 @@
                      (expand-clauses rest))))))
 
 (define primitive-procedures
-  (list (list 'car car)
+  (list (list 'true true)
+        (list 'false false)
+        (list 'car car)
         (list 'cdr cdr)
         (list 'cons cons)
         (list 'null? null?)
@@ -871,23 +946,117 @@
 (define (add-binding-to-frame! var val frame)
   (set-car! frame (cons var (car frame)))
   (set-cdr! frame (cons val (cdr frame))))
+
 (define (extend-environment vars vals base-env)
   (if (= (length vars) (length vals))
-      (cons (make-frame vars vals) base-env)
+      (begin
+        (cons (make-frame vars vals) base-env))
       (if (< (length vars) (length vals))
           (error "Too many arguments supplied" vars vals)
           (error "Too few arguments supplied" vars vals))))
+
 (define (lookup-variable-value var env)
-  (define (env-loop env)
-    (define (scan vars vals)
-      (cond ((null? vars) (env-loop (enclosing-environment env)))
-            ((eq? var (car vars)) (car vals))
-            (else (scan (cdr vars) (cdr vals)))))
-    (if (eq? env the-empty-environment)
-        env
-        (let ((frame (first-frame env)))
-          (scan (frame-variables frame) (frame-values frame)))))
-  (env-loop env))
+  (lookup-variable-value-trace var env #f))
+
+(define (lookup-variable-value-trace var main-env trace)
+  (cond ((eq? #t trace)
+         (for-each display (list "looking for: " var))
+         (newline)))
+  (let ((frm-n 0)
+        (val-n 0))
+    (define (env-loop env)
+      (set! val-n 0)
+      (define (scan vars vals)
+        (cond ((null? vars)
+               (set! frm-n (+ frm-n 1))
+               (env-loop (enclosing-environment env)))
+              ((eq? var (car vars))
+               (begin
+                 (cond ((eq? #t trace)
+                        (for-each display (list "found at: " frm-n ", " val-n "\n"))
+                        (let ((lookup (lexical-address-lookup (make-lex-addr frm-n val-n) main-env)))
+                          (if (tagged-list? lookup 'compiled-procedure)
+                              (set! lookup 'compiled-procedure))
+                          (for-each display (list "lookup: " lookup "\n")))))
+                 (car vals)))
+              (else
+               (begin
+                 (set! val-n (+ 1 val-n))
+                 (scan (cdr vars) (cdr vals))))))
+      (if (eq? env the-empty-environment)
+          env
+          (let ((frame (first-frame env)))
+            (scan (frame-variables frame) (frame-values frame)))))
+    (env-loop main-env)))
+
+;; lexical addressing
+
+(define (make-lex-addr frame-n val-n)
+  (list frame-n val-n))
+
+(define (frame-p lex-addr)
+  (car lex-addr))
+
+(define (val-p lex-addr)
+  (cadr lex-addr))
+
+(define (do-n n proc l)
+  (if (= n 0)
+      l
+      (do-n (- n 1) proc (proc l))))
+
+(define (lexical-address-lookup addr env)
+  ;; (for-each display (list "\nlal: " addr "\n"))
+  (let ((frm-n (frame-p addr))
+        (val-n (val-p addr)))
+    (let ((frame (do-n frm-n enclosing-environment env)))
+      (if (eq? frame the-empty-environment)
+          (error "No environment found LEXICAL-ADDRESS-GET" addr)
+          (let ((val (car (do-n val-n cdr (frame-values (first-frame frame))))))
+            (cond ((eq? val '*oops*)
+                   (error "Unassigned val LEXICAL-ADDRESS-GET" addr))
+                  (else
+                   ;; (if (not (pair? val)) (for-each display (list "lal found: " val "\n")))
+                   val)))))))
+
+
+(define (lexical-address-set! addr env val)
+  (let ((frm-n (frame-p addr))
+        (val-n (val-p addr)))
+    (let ((frame (do-n frm-n enclosing-environment env)))
+      (if (eq? frame the-empty-environment)
+          (error "No environment found LEXICAL-ADDRESS-SET!" addr)
+          (set-car! (do-n val-n cdr (frame-values (first-frame frame))) val)))))
+
+
+(define (get-lexical-address var env)
+  ;; (for-each display (list "\n getting lex-addr: " var "\n"))
+  (let ((frm-n 0)
+	(val-n 0))
+    (define (env-loop env)
+      (set! val-n 0)
+      (define (scan vars)
+	(cond ((null? vars)
+	       (set! frm-n (+ frm-n 1))
+	       (env-loop (enclosing-environment env)))
+	      ((eq? var (car vars))
+               ;; (for-each display (list "\n lex-addr:" (make-lex-addr frm-n val-n) "\n"))
+               (make-lex-addr frm-n val-n))
+              ;;              ((eq? the-empty-environment (car vars)) '*no-lex-addr-found*)
+	      (else
+	       (begin
+		 (set! val-n (+ 1 val-n))
+		 (scan (cdr vars))))))
+      (if (eq? env the-empty-environment)
+	  '*no-lex-addr-found*
+	  (let ((frame (first-frame env)))
+	    (scan frame))))
+    (env-loop env)))
+
+(define (extend-ct-environment base-env frame)
+  (cons frame base-env))
+
+;; back to before
 
 (define (unassigned-variable? exp)
   (eq? exp the-empty-environment))
@@ -930,14 +1099,13 @@
 
 (define (prompt-for-input string)
   (newline) (newline) (display string) (newline))
+
 (define (setup-environment)
   (let ((initial-env
          (extend-environment
           (primitive-procedure-names)
           (primitive-procedure-objects)
           the-empty-environment)))
-    (define-variable! 'true true initial-env)
-    (define-variable! 'false false initial-env)
     initial-env))
 (define (announce-output string)
   (newline) (display string) (newline))
@@ -965,8 +1133,18 @@
 (define (compiled-procedure-env c-proc)
   (caddr c-proc))
 
+(define open-eceval-operations
+  (list
+   (list '+ +)
+   (list '* *)
+   (list '- -)
+   (list '= =)
+   (list 'abs abs)
+   ; ⟨more ops⟩
+   ))
 
-(define eceval-operations
+
+(define closed-eceval-operations
   (list (list 'self-evaluating? self-evaluating?)
         (list 'variable? variable?)
         (list 'primitive-procedure? primitive-procedure?)
@@ -1035,15 +1213,20 @@
         (list 'compiled-procedure-entry compiled-procedure-entry)
         (list 'compiled-procedure-env compiled-procedure-env)
 
+        (list 'lexical-address-lookup lexical-address-lookup)
+        (list 'lexical-address-set! lexical-address-set!)
+
         (list 'list list)
         (list 'cons cons)
-;        (list 'abs abs)
-
+        (list 'append-elem append-elem)
         ))
+
+(define eceval-operations
+  (append open-eceval-operations closed-eceval-operations))
 
 (define eceval
   (make-machine
-   '(exp env val proc argl continue unev)
+   '(exp env val proc argl continue unev arg1 arg2)
    eceval-operations
    '(
      ;; running the evaluator
@@ -1063,7 +1246,7 @@
      (goto (reg val))
 
      print-result
-     (perform (op print-stack-statistics))
+     ;; (perform (op print-stack-statistics))
      (perform (op announce-output) (const ";;; EC-Eval value:"))
      (perform (op user-print) (reg val))
      (goto (label read-eval-print-loop))
@@ -1142,22 +1325,34 @@
      ;; evaluating procedure applications
      ev-application
      (save continue)
-     (save env)
      (assign unev (op operands) (reg exp))
-     (save unev)
      (assign exp (op operator) (reg exp))
-     (assign
-      continue (label ev-appl-did-operator))
+     (test (op symbol?) (reg exp))
+     (branch (label ev-have-symbol-op))
+     (goto (label ev-go-and-eval-op))
+
+     ev-have-symbol-op
+     (assign val (op lookup-variable-value) (reg exp) (reg env))
+     (goto (label ev-appl-did-operator))
+
+     ev-go-and-eval-op
+     (save env)
+     (save unev)
+     (assign continue (label ev-appl-did-operator-dispatch))
      (goto (label eval-dispatch))
 
-     ev-appl-did-operator
+     ev-appl-did-operator-dispatch
      (restore unev)             ; the operands
      (restore env)
+     (goto (label ev-appl-did-operator))
+
+     ev-appl-did-operator
      (assign argl (op empty-arglist))
      (assign proc (reg val))    ; the operator
-     (test (op no-operands?) (reg unev))
+     (test (op no-operands?) (reg unev)) ; optimise when no operands
      (branch (label apply-dispatch))
      (save proc)
+     (goto (label ev-appl-operand-loop))
 
      ev-appl-operand-loop
      (save argl)
@@ -1335,7 +1530,8 @@
               (reg unev)
               (reg val)
               (reg env))
-     ;(assign val (const ok))
+     (assign val
+             (const ok))
      (goto (reg continue))
      ev-definition
      (assign unev
@@ -1360,7 +1556,7 @@
               (reg unev)
               (reg val)
               (reg env))
-     ;(assign val (const ok))
+     (assign val (const ok))
      (goto (reg continue))
 
      cond->if
@@ -1433,8 +1629,7 @@
 ;; ((eceval 'manual-execute-trace) #t)
 ;; (start eceval)
 
-
-;;
+;; the compiler
 
 ;; present
 
@@ -1453,29 +1648,98 @@
 
 (define all-regs '(env proc val argl continue))
 
+;; open-coded
+
+(define (spread-arguments operand-codes)
+  (cond ((or (null? operand-codes)
+             (null? (car operand-codes))
+             (null? (cdr operand-codes)))
+         (error "Open coded primitive without two arguments"))
+        ((and
+          (not (null? (cdr operand-codes)))
+          (not (null? (cddr operand-codes))))
+         (error "Open coded primitive with more than two arguments"))
+        (else
+         (preserving '(env)
+                     (cadr operand-codes) ;; figoure out the first
+                     (preserving
+                      '(val)
+                      (append-instruction-sequences
+                       (car operand-codes)
+                       (make-instruction-sequence
+                        '(val)
+                        '(arg1)
+                        '((assign arg1 (reg val)))))
+                      (make-instruction-sequence
+                       '(val)
+                       '(arg2)
+                       '((assign arg2 (reg val)))))))))
+
+(define (open-coded-test-op? exp operation)
+  (and (pair? exp) (eq? (car exp) operation)))
+
+(define (open-coded-op exp target linkage ct-env operation)
+  (let ((operand-codes
+         (map (lambda (operand)
+                (compile operand 'val 'next ct-env))
+              (operands exp))))
+    (preserving
+     '(continue op)
+     (spread-arguments operand-codes)
+     (end-with-linkage
+      linkage
+      (make-instruction-sequence
+       '(arg1 arg2)
+       '(val)
+       `((assign ,target (op ,operation) (reg arg1) (reg arg2))))))))
+
+(define (make-binary-exp op operands)
+    (if (null? (cddr operands))
+	(list op (car operands) (cadr operands))
+	(list op (car operands) (make-binary-exp op (cdr operands)))))
+
+(define (binarise exp)
+    (if (null? exp)
+	(error "No expression")
+	(let ((op (car exp))
+	      (operands (cdr exp)))
+	  (if (or (null? operands)
+		  (null? (car operands))
+		  (null? (cdr operands)))
+	      (error "Not enoguh operands")
+	      (make-binary-exp op operands)))))
+
 ;; compile
 
-(define (compile exp target linkage)
+(define (compile exp target linkage ct-env)
   (cond ((self-evaluating? exp)
-         (compile-self-evaluating exp target linkage))
+         (compile-self-evaluating exp target linkage ct-env))
         ((quoted? exp)
-         (compile-quoted exp target linkage))
+         (compile-quoted exp target linkage ct-env))
         ((variable? exp)
-         (compile-variable exp target linkage))
+         (compile-variable exp target linkage ct-env))
         ((assignment? exp)
-         (compile-assignment exp target linkage))
+         (compile-assignment exp target linkage ct-env))
         ((definition? exp)
-         (compile-definition exp target linkage))
+         (compile-definition exp target linkage ct-env))
         ((if? exp)
-         (compile-if exp target linkage))
+         (compile-if exp target linkage ct-env))
         ((lambda? exp)
-         (compile-lambda exp target linkage))
+         (compile-lambda exp target linkage ct-env))
         ((begin? exp)
-         (compile-sequence (begin-actions exp) target linkage))
+         (compile-sequence (begin-actions exp) target linkage ct-env))
         ((cond? exp)
-         (compile (cond->if exp) target linkage))
+         (compile (cond->if exp) target linkage ct-env))
+        ((open-coded-test-op? exp '=)
+         (open-coded-op exp target linkage ct-env '=))
+        ((open-coded-test-op? exp '*)
+         (open-coded-op (binarise exp) target linkage ct-env '*))
+        ((open-coded-test-op? exp '-)
+         (open-coded-op exp target linkage ct-env '-))
+        ((open-coded-test-op? exp '+)
+        (open-coded-op (binarise exp) target linkage ct-env '+))
         ((application? exp)
-         (compile-application exp target linkage))
+         (compile-application exp target linkage ct-env))
         (else
          (error "Unknown expression type: COMPILE" exp))))
 
@@ -1508,13 +1772,13 @@
 
 ;; Compiling simple expressions
 
-(define (compile-self-evaluating exp target linkage)
+(define (compile-self-evaluating exp target linkage ct-env)
   (end-with-linkage
    linkage (make-instruction-sequence  '()
                                        (list target)
                                        `((assign ,target (const ,exp))))))
 
-(define (compile-quoted exp target linkage)
+(define (compile-quoted exp target linkage ct-env)
   (end-with-linkage
    linkage
    (make-instruction-sequence
@@ -1523,38 +1787,62 @@
     `((assign ,target
        (const ,(text-of-quotation exp)))))))
 
-(define (compile-variable exp target linkage)
-  (end-with-linkage
-   linkage
-   (make-instruction-sequence '(env)
-                              (list target)
-                              `((assign ,target
-                                        (op lookup-variable-value)
-                                        (const ,exp)
-                                        (reg env))))))
+(define (compile-variable exp target linkage ct-env)
+  (let ((lex-addr (get-lexical-address exp ct-env)))
+    (cond ((eq? lex-addr '*no-lex-addr-found*)
+           (end-with-linkage
+            linkage
+            (make-instruction-sequence '(env)
+                                       (list target)
+                                       `((assign ,target
+                                                 (op lookup-variable-value)
+                                                 (const ,exp)
+                                                 (reg env))))))
+          (else
+           (end-with-linkage
+            linkage
+            (make-instruction-sequence '(env)
+                                       (list target)
+                                       `((assign ,target
+                                                 (op lexical-address-lookup)
+                                                 (const ,lex-addr)
+                                                 (reg env)))))))))
 
-(define (compile-assignment exp target linkage)
+(define (compile-assignment exp target linkage ct-env)
   (let ((var (assignment-variable exp))
-        (get-value-code
-         (compile (assignment-value exp) 'val 'next)))
-    (end-with-linkage
-     linkage
-     (preserving '(env)
-                 get-value-code
-                 (make-instruction-sequence
-                  '(env val)
-                  (list target)
-                  `((perform (op set-variable-value!)
-                             (const ,var)
-                             (reg val)
-                             (reg env))
-                    (assign ,target (const ok))
-                    ))))))
+        (get-value-code (compile (assignment-value exp) 'val 'next ct-env)))
+    (let ((lex-addr (get-lexical-address var ct-env)))
+      (cond ((eq? lex-addr '*no-lex-addr-found*)
+             (end-with-linkage
+              linkage
+              (preserving '(env)
+                          get-value-code
+                          (make-instruction-sequence
+                           '(env val)
+                           (list target)
+                           `((perform (op set-variable-value!)
+                                      (const ,var)
+                                      (reg val)
+                                      (reg env))
+                             (assign ,target (const ok)))))))
+            (else
+             (end-with-linkage
+              linkage
+              (preserving '(env)
+                          get-value-code
+                          (make-instruction-sequence
+                           '(env)
+                           (list target)
+                           `((perform (op lexical-address-set!)
+                                      (const ,lex-addr)
+                                      (reg env)
+                                      (reg val))
+                             (assign ,target (const ok))
+                             )))))))))
 
-(define (compile-definition exp target linkage)
+(define (compile-definition exp target linkage ct-env)
   (let ((var (definition-variable exp))
-        (get-value-code
-         (compile (definition-value exp) 'val 'next)))
+        (get-value-code (compile (definition-value exp) 'val 'next ct-env)))
     (end-with-linkage
      linkage
      (preserving
@@ -1571,7 +1859,7 @@
 
 ;; Compiling conditional expressions
 
-(define (compile-if exp target linkage)
+(define (compile-if exp target linkage ct-env)
   (let ((t-branch (make-label 'true-branch))
         (f-branch (make-label 'false-branch))
         (after-if (make-label 'after-if)))
@@ -1580,15 +1868,17 @@
                after-if
                linkage)))
       (let ((p-code
-             (compile (if-predicate exp) 'val 'next))
+             (compile (if-predicate exp) 'val 'next ct-env))
             (c-code
              (compile (if-consequent exp)
                       target
-                      consequent-linkage))
+                      consequent-linkage
+                      ct-env))
             (a-code
              (compile (if-alternative exp)
                       target
-                      linkage)))
+                      linkage
+                      ct-env)))
         (preserving
          '(env continue)
          p-code
@@ -1607,18 +1897,19 @@
 
 ;; Compiling sequences
 
-(define (compile-sequence seq target linkage)
+(define (compile-sequence seq target linkage ct-env)
   (if (last-exp? seq)
-      (compile (first-exp seq) target linkage)
+      (compile (first-exp seq) target linkage ct-env)
       (preserving '(env continue)
-       (compile (first-exp seq) target 'next)
+       (compile (first-exp seq) target 'next ct-env)
        (compile-sequence (rest-exps seq)
                          target
-                         linkage))))
+                         linkage
+                         ct-env))))
 
 ;; Compiling lambda expressions
 
-(define (compile-lambda exp target linkage)
+(define (compile-lambda exp target linkage ct-env)
   (let ((proc-entry (make-label 'entry))
         (after-lambda (make-label 'after-lambda)))
     (let ((lambda-linkage
@@ -1637,10 +1928,10 @@
              (op make-compiled-procedure)
              (label ,proc-entry)
              (reg env)))))
-        (compile-lambda-body exp proc-entry))
+        (compile-lambda-body exp proc-entry ct-env))
        after-lambda))))
 
-(define (compile-lambda-body exp proc-entry)
+(define (compile-lambda-body exp proc-entry ct-env)
   (let ((formals (lambda-parameters exp)))
     (append-instruction-sequences
      (make-instruction-sequence
@@ -1657,15 +1948,16 @@
                 (reg env))))
      (compile-sequence (lambda-body exp)
                        'val
-                       'return))))
+                       'return
+                       (extend-ct-environment ct-env formals)))))
 
 ;; Compiling Combinations
 
-(define (compile-application exp target linkage)
-  (let ((proc-code (compile (operator exp) 'proc 'next))
+(define (compile-application exp target linkage ct-env)
+  (let ((proc-code (compile (operator exp) 'proc 'next ct-env))
         (operand-codes
          (map (lambda (operand)
-                (compile operand 'val 'next))
+                (compile operand 'val 'next ct-env))
               (operands exp))))
     (preserving
      '(env continue)
@@ -1712,6 +2004,7 @@
            '(argl)
            '((assign argl
                      (op cons)
+                     ;; (op append-elem)
                      (reg val)
                      (reg argl)))))))
     (if (null? (cdr operand-codes))
@@ -1855,17 +2148,14 @@
          (list-difference (cdr s1) s2))
         (else
          (cons (car s1)
-               (list-difference (cdr s1)
-                                s2)))))
+               (list-difference (cdr s1) s2)))))
 
 (define (preserving regs seq1 seq2)
   (if (null? regs)
       (append-instruction-sequences seq1 seq2)
       (let ((first-reg (car regs)))
-        (if (and
-             (needs-register? seq2 first-reg)
-             (modifies-register? seq1
-                                 first-reg))
+        (if (and (needs-register? seq2 first-reg)     ;; to always save/restore comment here
+                 (modifies-register? seq1 first-reg)) ;; to remove the if check
             (preserving
              (cdr regs)
              (make-instruction-sequence
@@ -1875,14 +2165,15 @@
               (list-difference
                (registers-modified seq1)
                (list first-reg))
-              (append `((save ,first-reg))
-                      (statements seq1)
-                      `((restore ,first-reg))))
+              (append
+               `((save ,first-reg))
+               (statements seq1)
+               `((restore ,first-reg))))
              seq2)
-            (preserving
-             (cdr regs)
-             seq1
-             seq2)))))
+            (preserving                              ;; and here to remove the alternative
+             (cdr regs)                              ;; that also includes
+             seq1                                    ;; these
+             seq2)))))                               ;; few lines
 
 (define (tack-on-instruction-sequence seq body-seq)
   (make-instruction-sequence
@@ -1900,44 +2191,115 @@
    (append (statements seq1)
            (statements seq2))))
 
+;; combined env.
+
+(define (extend-env-pair env-pair skip-ct vars vals)
+  (let ((ct-env (car env-pair))
+        (gb-env (cdr env-pair)))
+    ;; extend global always
+    (set! gb-env (extend-environment vars vals gb-env))
+    (if skip-ct
+        ;; if skip, extend with empty to keep depth of env const wrt. global
+        (set! ct-env (extend-ct-environment ct-env (list the-empty-environment)))
+        (set! ct-env (extend-ct-environment ct-env vars)))
+    (cons ct-env gb-env)))
+
+(define (setup-env-pair)
+  ;; start empty
+  (let ((env-pair (cons the-empty-environment the-empty-environment)))
+    ;; add open-coded primitives
+    (set! env-pair (extend-env-pair env-pair #f (map car open-eceval-operations) (map (lambda (proc) (list 'primitive (cadr proc))) open-eceval-operations)))
+    ;; add the global env, but hide from compile time.
+    (set! env-pair (extend-env-pair env-pair #t (primitive-procedure-names) (primitive-procedure-objects)))
+    ;; return pair
+    env-pair))
+
 ;; compile collection over
 
-(define (compile-and-go expression)
+(define (compile-and-go show-option expression)
+  (let* ((data (skim-defines (scan-out-defines expression)))
+         (scanned-exp (cdr data))
+         (env-pair (extend-env-pair (setup-env-pair) #f (car data) (map (lambda (x) '*) (car data))))
+         (ct-env (car env-pair)))
+    (set! the-global-environment (cdr env-pair))
+    ;; need to set the gb-env each time.
+    ;; ??? design choice, but w/e
+    (let* ((instructions
+            (assemble
+             (statements (compile scanned-exp 'val 'return ct-env)) eceval)))
+      (set-register-contents! eceval 'val instructions)
+      (set-register-contents! eceval 'flag true)
+      (cond ((= show-option 1)
+             (for-each (lambda (i) (display (cadr i)) (newline)) instructions))
+            ((= show-option 2)
+             (display scanned-exp)
+             (newline)
+             (display ct-env)
+             (newline)
+             (display the-global-environment))))
+    (start eceval)))
+
+(define (go-compiled compiled)
+  (define (print-statements s)
+    (if (symbol? s) (list s) (cddr s))) ;; cddr rather than caddr
   (let ((instructions
          (assemble
-          (statements (compile expression 'val 'return)) eceval)))
+          (print-statements compiled) eceval)))
     (set! the-global-environment (setup-environment))
     (set-register-contents! eceval 'val instructions)
     (set-register-contents! eceval 'flag true)
     (start eceval)))
 
-;; (compile-and-go
-;;  '(define (factorial n)
-;;     (if (= n 1)
-;;         1
-;;         (* (factorial (- n 1)) n))))
+;;(compile-and-go 2 '(define (factorial n) (if (= n 1) 1 (* (factorial (- n 1)) n))))
 
-(compile-and-go
- '(define (fib n)
-    (if (< n 2)
-        n
-        (+ (fib (- n 1)) (fib (- n 2))))))
+;; (compile-and-go 2 '(define (factorial n) (if (= n 1) 1 (* n (factorial (- n 1))))))
+
+;; (compile-and-go 2 '(define (count-up n m)
+;;                      (if (= n (- m 1)) 'done (begin (count-up (- n 1) m) (display n)))))
+
+(define cube-exp '(begin
+                    (define (cube-root x)
+                      (define (cube-iter guess)
+                        (define (cube x) (* x x x))
+                        (define (good-guess? guess) (< (abs (- (cube guess) x)) 0.001))
+                        (define (improve guess) (/ (+ (/ x (* guess guess)) (* 2 guess)) 3))
+                        (if (good-guess? guess)
+                            guess
+                            (cube-iter (improve guess))))
+                      (cube-iter 1.0))))
+(compile-and-go 2 cube-exp)
+
+;; (compile-and-go 0 '(((lambda (x y) (lambda (a b c d e)
+;;                                    ((lambda (y z) (* x y z)) (* a b x) (+ c d x))))
+;;                    3 4) 1 2 3 4 5))
+
+;; (compile-and-go 2 '((lambda (x) (define a 4) (define b 5) (+ a b x)) 3))
+
+(define exp0 '(begin
+                (define (f x) (define a 3) (define b 3) (+ a b x))
+                (define (g x) (define c 2) (* c (f x)))))
+(compile-and-go 2 exp0)
 
 
-;; (compile-and-go '(define (cube-root x)
-;;                    (define (cube-iter guess)
-;;                      (define (cube x) (* x x x))
-;;                      (define (good-guess? guess) (< (abs (- (cube guess) x)) 0.001))
-;;                      (define (improve guess) (/ (+ (/ x (* guess guess)) (* 2 guess)) 3))
-;;                      (if (good-guess? guess)
-;;                          guess
-;;                          (cube-iter (improve guess))))
-;;                    (cube-iter 1.0)))
+(define exp1 '((lambda (x) (define a 6) (define b 5) (+ a b x)) 3))
+;;(compile-and-go 2 exp1)
 
 
-;; (compile-and-go '(((lambda (x y)
-;;                      (lambda (a b c d e)
-;;                        ((lambda (y z) (* x y z))
-;;                         (* a b x) (+ c d x))))
-;;                    3 4)
-;;                   1 2 3 4 5))
+(define exp2 '((lambda (a b c) (+ a b c)) 3 2 1))
+;;(compile-and-go 2 exp2)
+
+
+(define exp3 '((lambda (x) ((lambda (b a) (begin (set! a 6) (set! b 5) (+ a b x))) (quote ?) (quote ?))) 3))
+;;(compile-and-go 0 exp3)
+
+(define exp5 '((lambda (a b)
+                (define + -)
+                (+ a b))
+               4 4))
+;;(compile-and-go 2 exp5)
+
+(define exp6 '((lambda (+ * a b x y)
+                 (+ (* a x) (* b y)))
+               - + 2 4 2 4))
+;;(compile-and-go 2 exp6)
+
