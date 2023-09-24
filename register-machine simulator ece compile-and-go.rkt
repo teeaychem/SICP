@@ -17,6 +17,7 @@
 ;; * evaluator updated to require same save/restore regs to help debug.
 ;; * commented print statistics
 ;; * compile-and-go added
+;; * compiled procedures can call interpreted procedures
 
 ;; misc
 
@@ -102,8 +103,7 @@
     (define (dispatch message)
       (cond ((eq? message 'get) contents)
             ((eq? message 'set)
-             (lambda (value)
-               (set! contents value)))
+             (lambda (value) (set! contents value)))
             (else
              (error "Unknown request: REGISTER" message))))
     dispatch))
@@ -572,10 +572,7 @@
 (define (make-branch inst machine labels flag pc)
   (let ((dest (branch-dest inst)))
     (if (label-exp? dest)
-        (let ((insts
-               (lookup-label
-                labels
-                (label-exp-label dest))))
+        (let ((insts (lookup-label labels (label-exp-label dest))))
           (lambda ()
             (if (get-contents flag)
                 (set-contents! pc insts)
@@ -613,19 +610,17 @@
 
 (define (make-save inst machine stack pc)
   (let* ((reg-name (stack-inst-reg-name inst))
-        (reg (get-register
-              machine
-              reg-name)))
+        (reg (get-register machine reg-name)))
     (lambda ()
+      (for-each display (list "Save: " reg-name "\n"))
       (push stack (cons reg-name (get-contents reg)))
       (advance-pc pc))))
 
 (define (make-restore inst machine stack pc)
   (let* ((reg-name (stack-inst-reg-name inst))
-        (reg (get-register
-              machine
-              reg-name)))
+         (reg (get-register machine reg-name)))
     (lambda ()
+      (for-each display (list "Restore: " reg-name "\n"))
       (let* ((stack-pop (pop stack))
              (stack-name (car stack-pop))
              (stack-val (cdr stack-pop)))
@@ -1043,10 +1038,11 @@
 
 (define eceval
   (make-machine
-   '(exp env val proc argl continue unev)
+   '(exp env val proc argl continue unev compapp)
    eceval-operations
    '(
      ;; running the evaluator
+     (assign compapp (label compound-apply))
      (branch (label external-entry))
      read-eval-print-loop
      (perform (op initialize-stack))
@@ -1206,33 +1202,19 @@
 
      compiled-apply
      (restore continue)
-     (assign val
-             (op compiled-procedure-entry)
-             (reg proc))
+     (assign val (op compiled-procedure-entry) (reg proc))
      (goto (reg val))
 
      primitive-apply
-     (assign val (op apply-primitive-procedure)
-             (reg proc)
-             (reg argl))
+     (assign val (op apply-primitive-procedure) (reg proc) (reg argl))
      (restore continue)
      (goto (reg continue))
 
      compound-apply
-     (assign unev
-             (op procedure-parameters)
-             (reg proc))
-     (assign env
-             (op procedure-environment)
-             (reg proc))
-     (assign env
-             (op extend-environment)
-             (reg unev)
-             (reg argl)
-             (reg env))
-     (assign unev
-             (op procedure-body)
-             (reg proc))
+     (assign unev (op procedure-parameters) (reg proc))
+     (assign env (op procedure-environment) (reg proc))
+     (assign env (op extend-environment) (reg unev) (reg argl) (reg env))
+     (assign unev (op procedure-body) (reg proc))
      (goto (label ev-sequence))
 
      ;; sequence evaluation and tail recursion
@@ -1451,7 +1433,7 @@
    (string-append (symbol->string name)
                   (number->string (new-label-number)))))
 
-(define all-regs '(env proc val argl continue))
+(define all-regs '(env proc val argl continue compapp))
 
 ;; compile
 
@@ -1521,7 +1503,7 @@
     '()
     (list target)
     `((assign ,target
-       (const ,(text-of-quotation exp)))))))
+              (const ,(text-of-quotation exp)))))))
 
 (define (compile-variable exp target linkage)
   (end-with-linkage
@@ -1724,57 +1706,70 @@
 
 ;; Applying procedures
 
-(define (compile-procedure-call
-         target linkage)
+(define (compile-procedure-call target linkage)
   (let ((primitive-branch (make-label 'primitive-branch))
         (compiled-branch (make-label 'compiled-branch))
+        (compound-branch (make-label 'compound-branch))
         (after-call (make-label 'after-call)))
-    (let ((compiled-linkage
-           (if (eq? linkage 'next)
-               after-call
+    (let ((compiled-linkage         ;; either primitve or compile.
+           (if (eq? linkage 'next)  ;; add code for both.
+               after-call           ;; so, maybe need to ignore primitive.
                linkage)))
       (append-instruction-sequences
-       (make-instruction-sequence
+       (make-instruction-sequence ;; test for primitive op
         '(proc)
         '()
-        `((test
-           (op primitive-procedure?)
-           (reg proc))
-          (branch
-           (label ,primitive-branch))))
+        `((test (op primitive-procedure?) (reg proc))
+          (branch (label ,primitive-branch))))
+       (make-instruction-sequence ;; test for compound
+        '(proc)
+        '()
+        `((test (op compound-procedure?) (reg proc))
+          (branch (label ,compound-branch)))) ;; branch to compound
        (parallel-instruction-sequences
-        (append-instruction-sequences
-         compiled-branch
-         (compile-proc-appl
-          target
-          compiled-linkage))
-        (append-instruction-sequences
-         primitive-branch
-         (end-with-linkage
-          linkage
-          (make-instruction-sequence
-           '(proc argl)
-           (list target)
-           `((assign
-              ,target
-              (op apply-primitive-procedure)
-              (reg proc)
-              (reg argl)))))))
+        (append-instruction-sequences ;; compiled branch
+         compiled-branch              ;; go to compile-proc-appl
+         (compile-proc-appl target compiled-linkage))
+        (parallel-instruction-sequences
+         (append-instruction-sequences ;; compiled branch
+          compound-branch              ;; go to compound-proc-appl
+          (compound-proc-appl target compiled-linkage))
+         (append-instruction-sequences ;; primitive branch
+          primitive-branch             ;; make-instruction-sequence
+          (end-with-linkage
+           linkage
+           (make-instruction-sequence
+            '(proc argl)
+            (list target)
+            `((assign
+               ,target
+               (op apply-primitive-procedure) (reg proc) (reg argl))))))))
        after-call))))
 
 ;; Applying compiled procedures
 
+;; compiled procedure always ends up in val.
+;; goal may be to put it somewhere else.
+;; first two cases, target is val.
+;; if linakge isn't return, then need to preserve continue.
+;; third case is target other than val.
+;; here, need to return in order to shift result to right target.
+
 (define (compile-proc-appl target linkage)
   (cond ((and (eq? target 'val)
-              (not (eq? linkage 'return)))
-         (make-instruction-sequence
+              (not (eq? linkage 'return))) ;; not return from procedure being
+         (make-instruction-sequence        ;; compiled.
           '(proc)
           all-regs
           `((assign continue (label ,linkage))
-            (assign
-             val
-             (op compiled-procedure-entry)
-             (reg proc))
+            (assign val (op compiled-procedure-entry) (reg proc))
+            (goto (reg val)))))
+        ((and (eq? target 'val)
+              (eq? linkage 'return))
+         (make-instruction-sequence
+          '(proc continue)
+          all-regs
+          '((assign val (op compiled-procedure-entry) (reg proc))
             (goto (reg val)))))
         ((and (not (eq? target 'val))
               (not (eq? linkage 'return)))
@@ -1788,16 +1783,40 @@
               ,proc-return
               (assign ,target (reg val))
               (goto (label ,linkage))))))
+        ((and (not (eq? target 'val))
+              (eq? linkage 'return))
+         (error "return linkage, target not val: COMPILE" target))))
+
+
+;; compound proc
+(define (compound-proc-appl target linkage)
+  (cond ((and (eq? target 'val)
+              (not (eq? linkage 'return))) ;; not return from procedure being
+         (make-instruction-sequence        ;; compiled.
+          '(proc)
+          all-regs
+          `((assign continue (label ,linkage))
+            (save continue)
+            (goto (reg compapp)))))
         ((and (eq? target 'val)
               (eq? linkage 'return))
          (make-instruction-sequence
           '(proc continue)
           all-regs
-          '((assign
-             val
-             (op compiled-procedure-entry)
-             (reg proc))
-            (goto (reg val)))))
+          '((save continue)
+            (goto (reg compapp)))))
+        ((and (not (eq? target 'val))
+              (not (eq? linkage 'return)))
+         (let ((proc-return (make-label 'proc-return)))
+           (make-instruction-sequence
+            '(proc)
+            all-regs
+            `((assign continue (label ,proc-return))
+              (save continue)
+              (goto (reg compapp))
+              ,proc-return
+              (assign ,target (reg val))
+              (goto (label ,linkage))))))
         ((and (not (eq? target 'val))
               (eq? linkage 'return))
          (error "return linkage, target not val: COMPILE" target))))
@@ -1917,11 +1936,11 @@
 ;;         1
 ;;         (* (factorial (- n 1)) n))))
 
-(compile-and-go
- '(define (fib n)
-    (if (< n 2)
-        n
-        (+ (fib (- n 1)) (fib (- n 2))))))
+;; (compile-and-go
+;;  '(define (fib n)
+;;     (if (< n 2)
+;;         n
+;;         (+ (fib (- n 1)) (fib (- n 2))))))
 
 
 ;; (compile-and-go '(define (cube-root x)
@@ -1941,3 +1960,6 @@
 ;;                         (* a b x) (+ c d x))))
 ;;                    3 4)
 ;;                   1 2 3 4 5))
+
+
+(compile-and-go '(define (f x) (g x)))
