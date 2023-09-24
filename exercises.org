@@ -17731,3 +17731,106 @@ For the ratio of total pushes:
 Of course, this isn't a ratio in terms of ~n~ alone, but rather ~fib~.
 
 Still, this is coincidently quite close to the result obtained for factorial.
+
+** 5.47
+
+The difficulty present is to access interpreted procedures control needs to be handed over to the simulator.
+There's no way to know what's set to be defined ahead of time.
+
+Compiled code more-or-less tracks path that would be taken through the simulator.
+In particular, ~compile-procedure-call~ and the following procs closely parallels ~apply-dispatch~.
+The difference being the lack of a ~compound-apply~ parallel.
+~compound-apply~ goes to ~ev-sequence~, and this in turn may call only interpreted procedures, etc.
+
+So, we need to hand over evaluation of everything to the simulator at this point.
+
+This is simple to do with the additional register via ~(goto (reg compapp))~.
+
+The solution here is complicated a little due to the compiler being set up to optimise while the simulator is not.
+In other words, it's important to explicitly save the contents of the ~continue~ register before giong to ~compound-apply~.
+But, that's all.
+
+~compound-proc-appl~ is as follows:
+
+#+BEGIN_SRC racket
+(define (compound-proc-appl target linkage)
+  (cond ((and (eq? target 'val)
+              (not (eq? linkage 'return))) ;; not return from procedure being
+         (make-instruction-sequence        ;; compiled.
+          '(proc)
+          all-regs
+          `((assign continue (label ,linkage))
+            (save continue)
+            (goto (reg compapp)))))
+        ((and (eq? target 'val)
+              (eq? linkage 'return))
+         (make-instruction-sequence
+          '(proc continue)
+          all-regs
+          '((save continue)
+            (goto (reg compapp)))))
+        ((and (not (eq? target 'val))
+              (not (eq? linkage 'return)))
+         (let ((proc-return (make-label 'proc-return)))
+           (make-instruction-sequence
+            '(proc)
+            all-regs
+            `((assign continue (label ,proc-return))
+              (save continue)
+              (goto (reg compapp))
+              ,proc-return
+              (assign ,target (reg val))
+              (goto (label ,linkage))))))
+        ((and (not (eq? target 'val))
+              (eq? linkage 'return))
+         (error "return linkage, target not val: COMPILE" target))))
+
+#+END_SRC
+
+This parallels ~compile-proc-appl~, but saves continue and goes to ~compound-apply~ (rather than paralleling ~compiled-apply~).
+
+And ~compile-procedure-call~ is as follows:
+
+#+BEGIN_SRC racket
+  (define (compile-procedure-call target linkage)
+    (let ((primitive-branch (make-label 'primitive-branch))
+	  (compiled-branch (make-label 'compiled-branch))
+	  (compound-branch (make-label 'compound-branch))
+	  (after-call (make-label 'after-call)))
+      (let ((compiled-linkage         ;; either primitve or compile.
+	     (if (eq? linkage 'next)  ;; add code for both.
+		 after-call           ;; so, maybe need to ignore primitive.
+		 linkage)))
+	(append-instruction-sequences
+	 (make-instruction-sequence ;; test for primitive op
+	  '(proc)
+	  '()
+	  `((test (op primitive-procedure?) (reg proc))
+	    (branch (label ,primitive-branch))))
+	 (make-instruction-sequence ;; test for compound
+	  '(proc)
+	  '()
+	  `((test (op compound-procedure?) (reg proc))
+	    (branch (label ,compound-branch)))) ;; branch to compound
+	 (parallel-instruction-sequences
+	  (append-instruction-sequences ;; compiled branch
+	   compiled-branch              ;; go to compile-proc-appl
+	   (compile-proc-appl target compiled-linkage))
+	  (parallel-instruction-sequences
+	   (append-instruction-sequences ;; compiled branch
+	    compound-branch              ;; go to compound-proc-appl
+	    (compound-proc-appl target compiled-linkage))
+	   (append-instruction-sequences ;; primitive branch
+	    primitive-branch             ;; make-instruction-sequence
+	    (end-with-linkage
+	     linkage
+	     (make-instruction-sequence
+	      '(proc argl)
+	      (list target)
+	      `((assign
+		 ,target
+		 (op apply-primitive-procedure) (reg proc) (reg argl))))))))
+	 after-call))))
+#+END_SRC
+
+A compiled branch is added, along with a corresponding parallel instruction sequence.
