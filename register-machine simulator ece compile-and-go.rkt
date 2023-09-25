@@ -18,6 +18,18 @@
 ;; * commented print statistics
 ;; * compile-and-go added
 ;; * compiled procedures can call interpreted procedures
+;; * support for compile-and-run
+
+;; compile-and-run
+
+(define (compile-and-run? exp) (tagged-list? exp 'compile-and-run))
+
+(define (compile-and-run expression)
+  (assemble (statements (compile expression 'val 'return)) eceval))
+
+(define (compile-and-run-exp exp)
+  (cadadr exp))
+
 
 ;; misc
 
@@ -61,7 +73,6 @@
          (cons (car sequence)
                (filter predicate (cdr sequence))))
         (else (filter predicate (cdr sequence)))))
-
 
 (define (filter-unique test transform sequence)
   (let ((seen '()))
@@ -197,8 +208,9 @@
                (f-registers
                 (if (null? insts)
                     '()
-                    (filter-unique (lambda (x) x) (lambda (x) x) (found-registers (instruction-text (car insts))))
-                    )))
+                    (filter-unique (lambda (x) x)
+                                   (lambda (x) x)
+                                   (found-registers (instruction-text (car insts)))))))
           (if (or (= n 0) (null? insts))
               'done
               (begin
@@ -213,8 +225,7 @@
                                          (display " - + ")
                                          (display x)
                                          (display " has value: ")
-                                         (display ((lookup-register x) 'get-simple))) f-registers)
-                             ))
+                                         (display ((lookup-register x) 'get-simple))) f-registers)))
                       (newline)))
                 ((instruction-execution-proc (car insts)))
                 (set! instruction-count (+ instruction-count 1))
@@ -227,8 +238,7 @@
                                          (display " - + ")
                                          (display x)
                                          (display " has value: ")
-                                         (display ((lookup-register x) 'get-simple))) f-registers)
-                             ))
+                                         (display ((lookup-register x) 'get-simple))) f-registers)))
                       (newline)))
                 (execute-n-trace (- n 1) trace)))))
       (define (manual-execute-trace trace)
@@ -277,15 +287,13 @@
                (set-contents! pc the-instruction-sequence)
                (lambda (trace?) (manual-execute-trace trace?)))
               ((eq? message 'install-instruction-sequence)
-               (lambda (seq)
-                 (set! the-instruction-sequence seq)))
+               (lambda (seq) (set! the-instruction-sequence seq)))
               ((eq? message 'allocate-register)
                allocate-register)
               ((eq? message 'get-register)
                lookup-register)
               ((eq? message 'install-operations)
-               (lambda (ops)
-                 (set! the-ops (append the-ops ops))))
+               (lambda (ops) (set! the-ops (append the-ops ops))))
               ((eq? message 'stack)
                stack)
               ((eq? message 'operations)
@@ -1032,8 +1040,10 @@
 
         (list 'list list)
         (list 'cons cons)
-;        (list 'abs abs)
 
+        (list 'compile-and-run? compile-and-run?)
+        (list 'compile-and-run compile-and-run)
+        (list 'compile-and-run-exp compile-and-run-exp)
         ))
 
 (define eceval
@@ -1098,9 +1108,17 @@
      (branch (label ev-begin))
      (test (op cond?) (reg exp))
      (branch (label cond->if))
+     (test (op compile-and-run?) (reg exp))
+     (branch (label ev-compile-and-run))
      (test (op application?) (reg exp))
      (branch (label ev-application))
      (goto (label unknown-expression-type))
+
+     ;; compile-and-run
+     ev-compile-and-run
+     (assign exp (op compile-and-run-exp) (reg exp))
+     (assign val (op compile-and-run) (reg exp))
+     (goto (reg val))
 
      ;; evaluating simple expressions
      ev-self-eval
@@ -1530,8 +1548,7 @@
                              (const ,var)
                              (reg val)
                              (reg env))
-                    (assign ,target (const ok))
-                    ))))))
+                    (assign ,target (const ok))))))))
 
 (define (compile-definition exp target linkage)
   (let ((var (definition-variable exp))
@@ -1821,7 +1838,6 @@
               (eq? linkage 'return))
          (error "return linkage, target not val: COMPILE" target))))
 
-
 ;; Combining Instruction Sequences
 
 (define (registers-needed s)
@@ -1874,8 +1890,7 @@
          (list-difference (cdr s1) s2))
         (else
          (cons (car s1)
-               (list-difference (cdr s1)
-                                s2)))))
+               (list-difference (cdr s1) s2)))))
 
 (define (preserving regs seq1 seq2)
   (if (null? regs)
@@ -1899,9 +1914,7 @@
                       `((restore ,first-reg))))
              seq2)
             (preserving
-             (cdr regs)
-             seq1
-             seq2)))))
+             (cdr regs) seq1 seq2)))))
 
 (define (tack-on-instruction-sequence seq body-seq)
   (make-instruction-sequence
@@ -1922,9 +1935,9 @@
 ;; compile collection over
 
 (define (compile-and-go expression)
+  (display expression)
   (let ((instructions
-         (assemble
-          (statements (compile expression 'val 'return)) eceval)))
+         (assemble (statements (compile expression 'val 'return)) eceval)))
     (set! the-global-environment (setup-environment))
     (set-register-contents! eceval 'val instructions)
     (set-register-contents! eceval 'flag true)
