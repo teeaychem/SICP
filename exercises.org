@@ -17834,3 +17834,50 @@ And ~compile-procedure-call~ is as follows:
 #+END_SRC
 
 A compiled branch is added, along with a corresponding parallel instruction sequence.
+
+** 5.48
+
+*** Sketch
+
+In the simulator, add a new test for ~compile-and-run~.
+Passing this test is a new ~eceval-op~, ~compile~.
+Put this into the ~val~ register.
+Then, goto the ~val~ register.
+
+At this point, the compiled code is read.
+And defs will be added to the relevant env, and any procs executed, etc.
+
+*** Overview
+
+To start, the procedures the simulator calls:
+
+#+BEGIN_SRC racket
+  (define (compile-and-run? exp) (tagged-list? exp 'compile-and-run))
+
+  (define (compile-and-run expression)
+    (assemble (statements (compile expression 'val 'return)) eceval))
+
+  (define (compile-and-run-exp exp)
+    (cadadr exp)) ;; remove tag and then remove quote
+#+END_SRC
+
+~compile-and-run~ is just ~compile-and-go~ cut down to return ~instructions~.
+Having ~eceval~ hardcoded is fine for the given purpose, as the proc is only going to be called with ~eceval~ defined.
+Though, for something more general it would be nice to tie dynamically link the simulator ~compile-and-run~ is called from and the argument to the compiler.
+
+~eval-dispatch~ is extended with:
+
+#+BEGIN_SRC racket
+  (test (op compile-and-run?) (reg exp))
+  (branch (label ev-compile-and-run))
+#+END_SRC
+
+And to the compiler we (also) add:
+
+#+BEGIN_SRC racket
+  ;; compile-and-run
+  ev-compile-and-run
+  (assign exp (op compile-and-run-exp) (reg exp))
+  (assign val (op compile-and-run) (reg exp))
+  (goto (reg val))
+#+END_SRC
