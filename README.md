@@ -25,3 +25,5 @@ Still, starting around chapter 3 most of the results are viewable by inspecting 
 
 Some exercises are (perhaps partially) deferred to another time. 
 A reason is usually given.
+
+The last few exercises are on hold while I bursh up on C. I hope to return to them at some point!
